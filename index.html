@@ -5,16 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Panel Logística</title>
 
-<!-- =========================================================
-     SDKs de Firebase (compat para no usar Node.js)
-     ========================================================= -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <style>
-/* =========================================================
-   AJUSTES RÁPIDOS (CSS VARIABLES)
-   ========================================================= */
 :root{
   --btn-bg: #0066cc;
   --btn-bg-hover: #004c99;
@@ -30,37 +21,18 @@
   --glow: #00ff88;
   --blink-duration: 0.9s;
 }
-
 *{ box-sizing: border-box; }
-html, body{
-  height: 100%;
-  margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  color: #fff;
-  background:#111;
-}
-body{ overflow: hidden; }
+html, body{ height: 100%; margin:0; font-family: Arial, Helvetica, sans-serif; color:#fff; background:#111; }
+body{ overflow:hidden; }
 
 .pantalla{ display: none; width:100%; height:100vh; }
-.pantalla.activa{ display:flex; flex-direction:column; }
+.pantalla.activa{ display: flex; flex-direction: column; }
 
-/* Pantalla 1 */
-#pantalla1{ align-items:center; justify-content:center; background:linear-gradient(135deg,#222,#444); gap:18px; }
+#pantalla1{ align-items: center; justify-content:center; background: linear-gradient(135deg, #222,#444); gap:18px; }
 #pantalla1 h1{ margin:0 0 8px; }
-.usuario-btn{
-  background: var(--btn-bg);
-  color:#fff;
-  border:0;
-  padding:14px 28px;
-  margin:8px;
-  border-radius:10px;
-  font-size:18px;
-  cursor:pointer;
-  transition: background .25s ease;
-}
+.usuario-btn{ background: var(--btn-bg); color:#fff; border:0; padding:14px 28px; margin:8px; border-radius:10px; font-size:18px; cursor:pointer; transition: background .25s ease; }
 .usuario-btn:hover{ background: var(--btn-bg-hover); }
 
-/* Pantalla 2 */
 #pantalla2{
   background-color:#000;
   background-image:
@@ -69,53 +41,17 @@ body{ overflow: hidden; }
   background-size: var(--grid-size) var(--grid-size);
   box-shadow: inset 0 0 90px var(--vignette);
 }
-.header{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:16px 20px 6px;
-}
-#tituloFijo{
-  font-weight:800;
-  text-align:center;
-  letter-spacing:.5px;
-  text-shadow:0 2px 8px rgba(0,0,0,.65);
-  font-size:var(--titulo-size);
-}
-.zona-centro{
-  flex:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:10px 24px 28px;
-}
-.grupo-contenedor{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(200px, 1fr));
-  gap: clamp(24px, 4vw, 64px);
-  width: min(1200px, 96vw);
-}
+
+.header{ display:flex; align-items:center; justify-content:center; padding:16px 20px 6px; }
+#tituloFijo{ font-weight:800; text-align:center; letter-spacing:.5px; text-shadow: 0 2px 8px rgba(0,0,0,.65); font-size: var(--titulo-size); }
+
+.zona-centro{ flex:1; display:flex; align-items:center; justify-content:center; padding:10px 24px 28px; }
+.grupo-contenedor{ display:grid; grid-template-columns: repeat(3,minmax(200px,1fr)); gap: clamp(24px,4vw,64px); width:min(1200px,96vw); }
 .grupo{ display:flex; flex-direction:column; align-items:center; text-align:center; }
-.grupo .nombre{
-  font-size: clamp(20px,2.2vw,28px);
-  font-weight:800;
-  margin-bottom:8px;
-  letter-spacing:.5px;
-  text-shadow:0 1px 6px rgba(0,0,0,.5);
-}
-.grupo .tarimas{
-  font-size: clamp(16px,1.7vw,22px);
-  opacity:.9;
-  margin-bottom:14px;
-}
-.leds{
-  display:flex;
-  gap: var(--led-gap);
-  justify-content:center;
-  align-items:center;
-  flex-wrap:nowrap;
-  padding:4px;
-}
+.grupo .nombre{ font-size: clamp(20px,2.2vw,28px); font-weight:800; margin-bottom:8px; letter-spacing:.5px; text-shadow:0 1px 6px rgba(0,0,0,.5); }
+.grupo .tarimas{ font-size: clamp(16px,1.7vw,22px); opacity:.9; margin-bottom:14px; }
+
+.leds{ display:flex; gap: var(--led-gap); justify-content:center; align-items:center; flex-wrap:nowrap; padding:4px; }
 .led{
   width: var(--led-size);
   height: var(--led-size);
@@ -131,24 +67,22 @@ body{ overflow: hidden; }
 .led:active{ transform: scale(.96); }
 .led.on{
   background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
-  box-shadow:
-    0 0 22px var(--glow),
-    inset -4px -5px 8px rgba(0,0,0,.75),
-    inset 3px 4px 7px rgba(255,255,255,.10);
+  box-shadow: 0 0 22px var(--glow),
+              inset -4px -5px 8px rgba(0,0,0,.75),
+              inset 3px 4px 7px rgba(255,255,255,.10);
   animation: blink var(--blink-duration) ease-in-out infinite;
 }
-@keyframes blink{
-  0%,100%{ filter:brightness(1); }
-  50%{ filter:brightness(1.25); }
-}
-@media (max-width:720px){
-  .grupo-contenedor{ grid-template-columns:1fr; }
-}
+@keyframes blink{ 0%,100%{filter:brightness(1);} 50%{filter:brightness(1.25);} }
+@media (max-width:720px){ .grupo-contenedor{ grid-template-columns:1fr; } }
 </style>
-</head>
-<body>
 
-<section id="pantalla1" class="pantalla activa">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"></script>
+
+<body>
+<section id="pantalla1" class="pantalla activa" aria-label="Selección de usuario">
   <h1>Selecciona tu usuario</h1>
   <div>
     <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
@@ -158,10 +92,8 @@ body{ overflow: hidden; }
   </div>
 </section>
 
-<section id="pantalla2" class="pantalla">
-  <header class="header">
-    <div id="tituloFijo">LOGÍSTICA</div>
-  </header>
+<section id="pantalla2" class="pantalla" aria-label="Panel principal">
+  <header class="header"><div id="tituloFijo">LOGÍSTICA</div></header>
   <div class="zona-centro">
     <div class="grupo-contenedor">
       <div class="grupo" data-grupo="MULTIPORT">
@@ -184,24 +116,24 @@ body{ overflow: hidden; }
 </section>
 
 <script>
-/* =========================================================
-   CONFIG Y ESTADO GLOBAL
-   ========================================================= */
+// ===================== CONFIG =====================
 const CONFIG = {
-  LED_COUNT: 5,
-  TITULO_FIJO: 'LOGÍSTICA',
-  USUARIOS: ['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS']
-};
-let usuarioSeleccionado = null;
-let estadoLEDs = {
-  MULTIPORT: Array(CONFIG.LED_COUNT).fill(false),
-  BEDROCK: Array(CONFIG.LED_COUNT).fill(false),
-  DROPS: Array(CONFIG.LED_COUNT).fill(false)
+  LED_COUNT:5,
+  STORAGE_KEY:'ledEstado_v1',
+  TITULO_FIJO:'LOGÍSTICA',
+  USUARIOS:['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS']
 };
 
-/* =========================================================
-   FIREBASE
-   ========================================================= */
+// ===================== ESTADO GLOBAL =====================
+let usuarioSeleccionado = null;
+let estadoLEDs = {
+  MULTIPORT:Array(CONFIG.LED_COUNT).fill(false),
+  BEDROCK:Array(CONFIG.LED_COUNT).fill(false),
+  DROPS:Array(CONFIG.LED_COUNT).fill(false)
+};
+let usuarioUID = null; // UID del usuario actual (anónimo)
+
+// ===================== FIREBASE CONFIG =====================
 const firebaseConfig = {
   apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
   authDomain: "panel-logistica.firebaseapp.com",
@@ -212,22 +144,47 @@ const firebaseConfig = {
   appId: "1:38365879945:web:e2f3590fe77f013dba3058"
 };
 firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const ledRef = database.ref('estadoLEDs');
+const db = firebase.database();
 
-/* =========================================================
-   FUNCIONES DE RENDER
-   ========================================================= */
+// ===================== AUTENTICACIÓN ANÓNIMA =====================
+firebase.auth().signInAnonymously()
+  .then(()=>console.log('Usuario anónimo conectado'))
+  .catch(err=>console.error('Auth error:',err));
+
+firebase.auth().onAuthStateChanged(user=>{
+  if(user) usuarioUID = user.uid;
+});
+
+// ===================== UTILIDADES =====================
+function guardarEstado(){
+  if(!usuarioUID) return;
+  db.ref('estadoLEDs').set(estadoLEDs);
+}
+function cargarEstado(){
+  db.ref('estadoLEDs').on('value', snapshot=>{
+    const data = snapshot.val();
+    if(!data) return;
+    ['MULTIPORT','BEDROCK','DROPS'].forEach(g=>{
+      if(Array.isArray(data[g])){
+        estadoLEDs[g] = data[g].slice(0, CONFIG.LED_COUNT);
+        while(estadoLEDs[g].length<CONFIG.LED_COUNT) estadoLEDs[g].push(false);
+      }
+    });
+    pintarEstado();
+  });
+}
+
+// ===================== RENDER LEDS =====================
 function inyectaLEDs(){
-  document.querySelectorAll('.leds').forEach(contenedor=>{
-    const grupo = contenedor.dataset.grupo;
-    contenedor.innerHTML = '';
+  document.querySelectorAll('.leds').forEach(c=>{
+    const grupo = c.dataset.grupo;
+    c.innerHTML='';
     for(let i=0;i<CONFIG.LED_COUNT;i++){
       const led = document.createElement('div');
       led.className='led';
       led.title=`${grupo} • LED ${i+1}`;
       led.addEventListener('click', ()=> togglearLED(grupo,i));
-      contenedor.appendChild(led);
+      c.appendChild(led);
     }
   });
 }
@@ -235,34 +192,12 @@ function pintarEstado(){
   Object.keys(estadoLEDs).forEach(grupo=>{
     const leds = document.querySelectorAll(`.leds[data-grupo="${grupo}"] .led`);
     estadoLEDs[grupo].forEach((encendido,i)=>{
-      if(leds[i]) leds[i].classList.toggle('on', !!encendido);
+      if(leds[i]) leds[i].classList.toggle('on',!!encendido);
     });
   });
 }
 
-/* =========================================================
-   FIREBASE: sincronización en tiempo real
-   ========================================================= */
-function guardarEstado(){
-  ledRef.set(estadoLEDs).catch(e=>console.warn('Error guardando en Firebase:',e));
-}
-function cargarEstado(){
-  ledRef.on('value',(snapshot)=>{
-    const data = snapshot.val();
-    if(!data) return;
-    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
-      if(Array.isArray(data[grupo])){
-        estadoLEDs[grupo] = data[grupo].slice(0, CONFIG.LED_COUNT);
-        while(estadoLEDs[grupo].length<CONFIG.LED_COUNT) estadoLEDs[grupo].push(false);
-      }
-    });
-    pintarEstado();
-  });
-}
-
-/* =========================================================
-   PERMISOS Y LÓGICA
-   ========================================================= */
+// ===================== PERMISOS =====================
 function puedeControlar(grupo){
   if(!usuarioSeleccionado) return false;
   if(usuarioSeleccionado==='LOGÍSTICA') return true;
@@ -275,9 +210,7 @@ function togglearLED(grupo,idx){
   pintarEstado();
 }
 
-/* =========================================================
-   NAVEGACIÓN
-   ========================================================= */
+// ===================== NAVEGACIÓN =====================
 function activarPantalla(id){
   document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
   document.getElementById(id).classList.add('activa');
@@ -288,12 +221,10 @@ function seleccionarUsuario(usuario){
   document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
   activarPantalla('pantalla2');
   inyectaLEDs();
-  cargarEstado(); // Firebase sincroniza
+  cargarEstado();
 }
 
-/* =========================================================
-   ARRANQUE
-   ========================================================= */
+// ===================== ARRANQUE =====================
 window.addEventListener('load', ()=>{
   usuarioSeleccionado = null;
   activarPantalla('pantalla1');
@@ -301,6 +232,5 @@ window.addEventListener('load', ()=>{
   cargarEstado();
 });
 </script>
-
 </body>
 </html>
