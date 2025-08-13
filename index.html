@@ -4,17 +4,13 @@
 <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Logística</title>
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0066cc">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
 
-<!-- ================= FIREBASE SDK ================= -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<!-- ================= PWA Manifest ================= -->
-<link rel="manifest" href="manifest.json" />
 
 <style>
 :root{
@@ -110,7 +106,6 @@ body{ overflow:hidden; }
 
 <body>
 
-<!-- PANTALLA 1 -->
 <section id="pantalla1" class="pantalla activa">
   <h1>Selecciona tu usuario</h1>
   <div>
@@ -121,7 +116,6 @@ body{ overflow:hidden; }
   </div>
 </section>
 
-<!-- PANTALLA 2 -->
 <section id="pantalla2" class="pantalla">
   <header class="header">
     <div id="tituloFijo">LOGÍSTICA</div>
@@ -129,7 +123,6 @@ body{ overflow:hidden; }
   <div class="zona-centro">
     <div class="grupo-contenedor">
 
-      <!-- MULTIPORT -->
       <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
         <div class="tarimas">Tarimas</div>
@@ -137,7 +130,6 @@ body{ overflow:hidden; }
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
       </div>
 
-      <!-- DROPS -->
       <div class="grupo" data-grupo="DROPS">
         <div class="nombre">DROPS</div>
         <div class="tarimas">Tarimas</div>
@@ -145,23 +137,18 @@ body{ overflow:hidden; }
         <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
       </div>
 
-      <!-- BEDROCK -->
       <div class="grupo" data-grupo="BEDROCK">
         <div class="nombre">BEDROCK</div>
         <div class="tarimas">Tarimas</div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
       </div>
-      
-       <button id="installButton" style="display:none; margin-top:20px;">
-    Instalar aplicación
-  </button>
-
-  <script src="main.js"></script>
-  <script src="leds.js"></script>
-
     </div>
   </div>
+  
+  <button id="installButton" style="display:none; margin-top:20px;">
+    Instalar aplicación
+  </button>
 </section>
 
 <script>
@@ -279,22 +266,29 @@ window.addEventListener('load', ()=>{
   cargarEstado();
 });
 
-// ================= PWA: Service Worker =================
- if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log("Service Worker registrado"));
-        }
+// ================= PWA: Service Worker y Prompt de Instalación =================
+let deferredPrompt;
+const installButton = document.getElementById('installButton');
 
-        // Mostrar prompt automático para instalación
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); // Evita que el navegador lo maneje por defecto
-            e.prompt(); // Lanza el diálogo de instalación inmediatamente
-            e.userChoice.then(choiceResult => {
-                console.log(choiceResult.outcome === 'accepted'
-                    ? "Usuario aceptó instalar"
-                    : "Usuario rechazó instalar");
-            });
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log("Service Worker registrado"));
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installButton.style.display = 'block';
+
+    installButton.addEventListener('click', () => {
+        installButton.style.display = 'none';
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            console.log(choiceResult.outcome === 'accepted' ? "El usuario aceptó la instalación" : "El usuario rechazó la instalación");
+            deferredPrompt = null;
         });
-    </script>
+    });
+});
+</script>
 </body>
 </html>
