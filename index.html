@@ -277,38 +277,21 @@ window.addEventListener('load', ()=>{
 });
 
 // ================= PWA: Service Worker =================
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js').then(reg=>{
-      console.log('ServiceWorker registrado:', reg);
-    }).catch(err=>{
-      console.warn('ServiceWorker error:', err);
-    });
-  });
-}
-// ================= PWA: Botón de instalación en PC =================
-    let deferredPrompt;
-    const installButton = document.getElementById('installButton');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installButton.style.display = 'inline-block';
-    });
-
-    installButton.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          console.log('Usuario aceptó la instalación');
-        } else {
-          console.log('Usuario rechazó la instalación');
+ if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log("Service Worker registrado"));
         }
-        deferredPrompt = null;
-        installButton.style.display = 'none';
-      }
-    });
-  </script>
+
+        // Mostrar prompt automático para instalación
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); // Evita que el navegador lo maneje por defecto
+            e.prompt(); // Lanza el diálogo de instalación inmediatamente
+            e.userChoice.then(choiceResult => {
+                console.log(choiceResult.outcome === 'accepted'
+                    ? "Usuario aceptó instalar"
+                    : "Usuario rechazó instalar");
+            });
+        });
+    </script>
 </body>
 </html>
