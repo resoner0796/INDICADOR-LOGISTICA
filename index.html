@@ -125,21 +125,31 @@ body{ overflow:hidden; }
   </header>
   <div class="zona-centro">
     <div class="grupo-contenedor">
+
+      <!-- MULTIPORT -->
       <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
         <div class="tarimas">Tarimas</div>
-        <div class="leds" data-grupo="MULTIPORT"></div>
+        <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
+        <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
       </div>
+
+      <!-- DROPS -->
       <div class="grupo" data-grupo="DROPS">
         <div class="nombre">DROPS</div>
         <div class="tarimas">Tarimas</div>
-        <div class="leds" data-grupo="DROPS"></div>
+        <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
+        <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
       </div>
+
+      <!-- BEDROCK -->
       <div class="grupo" data-grupo="BEDROCK">
         <div class="nombre">BEDROCK</div>
         <div class="tarimas">Tarimas</div>
-        <div class="leds" data-grupo="BEDROCK"></div>
+        <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
+        <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
       </div>
+
     </div>
   </div>
 </section>
@@ -149,18 +159,9 @@ body{ overflow:hidden; }
 const CONFIG = { LED_COUNT:5, TITULO_FIJO:'LOGÍSTICA', USUARIOS:['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS'] };
 let usuarioSeleccionado = null;
 let estadoLEDs = {
-  MULTIPORT: {
-    linea1: Array(CONFIG.LED_COUNT).fill(false),
-    linea2: Array(CONFIG.LED_COUNT).fill(false)
-  },
-  BEDROCK: {
-    linea1: Array(CONFIG.LED_COUNT).fill(false),
-    linea2: Array(CONFIG.LED_COUNT).fill(false)
-  },
-  DROPS: {
-    linea1: Array(CONFIG.LED_COUNT).fill(false),
-    linea2: Array(CONFIG.LED_COUNT).fill(false)
-  }
+  MULTIPORT: { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
+  BEDROCK:  { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
+  DROPS:    { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) }
 };
 
 // ================= FIREBASE =================
@@ -218,9 +219,13 @@ function cargarEstado(){
     const data = snapshot.val();
     if(!data) return;
     ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
-      if(Array.isArray(data[grupo])){
-        estadoLEDs[grupo] = data[grupo].slice(0, CONFIG.LED_COUNT);
-        while(estadoLEDs[grupo].length<CONFIG.LED_COUNT) estadoLEDs[grupo].push(false);
+      if(data[grupo]){
+        ['linea1','linea2'].forEach(linea=>{
+          if(Array.isArray(data[grupo][linea])){
+            estadoLEDs[grupo][linea] = data[grupo][linea].slice(0, CONFIG.LED_COUNT);
+            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push(false);
+          }
+        });
       }
     });
     pintarEstado();
@@ -236,7 +241,6 @@ function puedeControlar(grupo){
 
 function togglearLED(grupo, idx, linea='linea1'){
   if(!puedeControlar(grupo)) return alert('No tienes permiso para controlar estos LEDs');
-
   estadoLEDs[grupo][linea][idx] = !estadoLEDs[grupo][linea][idx];
   guardarEstado();
   pintarEstado();
