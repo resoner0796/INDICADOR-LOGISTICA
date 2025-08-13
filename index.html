@@ -148,7 +148,20 @@ body{ overflow:hidden; }
 // ================= CONFIG Y ESTADO =================
 const CONFIG = { LED_COUNT:5, TITULO_FIJO:'LOGÍSTICA', USUARIOS:['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS'] };
 let usuarioSeleccionado = null;
-let estadoLEDs = { MULTIPORT:Array(CONFIG.LED_COUNT).fill(false), BEDROCK:Array(CONFIG.LED_COUNT).fill(false), DROPS:Array(CONFIG.LED_COUNT).fill(false) };
+let estadoLEDs = {
+  MULTIPORT: {
+    linea1: Array(CONFIG.LED_COUNT).fill(false),
+    linea2: Array(CONFIG.LED_COUNT).fill(false)
+  },
+  BEDROCK: {
+    linea1: Array(CONFIG.LED_COUNT).fill(false),
+    linea2: Array(CONFIG.LED_COUNT).fill(false)
+  },
+  DROPS: {
+    linea1: Array(CONFIG.LED_COUNT).fill(false),
+    linea2: Array(CONFIG.LED_COUNT).fill(false)
+  }
+};
 
 // ================= FIREBASE =================
 const firebaseConfig = {
@@ -169,21 +182,28 @@ firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err)
 
 // ================= FUNCIONES DE RENDER =================
 function inyectaLEDs(){
-  document.querySelectorAll('.leds').forEach(c=>{
-    const grupo=c.dataset.grupo; c.innerHTML='';
+  document.querySelectorAll('.leds').forEach(contenedor=>{
+    const grupo = contenedor.dataset.grupo;
+    const linea = contenedor.dataset.linea || 'linea1';
+    contenedor.innerHTML = '';
     for(let i=0;i<CONFIG.LED_COUNT;i++){
-      const led=document.createElement('div'); led.className='led'; led.title=`${grupo} • LED ${i+1}`;
-      led.addEventListener('click',()=>togglearLED(grupo,i));
-      c.appendChild(led);
+      const led = document.createElement('div');
+      led.className='led';
+      led.title = `${grupo} • ${linea} • LED ${i+1}`;
+      led.addEventListener('click', ()=> togglearLED(grupo, i, linea));
+      contenedor.appendChild(led);
     }
   });
 }
 
 function pintarEstado(){
   Object.keys(estadoLEDs).forEach(grupo=>{
-    const leds = document.querySelectorAll(`.leds[data-grupo="${grupo}"] .led`);
-    estadoLEDs[grupo].forEach((encendido,i)=>{
-      if(leds[i]) leds[i].classList.toggle('on', !!encendido);
+    document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
+      const linea = contenedor.dataset.linea || 'linea1';
+      const leds = contenedor.querySelectorAll('.led');
+      estadoLEDs[grupo][linea].forEach((encendido,i)=>{
+        if(leds[i]) leds[i].classList.toggle('on', !!encendido);
+      });
     });
   });
 }
@@ -214,9 +234,10 @@ function puedeControlar(grupo){
   return usuarioSeleccionado===grupo;
 }
 
-function togglearLED(grupo,idx){
+function togglearLED(grupo, idx, linea='linea1'){
   if(!puedeControlar(grupo)) return alert('No tienes permiso para controlar estos LEDs');
-  estadoLEDs[grupo][idx] = !estadoLEDs[grupo][idx];
+
+  estadoLEDs[grupo][linea][idx] = !estadoLEDs[grupo][linea][idx];
   guardarEstado();
   pintarEstado();
 }
