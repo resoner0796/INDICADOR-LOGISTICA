@@ -3,159 +3,112 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WebApp Panel</title>
+<title>Pantallas con LEDs</title>
 <style>
     body {
         margin: 0;
         font-family: Arial, sans-serif;
-        background: #111;
+        background-color: #1a1a1a;
         color: white;
+        overflow: hidden;
     }
-    /* Pantalla de selección */
-    #pantalla1 {
+    .pantalla {
+        display: none;
+        width: 100%;
+        height: 100vh;
+    }
+    .activa {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100vh;
-        background: linear-gradient(135deg, #222, #444);
     }
-    #pantalla1 h1 {
-        margin-bottom: 20px;
+    h1 {
+        margin-bottom: 40px;
     }
-    .btn-opcion {
-        background: #0066cc;
-        color: white;
-        border: none;
+    .usuario-btn {
         padding: 15px 30px;
         margin: 10px;
-        font-size: 18px;
-        border-radius: 8px;
+        font-size: 1.5em;
         cursor: pointer;
-        transition: 0.3s;
+        border: none;
+        border-radius: 8px;
+        background-color: #444;
+        color: white;
+        transition: background-color 0.3s;
     }
-    .btn-opcion:hover {
-        background: #004c99;
+    .usuario-btn:hover {
+        background-color: #666;
     }
-
-    /* Pantalla panel LED con relieve */
-    #pantalla2 {
-        display: none;
-        height: 100vh;
-        background-color: #000;
-        background-image: radial-gradient(circle, rgba(50,50,50,0.3) 20%, transparent 21%),
-                          radial-gradient(circle, #111 20%, transparent 21%);
-        background-size: 25px 25px;
-        box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+    .titulo {
+        font-size: 4em;
+        margin-bottom: 40px;
+    }
+    .grupo-contenedor {
+        display: flex;
+        justify-content: center;
+        gap: 80px;
+        text-align: center;
+    }
+    .grupo {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: space-between;
-        padding: 20px;
     }
-    #tituloFijo {
-        font-size: 50px;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 10px;
-        text-shadow: 0 0 5px #444;
-    }
-    .contenedor-centro {
+    .leds {
         display: flex;
-        flex: 1;
-        align-items: flex-start;
-        justify-content: center;
-        width: 100%;
         gap: 20px;
-    }
-    .columna {
-        flex: 1;
-        text-align: center;
-        font-size: 24px;
-        font-weight: bold;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    .tarimas {
-        font-size: 20px;
         margin-top: 10px;
-        margin-bottom: 15px;
-    }
-    /* Tira de LEDs debajo de "Tarimas" */
-    .led-strip {
-        display: flex;
-        gap: 15px;
-        justify-content: center;
     }
     .led {
-        width: 50px; /* Doble tamaño */
-        height: 50px;
-        background: radial-gradient(circle, #222 40%, #000 100%);
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        box-shadow: inset -3px -3px 5px rgba(0,0,0,0.8),
-                    inset 3px 3px 4px rgba(255,255,255,0.1);
+        background-color: #222;
+        border: 2px solid #555;
         cursor: pointer;
-        transition: 0.2s;
+        transition: background-color 0.3s;
     }
-    .led.on {
-        background: radial-gradient(circle, #0f0 40%, #040 100%);
-        box-shadow: 0 0 20px #0f0, inset -3px -3px 5px rgba(0,0,0,0.8);
-        animation: blink 1s infinite;
+    .led.encendido {
+        background-color: red;
+        box-shadow: 0 0 20px red;
+        animation: parpadeo 1s infinite;
     }
-    @keyframes blink {
-        0%, 50%, 100% { opacity: 1; }
-        25%, 75% { opacity: 0.4; }
+    @keyframes parpadeo {
+        0%, 100% { box-shadow: 0 0 5px red; }
+        50% { box-shadow: 0 0 20px red; }
     }
 </style>
 </head>
 <body>
 
 <!-- Pantalla 1 -->
-<div id="pantalla1">
-    <h1>Selecciona un usuario</h1>
-    <button class="btn-opcion" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
-    <button class="btn-opcion" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
-    <button class="btn-opcion" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
-    <button class="btn-opcion" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+<div id="pantalla1" class="pantalla activa">
+    <h1>Selecciona tu usuario</h1>
+    <button class="usuario-btn" onclick="seleccionarUsuario('logistica')">LOGÍSTICA</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('multiport')">MULTIPORT</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('bedrock')">BEDROCK</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('drops')">DROPS</button>
 </div>
 
 <!-- Pantalla 2 -->
-<div id="pantalla2">
-    <div id="tituloFijo">LOGÍSTICA</div>
-    <div class="contenedor-centro">
-        <div class="columna" id="colMultiport">
-            MULTIPORT
-            <div class="tarimas">Tarimas</div>
-            <div class="led-strip">
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-            </div>
+<div id="pantalla2" class="pantalla">
+    <div class="titulo">LOGÍSTICA</div>
+    <div class="grupo-contenedor">
+        <div class="grupo">
+            <div class="nombre">MULTIPORT</div>
+            <div>Tarimas</div>
+            <div class="leds" data-grupo="multiport"></div>
         </div>
-        <div class="columna" id="colBedrock">
-            BEDROCK
-            <div class="tarimas">Tarimas</div>
-            <div class="led-strip">
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-            </div>
+        <div class="grupo">
+            <div class="nombre">DROPS</div>
+            <div>Tarimas</div>
+            <div class="leds" data-grupo="drops"></div>
         </div>
-        <div class="columna" id="colDrops">
-            DROPS
-            <div class="tarimas">Tarimas</div>
-            <div class="led-strip">
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-                <div class="led"></div>
-            </div>
+        <div class="grupo">
+            <div class="nombre">BEDROCK</div>
+            <div>Tarimas</div>
+            <div class="leds" data-grupo="bedrock"></div>
         </div>
     </div>
 </div>
@@ -163,32 +116,62 @@
 <script>
     let usuarioSeleccionado = null;
 
-    function seleccionarUsuario(usuario) {
-        usuarioSeleccionado = usuario;
-        document.getElementById('pantalla1').style.display = 'none';
-        document.getElementById('pantalla2').style.display = 'flex';
+    // Crear LEDs dinámicamente
+    document.querySelectorAll(".leds").forEach(container => {
+        for (let i = 0; i < 5; i++) {
+            const led = document.createElement("div");
+            led.classList.add("led");
+            led.addEventListener("click", () => toggleLed(container.dataset.grupo, i));
+            container.appendChild(led);
+        }
+    });
 
-        configurarLEDs();
+    // Alternar LED
+    function toggleLed(grupo, index) {
+        if (usuarioSeleccionado !== grupo && usuarioSeleccionado !== "logistica") return;
+
+        const leds = document.querySelectorAll(`[data-grupo="${grupo}"] .led`);
+        leds[index].classList.toggle("encendido");
+
+        guardarEstado();
     }
 
-    function configurarLEDs() {
-        const columnas = {
-            MULTIPORT: document.querySelectorAll('#colMultiport .led'),
-            BEDROCK: document.querySelectorAll('#colBedrock .led'),
-            DROPS: document.querySelectorAll('#colDrops .led')
-        };
+    // Guardar estado en localStorage
+    function guardarEstado() {
+        const estado = {};
+        document.querySelectorAll(".leds").forEach(container => {
+            const grupo = container.dataset.grupo;
+            estado[grupo] = Array.from(container.children).map(led => led.classList.contains("encendido"));
+        });
+        localStorage.setItem("ledEstado", JSON.stringify(estado));
+    }
 
-        for (let grupo in columnas) {
-            columnas[grupo].forEach((led) => {
-                led.addEventListener('click', () => {
-                    if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === grupo) {
-                        led.classList.toggle('on');
-                    } else {
-                        alert('No tienes permiso para controlar estos LEDs');
-                    }
-                });
+    // Cargar estado desde localStorage
+    function cargarEstado() {
+        const estado = JSON.parse(localStorage.getItem("ledEstado"));
+        if (!estado) return;
+        for (const grupo in estado) {
+            const leds = document.querySelectorAll(`[data-grupo="${grupo}"] .led`);
+            estado[grupo].forEach((encendido, i) => {
+                if (encendido) leds[i].classList.add("encendido");
             });
         }
+    }
+
+    // Seleccionar usuario
+    function seleccionarUsuario(usuario) {
+        usuarioSeleccionado = usuario;
+        document.getElementById("pantalla1").classList.remove("activa");
+        document.getElementById("pantalla1").style.display = "none";
+        document.getElementById("pantalla2").classList.add("activa");
+        cargarEstado();
+    }
+
+    // Siempre iniciar en pantalla 1
+    window.onload = () => {
+        usuarioSeleccionado = null;
+        document.getElementById("pantalla1").classList.add("activa");
+        document.getElementById("pantalla2").classList.remove("activa");
     }
 </script>
 
