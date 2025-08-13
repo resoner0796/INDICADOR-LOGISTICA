@@ -1,4 +1,4 @@
-const CACHE_NAME = 'panel-logistica-v2'; // Versión actualizada de la caché
+const CACHE_NAME = 'panel-logistica-v3'; // Versión actualizada de la caché
 const FILES_TO_CACHE = [
   './',
   './index.html',
@@ -6,8 +6,8 @@ const FILES_TO_CACHE = [
   './style.css',
   './main.js',
   './leds.js',
-  './icon-192.png',
-  './icon-512.png'
+  './icon-192.JPG',
+  './icon-512.JPG'
 ];
 
 self.addEventListener('install', e => {
