@@ -280,34 +280,28 @@ if('serviceWorker' in navigator){
   });
 }
 // ================= PWA: Botón de instalación en PC =================
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
+    let deferredPrompt;
+    const installButton = document.getElementById('installButton');
 
-  const installBtn = document.createElement('button');
-  installBtn.textContent = '📥 Instalar aplicación';
-  installBtn.style.position = 'fixed';
-  installBtn.style.bottom = '20px';
-  installBtn.style.right = '20px';
-  installBtn.style.padding = '10px 14px';
-  installBtn.style.background = '#0066cc';
-  installBtn.style.color = '#fff';
-  installBtn.style.border = 'none';
-  installBtn.style.borderRadius = '5px';
-  installBtn.style.cursor = 'pointer';
-  installBtn.style.zIndex = '1000';
-  document.body.appendChild(installBtn);
-
-  installBtn.addEventListener('click', () => {
-    installBtn.remove();
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.finally(() => {
-      deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installButton.style.display = 'inline-block';
     });
-  });
-});
-</script>
 
+    installButton.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('Usuario aceptó la instalación');
+        } else {
+          console.log('Usuario rechazó la instalación');
+        }
+        deferredPrompt = null;
+        installButton.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
