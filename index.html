@@ -54,7 +54,7 @@
         padding: 20px;
     }
     #tituloFijo {
-        font-size: 28px;
+        font-size: 50px; /* Mucho más grande */
         font-weight: bold;
         text-align: center;
         margin-top: 10px;
@@ -73,7 +73,7 @@
         font-size: 24px;
         font-weight: bold;
         position: relative;
-        padding-bottom: 40px; /* espacio para LEDs */
+        padding-bottom: 60px; /* espacio para LEDs más grandes */
     }
     /* Tira de LEDs debajo de cada texto */
     .led-strip {
@@ -82,19 +82,21 @@
         left: 50%;
         transform: translateX(-50%);
         display: flex;
-        gap: 5px;
+        gap: 10px;
     }
     .led {
-        width: 12px;
-        height: 12px;
+        width: 25px;
+        height: 25px;
         background: radial-gradient(circle, #222 40%, #000 100%);
         border-radius: 50%;
-        box-shadow: inset -1px -1px 3px rgba(0,0,0,0.8),
-                    inset 1px 1px 2px rgba(255,255,255,0.1);
+        box-shadow: inset -2px -2px 4px rgba(0,0,0,0.8),
+                    inset 2px 2px 3px rgba(255,255,255,0.1);
+        cursor: pointer;
+        transition: 0.2s;
     }
     .led.on {
         background: radial-gradient(circle, #0f0 40%, #040 100%);
-        box-shadow: 0 0 8px #0f0, inset -1px -1px 3px rgba(0,0,0,0.8);
+        box-shadow: 0 0 12px #0f0, inset -2px -2px 4px rgba(0,0,0,0.8);
     }
 </style>
 </head>
@@ -119,6 +121,8 @@
                 <div class="led"></div>
                 <div class="led"></div>
                 <div class="led"></div>
+                <div class="led"></div>
+                <div class="led"></div>
             </div>
         </div>
         <div class="columna" id="colBedrock">
@@ -127,11 +131,15 @@
                 <div class="led"></div>
                 <div class="led"></div>
                 <div class="led"></div>
+                <div class="led"></div>
+                <div class="led"></div>
             </div>
         </div>
         <div class="columna" id="colDrops">
             DROPS
             <div class="led-strip">
+                <div class="led"></div>
+                <div class="led"></div>
                 <div class="led"></div>
                 <div class="led"></div>
                 <div class="led"></div>
@@ -147,7 +155,30 @@
         usuarioSeleccionado = usuario;
         document.getElementById('pantalla1').style.display = 'none';
         document.getElementById('pantalla2').style.display = 'flex';
-        // Aquí después agregaremos la lógica para encender LEDs según usuario
+
+        // Activar funcionalidad de LEDs
+        configurarLEDs();
+    }
+
+    function configurarLEDs() {
+        const columnas = {
+            MULTIPORT: document.querySelectorAll('#colMultiport .led'),
+            BEDROCK: document.querySelectorAll('#colBedrock .led'),
+            DROPS: document.querySelectorAll('#colDrops .led')
+        };
+
+        // Añadir eventos a todos los LEDs
+        for (let grupo in columnas) {
+            columnas[grupo].forEach((led, index) => {
+                led.addEventListener('click', () => {
+                    if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === grupo) {
+                        led.classList.toggle('on');
+                    } else {
+                        alert('No tienes permiso para controlar estos LEDs');
+                    }
+                });
+            });
+        }
     }
 </script>
 
