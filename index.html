@@ -1,178 +1,382 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pantallas con LEDs</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Panel Logística</title>
+
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background-color: #1a1a1a;
-        color: white;
-        overflow: hidden;
-    }
-    .pantalla {
-        display: none;
-        width: 100%;
-        height: 100vh;
-    }
-    .activa {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-    h1 {
-        margin-bottom: 40px;
-    }
-    .usuario-btn {
-        padding: 15px 30px;
-        margin: 10px;
-        font-size: 1.5em;
-        cursor: pointer;
-        border: none;
-        border-radius: 8px;
-        background-color: #444;
-        color: white;
-        transition: background-color 0.3s;
-    }
-    .usuario-btn:hover {
-        background-color: #666;
-    }
-    .titulo {
-        font-size: 4em;
-        margin-bottom: 40px;
-    }
-    .grupo-contenedor {
-        display: flex;
-        justify-content: center;
-        gap: 80px;
-        text-align: center;
-    }
-    .grupo {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    .leds {
-        display: flex;
-        gap: 20px;
-        margin-top: 10px;
-    }
-    .led {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: #222;
-        border: 2px solid #555;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-    .led.encendido {
-        background-color: red;
-        box-shadow: 0 0 20px red;
-        animation: parpadeo 1s infinite;
-    }
-    @keyframes parpadeo {
-        0%, 100% { box-shadow: 0 0 5px red; }
-        50% { box-shadow: 0 0 20px red; }
-    }
+/* =========================================================
+   AJUSTES RÁPIDOS (CSS VARIABLES)
+   - Modifica SOLO estos valores para personalizar rápido
+   ========================================================= */
+:root{
+  /* Botones (Pantalla 1) */
+  --btn-bg: #0066cc;          /* Color principal botón */
+  --btn-bg-hover: #004c99;    /* Hover botón */
+
+  /* Fondo tipo panel LED (Pantalla 2) */
+  --grid-size: 26px;          /* Tamaño del patrón de puntos */
+  --vignette: rgba(0,0,0,0.9);/* Intensidad del viñeteado interno */
+
+  /* Título LOGÍSTICA */
+  --titulo-size: clamp(42px, 7vw, 96px); /* Tamaño responsivo del título */
+
+  /* LEDs bajo “Tarimas” */
+  --led-size: 50px;           /* DIÁMETRO del LED (ya viene grande) */
+  --led-gap: 16px;            /* Separación entre LEDs */
+  --led-off-core: #111;       /* Color “apagado” centro */
+  --led-off-edge: #000;       /* Borde oscuro apagado */
+
+  /* LEDs encendidos (VERDE) + parpadeo */
+  --led-on-core: #0f0;        /* Centro verde encendido */
+  --led-on-edge: #063;        /* Borde/halo interno */
+  --glow: #00ff88;            /* Color de brillo externo */
+  --blink-duration: 0.9s;     /* Velocidad del parpadeo */
+}
+
+/* =========================================================
+   RESETEO Y CONTENEDOR DE PANTALLAS
+   ========================================================= */
+*{ box-sizing: border-box; }
+html, body{
+  height: 100%;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #fff;
+  background:#111;
+}
+body{ overflow: hidden; }   /* Evita scroll fantasma */
+
+.pantalla{
+  display: none;            /* Ocultas por defecto */
+  width: 100%;
+  height: 100vh;
+}
+.pantalla.activa{
+  display: flex;            /* Solo la pantalla activa se muestra */
+  flex-direction: column;
+}
+
+/* =========================================================
+   PANTALLA 1 (Selección de usuario)
+   ========================================================= */
+#pantalla1{
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #222, #444);
+  gap: 18px;
+}
+#pantalla1 h1{
+  margin: 0 0 8px;
+}
+.usuario-btn{
+  background: var(--btn-bg);         /* PARAM: color botón */
+  color: #fff;
+  border: 0;
+  padding: 14px 28px;
+  margin: 8px;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background .25s ease;
+}
+.usuario-btn:hover{
+  background: var(--btn-bg-hover);   /* PARAM: hover botón */
+}
+
+/* =========================================================
+   PANTALLA 2 (Panel LED con relieve + grupos centrados)
+   ========================================================= */
+#pantalla2{
+  /* Fondo con patrón de puntos (simula panel LED apagado) */
+  background-color:#000;
+  background-image:
+    radial-gradient(circle, rgba(60,60,60,.28) 20%, transparent 21%),
+    radial-gradient(circle, #101010 20%, transparent 21%);
+  background-size: var(--grid-size) var(--grid-size); /* PARAM: tamaño patrón */
+  box-shadow: inset 0 0 90px var(--vignette);         /* PARAM: viñeteado */
+}
+
+.header{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 20px 6px;
+}
+#tituloFijo{
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: .5px;
+  text-shadow: 0 2px 8px rgba(0,0,0,.65);
+  font-size: var(--titulo-size);     /* PARAM: tamaño título */
+}
+
+/* Zona centro ocupa todo y centra los grupos */
+.zona-centro{
+  flex: 1;                            /* Ocupa el espacio restante */
+  display: flex;
+  align-items: center;                /* Centrado vertical */
+  justify-content: center;            /* Centrado horizontal */
+  padding: 10px 24px 28px;
+}
+
+.grupo-contenedor{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
+  gap: clamp(24px, 4vw, 64px);
+  width: min(1200px, 96vw);
+}
+
+.grupo{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.grupo .nombre{
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: .5px;
+  text-shadow: 0 1px 6px rgba(0,0,0,.5);
+}
+.grupo .tarimas{
+  font-size: clamp(16px, 1.7vw, 22px);
+  opacity: .9;
+  margin-bottom: 14px;
+}
+
+/* Tira de LEDs */
+.leds{
+  display: flex;
+  gap: var(--led-gap);                 /* PARAM: separación entre LEDs */
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  padding: 4px;
+}
+
+/* LED base (APAGADO) con relieve */
+.led{
+  width: var(--led-size);              /* PARAM: tamaño LED */
+  height: var(--led-size);             /* PARAM: tamaño LED */
+  border-radius: 50%;
+  cursor: pointer;
+  background: radial-gradient(circle at 45% 40%, var(--led-off-core) 40%, var(--led-off-edge) 100%);
+  box-shadow:
+    inset -4px -5px 8px rgba(0,0,0,.8),   /* Sombra interna para profundidad */
+    inset 4px 5px 6px rgba(255,255,255,.06),
+    0 1px 0 rgba(255,255,255,.05);        /* Borde superior sutil */
+  transition: transform .1s ease, filter .2s ease, box-shadow .2s ease;
+}
+.led:active{ transform: scale(.96); }
+
+/* LED ENCENDIDO (VERDE) + parpadeo para llamar atención */
+.led.on{
+  background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
+  box-shadow:
+    0 0 22px var(--glow),                 /* PARAM: brillo/halo externo */
+    inset -4px -5px 8px rgba(0,0,0,.75),
+    inset 3px 4px 7px rgba(255,255,255,.10);
+  animation: blink var(--blink-duration) ease-in-out infinite; /* PARAM: velocidad */
+}
+
+/* Parpadeo: alterna leve brillo/opacity sin ser molesto */
+@keyframes blink{
+  0%, 100% { filter: brightness(1);    }
+  50%      { filter: brightness(1.25); }
+}
+
+/* Responsive: stack en pantallas muy angostas */
+@media (max-width: 720px){
+  .grupo-contenedor{
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 </head>
 <body>
 
-<!-- Pantalla 1 -->
-<div id="pantalla1" class="pantalla activa">
-    <h1>Selecciona tu usuario</h1>
-    <button class="usuario-btn" onclick="seleccionarUsuario('logistica')">LOGÍSTICA</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('multiport')">MULTIPORT</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('bedrock')">BEDROCK</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('drops')">DROPS</button>
-</div>
+<!-- =======================================================
+     PANTALLA 1: Selección de usuario (siempre inicia aquí)
+     ======================================================= -->
+<section id="pantalla1" class="pantalla activa" aria-label="Selección de usuario">
+  <h1>Selecciona tu usuario</h1>
 
-<!-- Pantalla 2 -->
-<div id="pantalla2" class="pantalla">
-    <div class="titulo">LOGÍSTICA</div>
+  <!-- Botones AZULES (ver variables --btn-bg y --btn-bg-hover) -->
+  <div>
+    <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+  </div>
+</section>
+
+<!-- =======================================================
+     PANTALLA 2: Panel LED + grupos centrados en el medio
+     - El título superior SIEMPRE dice “LOGÍSTICA”
+     - Bajo cada nombre: “Tarimas” y luego 5 LEDs grandes
+     ======================================================= -->
+<section id="pantalla2" class="pantalla" aria-label="Panel principal">
+  <header class="header">
+    <div id="tituloFijo">LOGÍSTICA</div> <!-- Título fijo -->
+  </header>
+
+  <div class="zona-centro">
     <div class="grupo-contenedor">
-        <div class="grupo">
-            <div class="nombre">MULTIPORT</div>
-            <div>Tarimas</div>
-            <div class="leds" data-grupo="multiport"></div>
-        </div>
-        <div class="grupo">
-            <div class="nombre">DROPS</div>
-            <div>Tarimas</div>
-            <div class="leds" data-grupo="drops"></div>
-        </div>
-        <div class="grupo">
-            <div class="nombre">BEDROCK</div>
-            <div>Tarimas</div>
-            <div class="leds" data-grupo="bedrock"></div>
-        </div>
+      <!-- Orden de columnas: MULTIPORT, DROPS, BEDROCK -->
+      <div class="grupo" data-grupo="MULTIPORT">
+        <div class="nombre">MULTIPORT</div>
+        <div class="tarimas">Tarimas</div>
+        <div class="leds" data-grupo="MULTIPORT"><!-- LEDs se inyectan por JS --></div>
+      </div>
+
+      <div class="grupo" data-grupo="DROPS">
+        <div class="nombre">DROPS</div>
+        <div class="tarimas">Tarimas</div>
+        <div class="leds" data-grupo="DROPS"><!-- LEDs se inyectan por JS --></div>
+      </div>
+
+      <div class="grupo" data-grupo="BEDROCK">
+        <div class="nombre">BEDROCK</div>
+        <div class="tarimas">Tarimas</div>
+        <div class="leds" data-grupo="BEDROCK"><!-- LEDs se inyectan por JS --></div>
+      </div>
     </div>
-</div>
+  </div>
+</section>
 
 <script>
-    let usuarioSeleccionado = null;
+/* =========================================================
+   AJUSTES RÁPIDOS (JS CONFIG)
+   - Cambia estas constantes para modificar comportamientos
+   ========================================================= */
+const CONFIG = {
+  LED_COUNT: 5,                         // Nº de LEDs por grupo (actual: 5)
+  STORAGE_KEY: 'ledEstado_v1',          // Clave en localStorage
+  TITULO_FIJO: 'LOGÍSTICA',             // Texto superior (fijo)
+  // Permisos: LOGÍSTICA controla todos; otros solo su grupo
+  USUARIOS: ['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS']
+};
 
-    // Crear LEDs dinámicamente
-    document.querySelectorAll(".leds").forEach(container => {
-        for (let i = 0; i < 5; i++) {
-            const led = document.createElement("div");
-            led.classList.add("led");
-            led.addEventListener("click", () => toggleLed(container.dataset.grupo, i));
-            container.appendChild(led);
-        }
+/* =========================================================
+   ESTADO GLOBAL
+   ========================================================= */
+let usuarioSeleccionado = null;         // Usuario actual (solo sesión)
+let estadoLEDs = {                      // Estructura de estado por grupo
+  MULTIPORT: Array(CONFIG.LED_COUNT).fill(false),
+  BEDROCK:   Array(CONFIG.LED_COUNT).fill(false),
+  DROPS:     Array(CONFIG.LED_COUNT).fill(false)
+};
+
+/* =========================================================
+   UTILIDADES DE STORAGE
+   - guardarEstado(): persiste en localStorage
+   - cargarEstado(): recupera desde localStorage
+   ========================================================= */
+function guardarEstado(){
+  try{
+    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(estadoLEDs));
+  }catch(e){ console.warn('No se pudo guardar estado:', e); }
+}
+function cargarEstado(){
+  try{
+    const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
+    if(!raw) return;
+    const parsed = JSON.parse(raw);
+    // Validación simple por si cambiaste LED_COUNT
+    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
+      if(Array.isArray(parsed[grupo])){
+        estadoLEDs[grupo] = parsed[grupo].slice(0, CONFIG.LED_COUNT);
+        // Relleno si faltan
+        while(estadoLEDs[grupo].length < CONFIG.LED_COUNT) estadoLEDs[grupo].push(false);
+      }
     });
+  }catch(e){ console.warn('No se pudo cargar estado:', e); }
+}
 
-    // Alternar LED
-    function toggleLed(grupo, index) {
-        if (usuarioSeleccionado !== grupo && usuarioSeleccionado !== "logistica") return;
-
-        const leds = document.querySelectorAll(`[data-grupo="${grupo}"] .led`);
-        leds[index].classList.toggle("encendido");
-
-        guardarEstado();
+/* =========================================================
+   RENDER DE LEDs
+   - inyectaLEDs(): crea los LEDs en el DOM una sola vez
+   - pintarEstado(): aplica .on según estadoLEDs
+   ========================================================= */
+function inyectaLEDs(){
+  document.querySelectorAll('.leds').forEach(contenedor=>{
+    const grupo = contenedor.dataset.grupo;    // MULTIPORT | BEDROCK | DROPS
+    contenedor.innerHTML = '';                 // Limpia por si recargas en caliente
+    for(let i=0;i<CONFIG.LED_COUNT;i++){
+      const led = document.createElement('div');
+      led.className = 'led';
+      led.title = `${grupo} • LED ${i+1}`;
+      led.addEventListener('click', ()=> togglearLED(grupo, i));
+      contenedor.appendChild(led);
     }
+  });
+}
+function pintarEstado(){
+  Object.keys(estadoLEDs).forEach(grupo=>{
+    const leds = document.querySelectorAll(`.leds[data-grupo="${grupo}"] .led`);
+    estadoLEDs[grupo].forEach((encendido, i)=>{
+      if(leds[i]){
+        leds[i].classList.toggle('on', !!encendido); // Clase 'on' = LED verde + parpadeo
+      }
+    });
+  });
+}
 
-    // Guardar estado en localStorage
-    function guardarEstado() {
-        const estado = {};
-        document.querySelectorAll(".leds").forEach(container => {
-            const grupo = container.dataset.grupo;
-            estado[grupo] = Array.from(container.children).map(led => led.classList.contains("encendido"));
-        });
-        localStorage.setItem("ledEstado", JSON.stringify(estado));
-    }
+/* =========================================================
+   LÓGICA DE PERMISOS Y TOGGLE
+   - LOGÍSTICA controla todos
+   - Otros solo su propio grupo
+   ========================================================= */
+function puedeControlar(grupo){
+  if(!usuarioSeleccionado) return false;
+  if(usuarioSeleccionado === 'LOGÍSTICA') return true;
+  return usuarioSeleccionado === grupo;
+}
+function togglearLED(grupo, idx){
+  if(!puedeControlar(grupo)) return alert('No tienes permiso para controlar estos LEDs');
 
-    // Cargar estado desde localStorage
-    function cargarEstado() {
-        const estado = JSON.parse(localStorage.getItem("ledEstado"));
-        if (!estado) return;
-        for (const grupo in estado) {
-            const leds = document.querySelectorAll(`[data-grupo="${grupo}"] .led`);
-            estado[grupo].forEach((encendido, i) => {
-                if (encendido) leds[i].classList.add("encendido");
-            });
-        }
-    }
+  estadoLEDs[grupo][idx] = !estadoLEDs[grupo][idx];
+  guardarEstado();
+  pintarEstado();
+}
 
-    // Seleccionar usuario
-    function seleccionarUsuario(usuario) {
-        usuarioSeleccionado = usuario;
-        document.getElementById("pantalla1").classList.remove("activa");
-        document.getElementById("pantalla1").style.display = "none";
-        document.getElementById("pantalla2").classList.add("activa");
-        cargarEstado();
-    }
+/* =========================================================
+   NAVEGACIÓN ENTRE PANTALLAS
+   - Siempre inicia en Pantalla 1 (selección)
+   - Al elegir usuario → muestra Pantalla 2 y pinta estado
+   ========================================================= */
+function activarPantalla(id){
+  document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('activa');
+}
+function seleccionarUsuario(usuario){
+  if(!CONFIG.USUARIOS.includes(usuario)) return;
+  usuarioSeleccionado = usuario;
+  // (Opcional) Si quisieras mostrar el usuario en la UI, lo harías aquí.
+  // El título de arriba SIEMPRE dice LOGÍSTICA (CONFIG.TITULO_FIJO)
+  document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
 
-    // Siempre iniciar en pantalla 1
-    window.onload = () => {
-        usuarioSeleccionado = null;
-        document.getElementById("pantalla1").classList.add("activa");
-        document.getElementById("pantalla2").classList.remove("activa");
-    }
+  activarPantalla('pantalla2');
+  cargarEstado();   // Restaura estado desde localStorage
+  inyectaLEDs();    // Crea LEDs (si ya existen, se reescriben)
+  pintarEstado();   // Aplica clases .on a los que estén encendidos
+}
+
+/* =========================================================
+   ARRANQUE
+   - Forzamos iniciar en Pantalla 1 SIEMPRE (como pediste)
+   - Pre-carga en memoria el estado para tenerlo listo
+   ========================================================= */
+window.addEventListener('load', ()=>{
+  usuarioSeleccionado = null;     // No persistimos el usuario (solo sesión)
+  activarPantalla('pantalla1');   // Siempre arranca en selección
+  cargarEstado();                 // Cargamos a memoria por adelantado
+  // Pantalla 2 se renderiza al seleccionar usuario
+});
 </script>
 
 </body>
