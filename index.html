@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebApp Panel</title>
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: white;
+    }
+    /* Pantalla de selección */
+    #pantalla1 {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #222, #444);
+    }
+    #pantalla1 h1 {
+        margin-bottom: 20px;
+    }
+    .btn-opcion {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        margin: 10px;
+        font-size: 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .btn-opcion:hover {
+        background: #004c99;
+    }
+
+    /* Pantalla panel LED con relieve */
+    #pantalla2 {
+        display: none;
+        height: 100vh;
+        background-color: #000;
+        background-image: radial-gradient(circle, rgba(50,50,50,0.3) 20%, transparent 21%),
+                          radial-gradient(circle, #111 20%, transparent 21%);
+        background-size: 25px 25px;
+        box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+    }
+    #tituloFijo {
+        font-size: 28px;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 10px;
+        text-shadow: 0 0 5px #444;
+    }
+    .contenedor-centro {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+    }
+    .columna {
+        flex: 1;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        position: relative;
+        padding-bottom: 40px; /* espacio para LEDs */
+    }
+    /* Tira de LEDs debajo de cada texto */
+    .led-strip {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 5px;
+    }
+    .led {
+        width: 12px;
+        height: 12px;
+        background: radial-gradient(circle, #222 40%, #000 100%);
+        border-radius: 50%;
+        box-shadow: inset -1px -1px 3px rgba(0,0,0,0.8),
+                    inset 1px 1px 2px rgba(255,255,255,0.1);
+    }
+    .led.on {
+        background: radial-gradient(circle, #0f0 40%, #040 100%);
+        box-shadow: 0 0 8px #0f0, inset -1px -1px 3px rgba(0,0,0,0.8);
+    }
+</style>
+</head>
+<body>
+
+<!-- Pantalla 1 -->
+<div id="pantalla1">
+    <h1>Selecciona un usuario</h1>
+    <button class="btn-opcion" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
+    <button class="btn-opcion" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
+    <button class="btn-opcion" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
+    <button class="btn-opcion" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+</div>
+
+<!-- Pantalla 2 -->
+<div id="pantalla2">
+    <div id="tituloFijo">LOGÍSTICA</div>
+    <div class="contenedor-centro">
+        <div class="columna" id="colMultiport">
+            MULTIPORT
+            <div class="led-strip">
+                <div class="led"></div>
+                <div class="led"></div>
+                <div class="led"></div>
+            </div>
+        </div>
+        <div class="columna" id="colBedrock">
+            BEDROCK
+            <div class="led-strip">
+                <div class="led"></div>
+                <div class="led"></div>
+                <div class="led"></div>
+            </div>
+        </div>
+        <div class="columna" id="colDrops">
+            DROPS
+            <div class="led-strip">
+                <div class="led"></div>
+                <div class="led"></div>
+                <div class="led"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let usuarioSeleccionado = null;
+
+    function seleccionarUsuario(usuario) {
+        usuarioSeleccionado = usuario;
+        document.getElementById('pantalla1').style.display = 'none';
+        document.getElementById('pantalla2').style.display = 'flex';
+        // Aquí después agregaremos la lógica para encender LEDs según usuario
+    }
+</script>
+
+</body>
+</html>
