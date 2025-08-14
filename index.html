@@ -309,16 +309,19 @@ function cargarEstado(){
     pintarEstado();
   });
   
-  historialRef.on('value', (snapshot) => {
+ historialRef.on('value', (snapshot) => {
     const logs = snapshot.val();
     const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
     const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+
     if (logs) {
       Object.values(logs).forEach(log => {
-        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+        if (log.grupo === 'DROPS' && log.accion === 'apagado' && log.tiempoRecoleccion) {
+          tiempos['DROPS'].push(log);
+        } else if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
           contadores[log.grupo]++;
         } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log); // Guarda el objeto de log completo
+          tiempos[log.grupo].push(log);
         }
       });
     }
