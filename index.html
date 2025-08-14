@@ -259,12 +259,28 @@ function puedeControlar(grupo){
 
 
 function togglearLED(grupo, idx, linea='linea1'){
-  if(!puedeControlar(grupo)) return alert('No tienes permiso para controlar estos LEDs');
-  estadoLEDs[grupo][linea][idx] = !estadoLEDs[grupo][linea][idx];
-  guardarEstado();
-  pintarEstado();
-}
+    if(!puedeControlar(grupo)) {
+        return alert('No tienes permiso para controlar estos LEDs');
+    }
 
+    // Si el usuario es LOGÍSTICA, solo se permite apagar el LED.
+    if (usuarioSeleccionado === 'LOGÍSTICA') {
+        if (estadoLEDs[grupo][linea][idx]) {
+            // Si el LED está encendido, se apaga.
+            estadoLEDs[grupo][linea][idx] = false;
+            guardarEstado();
+            pintarEstado();
+        } else {
+            // Si el LED ya está apagado, se muestra una alerta.
+            alert('LOGÍSTICA solo puede apagar LEDs');
+        }
+    } else {
+        // Para los demás usuarios, el comportamiento es normal (encender/apagar).
+        estadoLEDs[grupo][linea][idx] = !estadoLEDs[grupo][linea][idx];
+        guardarEstado();
+        pintarEstado();
+    }
+}
 // ================= NAVEGACIÓN =================
 function activarPantalla(id){
   document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
