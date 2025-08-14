@@ -179,6 +179,11 @@ let estadoLEDs = {
   BEDROCK:  { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
   DROPS:    { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) }
 };
+let contadorTarimas = {
+    MULTIPORT: 0,
+    BEDROCK: 0,
+    DROPS: 0
+};
 
 // ================= FIREBASE =================
 const firebaseConfig = {
@@ -193,6 +198,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const ledRef = database.ref('estadoLEDs');
+const contadorRef = database.ref('tarimasContador');
 
 // ================= AUTENTICACIÓN ANÓNIMA =================
 firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err));
@@ -227,7 +233,8 @@ function pintarEstado(){
 
 // ================= FIREBASE: sincronización en tiempo real =================
 function guardarEstado(){
-  ledRef.set(estadoLEDs).catch(e=>console.warn('Error guardando en Firebase:',e));
+    ledRef.set(estadoLEDs).catch(e=>console.warn('Error guardando en Firebase:',e));
+    contadorRef.set(contadorTarimas).catch(e=>console.warn('Error guardando contador en Firebase:',e));
 }
 
 function cargarEstado(){
@@ -245,6 +252,16 @@ function cargarEstado(){
       }
     });
     pintarEstado();
+  });
+
+  contadorRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        contadorTarimas = data;
+    }
+    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadorTarimas.MULTIPORT}`;
+    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadorTarimas.BEDROCK}`;
+    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadorTarimas.DROPS}`;
   });
 }
 
@@ -277,8 +294,9 @@ function togglearLED(grupo, idx, linea='linea1'){
     // Si el usuario es LOGÍSTICA, solo se permite apagar el LED.
     if (usuarioSeleccionado === 'LOGÍSTICA') {
         if (estadoLEDs[grupo][linea][idx]) {
-            // Si el LED está encendido, se apaga.
+            // Si el LED está encendido, se apaga y se actualiza el contador.
             estadoLEDs[grupo][linea][idx] = false;
+            contadorTarimas[grupo]--;
             guardarEstado();
             pintarEstado();
         } else {
@@ -287,7 +305,13 @@ function togglearLED(grupo, idx, linea='linea1'){
         }
     } else {
         // Para los demás usuarios, el comportamiento es normal (encender/apagar).
-        estadoLEDs[grupo][linea][idx] = !estadoLEDs[grupo][linea][idx];
+        const estadoActual = estadoLEDs[grupo][linea][idx];
+        estadoLEDs[grupo][linea][idx] = !estadoActual;
+        if (estadoActual) {
+            contadorTarimas[grupo]--;
+        } else {
+            contadorTarimas[grupo]++;
+        }
         guardarEstado();
         pintarEstado();
     }
