@@ -25,7 +25,7 @@
   --led-on-core: #0f0;
   --led-on-edge: #063;
   --glow: #000;
-  --blink-duration: 0.9s;
+  --blink-duration: 1s;
 }
 
 *{ box-sizing: border-box; }
@@ -257,17 +257,19 @@ function inyectaLEDs(){
 }
 
 function pintarEstado(){
-  Object.keys(estadoLEDs).forEach(grupo=>{
-    document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
-      const linea = contenedor.dataset.linea || 'linea1';
-      const leds = contenedor.querySelectorAll('.led');
-      estadoLEDs[grupo][linea].forEach((estado, i)=>{
-        if(leds[i]){
-            leds[i].classList.toggle('on', !!estado.encendido);
-        }
-      });
-    });
-  });
+  Object.keys(estadoLEDs).forEach(grupo=>{
+    document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
+      const linea = contenedor.dataset.linea || 'linea1';
+      const leds = contenedor.querySelectorAll('.led');
+      estadoLEDs[grupo][linea].forEach((estado, i)=>{
+        if(leds[i]){
+            // Comprobamos si el estado es un objeto con la propiedad 'encendido'
+            const estaEncendido = typeof estado === 'object' && estado !== null && estado.encendido;
+            leds[i].classList.toggle('on', estaEncendido);
+        }
+      });
+    });
+  });
 }
 
 // ================= FIREBASE: sincronización en tiempo real =================
