@@ -321,16 +321,16 @@ function cargarEstado(){
 
     // Actualiza los tiempos de recolección en la interfaz
     Object.keys(tiempos).forEach(grupo => {
-        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-        contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
-        tiempos[grupo].forEach((logEntry, index) => {
-            const p = document.createElement('p');
-            const horaInicio = formatoHora(logEntry.horaEncendido);
-            const horaFin = formatoHora(logEntry.horaApagado);
-            
-            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
-            contenedorTiempos.appendChild(p);
-        });
+    const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+    contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
+    tiempos[grupo].forEach((logEntry, index) => {
+        const p = document.createElement('p');
+        const horaInicio = formatoHora(logEntry.horaEncendido);
+        const horaFin = formatoHora(logEntry.horaApagado);
+        
+        p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
+        contenedorTiempos.appendChild(p);
+    });
     });
   });
 }
