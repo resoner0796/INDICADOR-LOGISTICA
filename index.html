@@ -274,6 +274,15 @@ function guardarEstado(){
     ledRef.set(estadoLEDs).catch(e=>console.warn('Error guardando en Firebase:',e));
 }
 
+// Función auxiliar para formatear la hora
+function formatoHora(isoString) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
 function cargarEstado(){
   ledRef.on('value',(snapshot)=>{
     const data = snapshot.val();
@@ -282,7 +291,6 @@ function cargarEstado(){
       if(data[grupo]){
         ['linea1','linea2'].forEach(linea=>{
           if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
-            // Asegurarse de que el formato sea un array para evitar errores
             const tempArray = Object.values(data[grupo][linea]);
             estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
             while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
@@ -302,7 +310,7 @@ function cargarEstado(){
         if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
           contadores[log.grupo]++;
         } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log.tiempoRecoleccion);
+          tiempos[log.grupo].push(log); // Guarda el objeto de log completo
         }
       });
     }
@@ -315,9 +323,12 @@ function cargarEstado(){
     Object.keys(tiempos).forEach(grupo => {
         const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
         contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
-        tiempos[grupo].forEach((tiempo, index) => {
+        tiempos[grupo].forEach((logEntry, index) => {
             const p = document.createElement('p');
-            p.textContent = `Tarima ${index + 1}: ${tiempo} minutos`;
+            const horaInicio = formatoHora(logEntry.horaEncendido);
+            const horaFin = formatoHora(logEntry.horaApagado);
+            
+            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
             contenedorTiempos.appendChild(p);
         });
     });
@@ -352,6 +363,8 @@ function togglearLED(grupo, idx, linea='linea1'){
 
     let accion = '';
     let tiempoRecoleccion = null;
+    let horaEncendido = null;
+    let horaApagado = null;
     const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
 
     // Lógica para LOGÍSTICA
@@ -363,6 +376,10 @@ function togglearLED(grupo, idx, linea='linea1'){
             const diferencia = (tiempoApagado - tiempoEncendido) / 60000; // Diferencia en minutos
             tiempoRecoleccion = Math.round(diferencia);
             
+            // Guarda los timestamps para el log
+            horaEncendido = estadoLEDs[grupo][linea][idx].timestampEncendido;
+            horaApagado = tiempoApagado.toISOString();
+
             estadoLEDs[grupo][linea][idx].encendido = false;
             estadoLEDs[grupo][linea][idx].timestampEncendido = null;
             accion = 'apagado';
@@ -370,20 +387,17 @@ function togglearLED(grupo, idx, linea='linea1'){
             guardarEstado();
             pintarEstado();
         } else {
-            // Si el LED ya está apagado, se muestra una alerta.
             alert('LOGÍSTICA solo puede apagar LEDs');
             return;
         }
     } else { // Lógica para los demás usuarios
         if (!estadoActual) {
-            // Si el LED está apagado, se enciende y se registra el timestamp
             estadoLEDs[grupo][linea][idx] = {
                 encendido: true,
                 timestampEncendido: new Date().toISOString()
             };
             accion = 'encendido';
         } else {
-            // Si el LED está encendido, se apaga
             estadoLEDs[grupo][linea][idx] = {
                 encendido: false,
                 timestampEncendido: null
@@ -401,7 +415,9 @@ function togglearLED(grupo, idx, linea='linea1'){
         led: `${linea}-${idx+1}`,
         accion: accion,
         timestamp: new Date().toISOString(),
-        tiempoRecoleccion: tiempoRecoleccion
+        tiempoRecoleccion: tiempoRecoleccion,
+        horaEncendido: horaEncendido,
+        horaApagado: horaApagado
     };
     historialRef.push(log).catch(e => console.warn('Error guardando log en Firebase:', e));
 }
