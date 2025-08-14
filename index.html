@@ -290,20 +290,18 @@ window.addEventListener('load', ()=>{
 
 // ================= PWA: Service Worker y Prompt de Instalación =================
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").then(reg => {
-      console.log("✅ Service Worker registrado:", reg);
-    }).catch(err => {
-      console.error("❌ Error al registrar Service Worker:", err);
+// ================= PWA: Service Worker =================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => {
+                console.log("✅ Service Worker registrado:", reg);
+            })
+            .catch(err => {
+                console.error("❌ Error al registrar Service Worker:", err);
+            });
     });
-  });
 }
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    console.log(`'beforeinstallprompt' event was fired.`);
-});
 </script>
 </body>
 </html>
