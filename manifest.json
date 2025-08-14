@@ -2,7 +2,7 @@
   "name": "Panel Logística",
   "short_name": "Logística",
   "description": "Control de LEDs para logística",
-  "start_url": "./",  
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#111111",
   "theme_color": "#0066cc",
