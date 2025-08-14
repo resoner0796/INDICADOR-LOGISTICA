@@ -130,6 +130,15 @@ body{ overflow-y: auto; }
     width: 100%;
   }
 }
+    @keyframes blink {
+    0%, 100% {
+        box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+    }
+    50% {
+        box-shadow: 0 0 40px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+    }
+}
+
 </style>
 </head>
 
