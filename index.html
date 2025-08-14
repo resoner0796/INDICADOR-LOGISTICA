@@ -180,6 +180,26 @@ let estadoLEDs = {
   DROPS:    { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) }
 };
 
+// ================= FUNCION PARA OBTENER FECHA Y TURNO =================
+function obtenerTurnoActual() {
+    const ahora = new Date();
+    const hora = ahora.getHours() + (ahora.getMinutes() / 60);
+
+    const year = ahora.getFullYear();
+    const month = String(ahora.getMonth() + 1).padStart(2, '0');
+    const day = String(ahora.getDate()).padStart(2, '0');
+    let fecha = `${year}-${month}-${day}`;
+    
+    let turno;
+    if (hora >= 6.5 && hora < 18.5) { // 06:30 a 18:30
+        turno = 'Turno 1';
+    } else { // 18:30 a 06:30
+        turno = 'Turno 2';
+    }
+    
+    return { fecha, turno };
+}
+
 // ================= FIREBASE =================
 const firebaseConfig = {
   apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
@@ -193,7 +213,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const ledRef = database.ref('estadoLEDs');
-const historialRef = database.ref('historialLogs');
+let historialRef;
 
 // ================= AUTENTICACIÓN ANÓNIMA =================
 firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err));
@@ -247,8 +267,8 @@ function cargarEstado(){
     });
     pintarEstado();
   });
-
-  // Agrega la lógica para sincronizar los contadores desde el historial de logs.
+  
+  // Sincronizar los contadores por turno.
   historialRef.on('value', (snapshot) => {
     const logs = snapshot.val();
     const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
@@ -259,7 +279,6 @@ function cargarEstado(){
         }
       });
     }
-    // Actualiza la UI con los contadores.
     document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
     document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
     document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
@@ -360,6 +379,9 @@ function seleccionarUsuario(usuario) {
 
 // ================= ARRANQUE Y PWA: Service Worker =================
 window.addEventListener('load', ()=>{
+    const { fecha, turno } = obtenerTurnoActual();
+    historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
+
     usuarioSeleccionado = null;
     activarPantalla('pantalla1');
     inyectaLEDs();
