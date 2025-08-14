@@ -144,10 +144,6 @@ body{ overflow:hidden; }
       </div>
     </div>
   </div>
-  
-  <button id="installButton" style="display:none; margin-top:20px;">
-    Instalar aplicación
-  </button>
 </section>
 
 <script>
@@ -266,9 +262,6 @@ window.addEventListener('load', ()=>{
 });
 
 // ================= PWA: Service Worker y Prompt de Instalación =================
-let deferredPrompt;
-const installButton = document.getElementById('installButton');
-
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
         .then(() => console.log("Service Worker registrado"));
@@ -276,17 +269,11 @@ if ('serviceWorker' in navigator) {
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
-    deferredPrompt = e;
-    installButton.style.display = 'block';
+    console.log(`'beforeinstallprompt' event was fired.`);
+});
 
-    installButton.addEventListener('click', () => {
-        installButton.style.display = 'none';
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-            console.log(choiceResult.outcome === 'accepted' ? "El usuario aceptó la instalación" : "El usuario rechazó la instalación");
-            deferredPrompt = null;
-        });
-    });
+window.addEventListener('appinstalled', (e) => {
+    console.log('PWA was installed');
 });
 </script>
 </body>
