@@ -110,6 +110,7 @@ body{ overflow-y: auto; }
   background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
   box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
   animation: blink var(--blink-duration) ease-in-out infinite;
+} /* <-- ¡Faltaba esta llave! */
     
 .tiempos{
     margin-top: 10px;
@@ -117,19 +118,16 @@ body{ overflow-y: auto; }
     opacity: 0.8;
     text-align: left;
     width: 100%;
-    /* -- AGREGAR ESTAS DOS LÍNEAS -- */
-    max-height: 200px; /* Puedes ajustar este valor si lo necesitas */
+    max-height: 200px;
     overflow-y: auto;
 }
-@keyframes blink{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.25); } }
 @media(max-width:720px){ 
   .grupo-contenedor{ 
     display: flex;
     flex-direction: column;
     gap: 24px;
-    width: 100%; /* Asegura que el contenedor ocupe todo el ancho */
+    width: 100%;
   }
-}
 }
 </style>
 </head>
