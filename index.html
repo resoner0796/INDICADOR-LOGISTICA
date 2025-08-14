@@ -309,19 +309,18 @@ function cargarEstado(){
     pintarEstado();
   });
   
- historialRef.on('value', (snapshot) => {
+  historialRef.on('value', (snapshot) => {
     const logs = snapshot.val();
     const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
     const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
-
     if (logs) {
       Object.values(logs).forEach(log => {
-        if (log.grupo === 'DROPS' && log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos['DROPS'].push(log);
-        } else if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-          contadores[log.grupo]++;
-        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log);
+        if (contadores.hasOwnProperty(log.grupo)) {
+          if (log.accion === 'encendido') {
+            contadores[log.grupo]++;
+          } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+            tiempos[log.grupo].push(log);
+          }
         }
       });
     }
@@ -330,22 +329,18 @@ function cargarEstado(){
     document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
     document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
 
-    // Actualiza los tiempos de recolección en la interfaz
     Object.keys(tiempos).forEach(grupo => {
       const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-      contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
+      contenedorTiempos.innerHTML = '';
       tiempos[grupo].forEach((logEntry, index) => {
           const p = document.createElement('p');
           const horaInicio = formatoHora(logEntry.horaEncendido);
           const horaFin = formatoHora(logEntry.horaApagado);
-          
           p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
           contenedorTiempos.appendChild(p);
       });
-      
-      // Desplaza automáticamente al final de la lista
       contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
-    }); // <-- Esta llave cerraba mal en tu código anterior
+    });
   });
 }
 // ================= PERMISOS Y LÓGICA =================
