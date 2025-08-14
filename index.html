@@ -111,8 +111,7 @@ body{ overflow-y: auto; }
   background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
   box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
   animation: blink var(--blink-duration) ease-in-out infinite;
-} /* <-- ¡Faltaba esta llave! */
-    
+}
 .tiempos{
     margin-top: 10px;
     font-size: 14px;
@@ -122,6 +121,19 @@ body{ overflow-y: auto; }
     max-height: 200px;
     overflow-y: auto;
 }
+
+/* Nuevo estilo para el botón de cambio de usuario en pantalla2 */
+.footer{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+.footer .usuario-btn{
+    padding: 10px 20px;
+    font-size: 16px;
+}
+
 @media(max-width:720px){ 
   .grupo-contenedor{ 
     display: flex;
@@ -185,6 +197,9 @@ body{ overflow-y: auto; }
         <div class="tiempos" data-grupo="BEDROCK"></div>
       </div>
     </div>
+  </div>
+  <div class="footer">
+    <button class="usuario-btn" onclick="volverAPantalla1()">Cambiar de usuario</button>
   </div>
 </section>
 
@@ -433,6 +448,11 @@ function togglearLED(grupo, idx, linea='linea1'){
 function activarPantalla(id){
   document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
   document.getElementById(id).classList.add('activa');
+}
+
+function volverAPantalla1(){
+    usuarioSeleccionado = null;
+    activarPantalla('pantalla1');
 }
 
 function seleccionarUsuario(usuario) {
