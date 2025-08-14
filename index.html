@@ -130,6 +130,7 @@ body{ overflow-y: auto; }
     width: 100%;
   }
 }
+    
 </style>
 </head>
 
@@ -310,7 +311,7 @@ function cargarEstado(){
         if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
           contadores[log.grupo]++;
         } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log); // Guarda el objeto de log completo
+          tiempos[log.grupo].push(log);
         }
       });
     }
@@ -319,10 +320,9 @@ function cargarEstado(){
     document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
     document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
 
-    // Actualiza los tiempos de recolección en la interfaz
     Object.keys(tiempos).forEach(grupo => {
       const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-      contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
+      contenedorTiempos.innerHTML = '';
       tiempos[grupo].forEach((logEntry, index) => {
           const p = document.createElement('p');
           const horaInicio = formatoHora(logEntry.horaEncendido);
@@ -331,10 +331,8 @@ function cargarEstado(){
           p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
           contenedorTiempos.appendChild(p);
       });
-      
-      // Desplaza automáticamente al final de la lista
       contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
-    }); // <-- Esta llave cerraba mal en tu código anterior
+    });
   });
 }
 // ================= PERMISOS Y LÓGICA =================
