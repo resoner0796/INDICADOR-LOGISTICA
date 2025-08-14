@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -109,13 +109,16 @@ body{ overflow:hidden; }
   background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
   box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
   animation: blink var(--blink-duration) ease-in-out infinite;
-}
+    
 .tiempos{
     margin-top: 10px;
     font-size: 14px;
     opacity: 0.8;
     text-align: left;
     width: 100%;
+    /* -- AGREGAR ESTAS DOS LÍNEAS -- */
+    max-height: 200px; /* Puedes ajustar este valor si lo necesitas */
+    overflow-y: auto;
 }
 @keyframes blink{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.25); } }
 @media(max-width:720px){ .grupo-contenedor{ grid-template-columns:1fr; } }
