@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -94,7 +94,7 @@ body{ overflow:hidden; }
 .grupo{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 .grupo .nombre{ font-size: clamp(20px,2.2vw,28px); font-weight:800; margin-bottom:8px; letter-spacing:.5px; text-shadow:0 1px 6px rgba(0,0,0,.5); }
 .grupo .tarimas{ font-size: clamp(16px,1.7vw,22px); opacity:.9; margin-bottom:14px; }
-.leds{ display:flex; gap: var(--led-gap); justify-content:center; align-items:center; flex-wrap:wrap; padding:4px; }
+.leds{ display:flex; gap: var(--led-gap); justify-content:center; align-items:center; flex-wrap:nowrap; padding:4px; }
 .led{
   width: var(--led-size);
   height: var(--led-size);
@@ -116,9 +116,6 @@ body{ overflow:hidden; }
     opacity: 0.8;
     text-align: left;
     width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-    padding-right: 10px;
 }
 @keyframes blink{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.25); } }
 @media(max-width:720px){ .grupo-contenedor{ grid-template-columns:1fr; } }
@@ -175,7 +172,7 @@ body{ overflow:hidden; }
 <script>
 // ================= CONFIG Y ESTADO =================
 const CONFIG = {
-    LED_COUNT: 10,
+    LED_COUNT: 5,
     TITULO_FIJO: 'LOGÍSTICA',
     USUARIOS: ['LOGÍSTICA', 'MULTIPORT', 'BEDROCK', 'DROPS', 'SUPERVISOR'],
     PASSWORDS: {
