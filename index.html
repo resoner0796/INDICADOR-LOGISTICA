@@ -24,7 +24,7 @@
   --led-off-edge: #000;
   --led-on-core: #0f0;
   --led-on-edge: #063;
-  --glow: #00ff88;
+  --glow: #000;
   --blink-duration: 0.9s;
 }
 
@@ -122,11 +122,12 @@ body{ overflow-y: auto; }
     max-height: 200px;
     overflow-y: auto;
 }
-@media(max-width:720px) and (orientation: landscape){
-  .grupo-contenedor{
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center; /* Esto ayuda a centrar los elementos */
+@media(max-width:720px){ 
+  .grupo-contenedor{ 
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
   }
 }
 </style>
