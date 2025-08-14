@@ -310,18 +310,18 @@ function cargarEstado(){
   });
   
   historialRef.on('value', (snapshot) => {
-    const logs = snapshot.val();
-    const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
-    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
-    if (logs) {
-      Object.values(logs).forEach(log => {
-        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-          contadores[log.grupo]++;
-        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log); // Guarda el objeto de log completo
-        }
-      });
-    }
+    const logs = snapshot.val();
+    const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
+    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+    if (logs) {
+      Object.values(logs).forEach(log => {
+        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+          contadores[log.grupo]++;
+        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+          tiempos[log.grupo].push(log);
+        }
+      });
+    }
     
     document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
     document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
