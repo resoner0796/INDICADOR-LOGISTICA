@@ -25,7 +25,7 @@
   --led-on-core: #0f0;
   --led-on-edge: #063;
   --glow: #000;
-  --blink-duration: 1s;
+  --blink-duration: 0.9s;
 }
 
 *{ box-sizing: border-box; }
@@ -108,10 +108,10 @@ body{ overflow-y: auto; }
 }
 .led:active{ transform: scale(.96); }
 .led.on{
-  background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
-  box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
-  animation: blink var(--blink-duration) ease-in-out infinite;
-} /* <-- ¡Agrega esta llave! */
+  background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
+  box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+  animation: blink var(--blink-duration) ease-in-out infinite;
+} /* <-- ¡Faltaba esta llave! */
     
 .tiempos{
     margin-top: 10px;
@@ -130,7 +130,6 @@ body{ overflow-y: auto; }
     width: 100%;
   }
 }
-    
 </style>
 </head>
 
@@ -257,19 +256,17 @@ function inyectaLEDs(){
 }
 
 function pintarEstado(){
-  Object.keys(estadoLEDs).forEach(grupo=>{
-    document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
-      const linea = contenedor.dataset.linea || 'linea1';
-      const leds = contenedor.querySelectorAll('.led');
-      estadoLEDs[grupo][linea].forEach((estado, i)=>{
-        if(leds[i]){
-            // Comprobamos si el estado es un objeto con la propiedad 'encendido'
-            const estaEncendido = typeof estado === 'object' && estado !== null && estado.encendido;
-            leds[i].classList.toggle('on', estaEncendido);
-        }
-      });
-    });
-  });
+  Object.keys(estadoLEDs).forEach(grupo=>{
+    document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
+      const linea = contenedor.dataset.linea || 'linea1';
+      const leds = contenedor.querySelectorAll('.led');
+      estadoLEDs[grupo][linea].forEach((estado, i)=>{
+        if(leds[i]){
+            leds[i].classList.toggle('on', !!estado.encendido);
+        }
+      });
+    });
+  });
 }
 
 // ================= FIREBASE: sincronización en tiempo real =================
@@ -287,56 +284,57 @@ function formatoHora(isoString) {
 }
 
 function cargarEstado(){
-  ledRef.on('value',(snapshot)=>{
-    const data = snapshot.val();
-    if(!data) return;
-    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
-      if(data[grupo]){
-        ['linea1','linea2'].forEach(linea=>{
-          if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
-            const tempArray = Object.values(data[grupo][linea]);
-            estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
-            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
-          }
-        });
-      }
-    });
-    pintarEstado();
-  });
-  
-  historialRef.on('value', (snapshot) => {
-    const logs = snapshot.val();
-    const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
-    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
-    if (logs) {
-      Object.values(logs).forEach(log => {
-        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-          contadores[log.grupo]++;
-        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log);
-        }
-      });
-    }
-    
-    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
-    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
-    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+  ledRef.on('value',(snapshot)=>{
+    const data = snapshot.val();
+    if(!data) return;
+    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
+      if(data[grupo]){
+        ['linea1','linea2'].forEach(linea=>{
+          if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
+            const tempArray = Object.values(data[grupo][linea]);
+            estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
+            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
+          }
+        });
+      }
+    });
+    pintarEstado();
+  });
+  
+  historialRef.on('value', (snapshot) => {
+    const logs = snapshot.val();
+    const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
+    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+    if (logs) {
+      Object.values(logs).forEach(log => {
+        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+          contadores[log.grupo]++;
+        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+          tiempos[log.grupo].push(log); // Guarda el objeto de log completo
+        }
+      });
+    }
+    
+    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
+    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
+    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
 
-    Object.keys(tiempos).forEach(grupo => {
-      const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-      contenedorTiempos.innerHTML = '';
-      tiempos[grupo].forEach((logEntry, index) => {
-          const p = document.createElement('p');
-          const horaInicio = formatoHora(logEntry.horaEncendido);
-          const horaFin = formatoHora(logEntry.horaApagado);
-          
-          p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
-          contenedorTiempos.appendChild(p);
-      });
-      contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
-    });
-  });
+    // Actualiza los tiempos de recolección en la interfaz
+    Object.keys(tiempos).forEach(grupo => {
+        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+        contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
+        tiempos[grupo].forEach((logEntry, index) => {
+            const p = document.createElement('p');
+            const horaInicio = formatoHora(logEntry.horaEncendido);
+            const horaFin = formatoHora(logEntry.horaApagado);
+            
+            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
+            contenedorTiempos.appendChild(p);
+        });
+    });
+  });
 }
+
 // ================= PERMISOS Y LÓGICA =================
 function puedeControlar(grupo){
   if(!usuarioSeleccionado) {
