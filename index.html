@@ -280,19 +280,15 @@ function seleccionarUsuario(usuario){
   cargarEstado(); // Firebase sincroniza
 }
 
-// ================= ARRANQUE =================
+// ================= ARRANQUE Y PWA: Service Worker =================
 window.addEventListener('load', ()=>{
-  usuarioSeleccionado = null;
-  activarPantalla('pantalla1');
-  inyectaLEDs();
-  cargarEstado();
-});
+    usuarioSeleccionado = null;
+    activarPantalla('pantalla1');
+    inyectaLEDs();
+    cargarEstado();
 
-// ================= PWA: Service Worker y Prompt de Instalación =================
-
-// ================= PWA: Service Worker =================
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+    // Registro del Service Worker
+    if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(reg => {
                 console.log("✅ Service Worker registrado:", reg);
@@ -300,8 +296,8 @@ if ('serviceWorker' in navigator) {
             .catch(err => {
                 console.error("❌ Error al registrar Service Worker:", err);
             });
-    });
-}
+    }
+});
 </script>
 </body>
 </html>
