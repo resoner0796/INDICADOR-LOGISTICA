@@ -381,7 +381,7 @@ function togglearLED(grupo, idx, linea='linea1'){
             const tiempoEncendido = new Date(estadoLEDs[grupo][linea][idx].timestampEncendido);
             const tiempoApagado = new Date();
             const diferencia = (tiempoApagado - tiempoEncendido) / 60000; // Diferencia en minutos
-           const tiempoRecoleccion = (Math.round(diferencia) === 0) ? 1 : Math.round(diferencia);
+            tiempoRecoleccion = Math.round(diferencia);
             
             // Guarda los timestamps para el log
             horaEncendido = estadoLEDs[grupo][linea][idx].timestampEncendido;
@@ -414,6 +414,7 @@ function togglearLED(grupo, idx, linea='linea1'){
         guardarEstado();
         pintarEstado();
     }
+
 
     // Crea un objeto de registro y lo guarda en Firebase.
     const log = {
