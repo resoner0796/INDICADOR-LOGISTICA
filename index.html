@@ -227,11 +227,24 @@ function cargarEstado(){
 
 // ================= PERMISOS Y LÓGICA =================
 function puedeControlar(grupo){
-  if(!usuarioSeleccionado) return false;
-  if(usuarioSeleccionado==='LOGÍSTICA') return true;
-  if (usuarioSeleccionado === 'SUPERVISOR') return false;
-  return usuarioSeleccionado===grupo;
+  if(!usuarioSeleccionado) {
+    return false;
+  }
+  
+  // Si el usuario es SUPERVISOR, no puede controlar nada
+  if (usuarioSeleccionado === 'SUPERVISOR') {
+    return false;
+  }
+  
+  // LOGÍSTICA puede controlar todos los grupos
+  if (usuarioSeleccionado === 'LOGÍSTICA') {
+    return true;
+  }
+  
+  // Los demás usuarios solo pueden controlar su propio grupo
+  return usuarioSeleccionado === grupo;
 }
+
 
 function togglearLED(grupo, idx, linea='linea1'){
   if(!puedeControlar(grupo)) return alert('No tienes permiso para controlar estos LEDs');
