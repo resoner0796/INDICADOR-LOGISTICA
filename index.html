@@ -173,6 +173,12 @@ const CONFIG = {
         'SUPERVISOR': 'supervisor123'
     }
 };
+let usuarioSeleccionado = null;
+let estadoLEDs = {
+  MULTIPORT: { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
+  BEDROCK:  { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
+  DROPS:    { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) }
+};
 
 // ================= FIREBASE =================
 const firebaseConfig = {
