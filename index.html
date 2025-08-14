@@ -110,6 +110,13 @@ body{ overflow:hidden; }
   box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
   animation: blink var(--blink-duration) ease-in-out infinite;
 }
+.tiempos{
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0.8;
+    text-align: left;
+    width: 100%;
+}
 @keyframes blink{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.25); } }
 @media(max-width:720px){ .grupo-contenedor{ grid-template-columns:1fr; } }
 </style>
@@ -137,23 +144,26 @@ body{ overflow:hidden; }
 
       <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
-        <div class="tarimas">Tarimas</div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
+        <div class="tiempos" data-grupo="MULTIPORT"></div>
       </div>
 
       <div class="grupo" data-grupo="DROPS">
         <div class="nombre">DROPS</div>
-        <div class="tarimas">Tarimas</div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
         <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
+        <div class="tiempos" data-grupo="DROPS"></div>
       </div>
 
       <div class="grupo" data-grupo="BEDROCK">
         <div class="nombre">BEDROCK</div>
-        <div class="tarimas">Tarimas</div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
+        <div class="tiempos" data-grupo="BEDROCK"></div>
       </div>
     </div>
   </div>
@@ -239,8 +249,10 @@ function pintarEstado(){
     document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
       const linea = contenedor.dataset.linea || 'linea1';
       const leds = contenedor.querySelectorAll('.led');
-      estadoLEDs[grupo][linea].forEach((encendido,i)=>{
-        if(leds[i]) leds[i].classList.toggle('on', !!encendido);
+      estadoLEDs[grupo][linea].forEach((estado, i)=>{
+        if(leds[i]){
+            leds[i].classList.toggle('on', !!estado.encendido);
+        }
       });
     });
   });
@@ -258,9 +270,11 @@ function cargarEstado(){
     ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
       if(data[grupo]){
         ['linea1','linea2'].forEach(linea=>{
-          if(Array.isArray(data[grupo][linea])){
-            estadoLEDs[grupo][linea] = data[grupo][linea].slice(0, CONFIG.LED_COUNT);
-            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push(false);
+          if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
+            // Asegurarse de que el formato sea un array para evitar errores
+            const tempArray = Object.values(data[grupo][linea]);
+            estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
+            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
           }
         });
       }
@@ -268,20 +282,34 @@ function cargarEstado(){
     pintarEstado();
   });
   
-  // Sincronizar los contadores por turno.
   historialRef.on('value', (snapshot) => {
     const logs = snapshot.val();
     const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
+    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
     if (logs) {
       Object.values(logs).forEach(log => {
         if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
           contadores[log.grupo]++;
+        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+          tiempos[log.grupo].push(log.tiempoRecoleccion);
         }
       });
     }
+    
     document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
     document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
     document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+
+    // Actualiza los tiempos de recolección en la interfaz
+    Object.keys(tiempos).forEach(grupo => {
+        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+        contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
+        tiempos[grupo].forEach((tiempo, index) => {
+            const p = document.createElement('p');
+            p.textContent = `Tarima ${index + 1}: ${tiempo} minutos`;
+            contenedorTiempos.appendChild(p);
+        });
+    });
   });
 }
 
@@ -312,12 +340,22 @@ function togglearLED(grupo, idx, linea='linea1'){
     }
 
     let accion = '';
+    let tiempoRecoleccion = null;
+    const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
+
     // Lógica para LOGÍSTICA
     if (usuarioSeleccionado === 'LOGÍSTICA') {
-        if (estadoLEDs[grupo][linea][idx]) {
-            // Si el LED está encendido, se apaga.
-            estadoLEDs[grupo][linea][idx] = false;
+        if (estadoActual) {
+            // Si el LED está encendido, se apaga y se calcula el tiempo.
+            const tiempoEncendido = new Date(estadoLEDs[grupo][linea][idx].timestampEncendido);
+            const tiempoApagado = new Date();
+            const diferencia = (tiempoApagado - tiempoEncendido) / 60000; // Diferencia en minutos
+            tiempoRecoleccion = Math.round(diferencia);
+            
+            estadoLEDs[grupo][linea][idx].encendido = false;
+            estadoLEDs[grupo][linea][idx].timestampEncendido = null;
             accion = 'apagado';
+            
             guardarEstado();
             pintarEstado();
         } else {
@@ -326,8 +364,21 @@ function togglearLED(grupo, idx, linea='linea1'){
             return;
         }
     } else { // Lógica para los demás usuarios
-        estadoLEDs[grupo][linea][idx] = !estadoLEDs[grupo][linea][idx];
-        accion = estadoLEDs[grupo][linea][idx] ? 'encendido' : 'apagado';
+        if (!estadoActual) {
+            // Si el LED está apagado, se enciende y se registra el timestamp
+            estadoLEDs[grupo][linea][idx] = {
+                encendido: true,
+                timestampEncendido: new Date().toISOString()
+            };
+            accion = 'encendido';
+        } else {
+            // Si el LED está encendido, se apaga
+            estadoLEDs[grupo][linea][idx] = {
+                encendido: false,
+                timestampEncendido: null
+            };
+            accion = 'apagado';
+        }
         guardarEstado();
         pintarEstado();
     }
@@ -338,7 +389,8 @@ function togglearLED(grupo, idx, linea='linea1'){
         grupo: grupo,
         led: `${linea}-${idx+1}`,
         accion: accion,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        tiempoRecoleccion: tiempoRecoleccion
     };
     historialRef.push(log).catch(e => console.warn('Error guardando log en Firebase:', e));
 }
