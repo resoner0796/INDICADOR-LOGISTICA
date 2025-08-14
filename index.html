@@ -364,58 +364,70 @@ function puedeControlar(grupo){
 }
 
 
-function togglearLED(grupo, idx, linea='linea1'){
-    if(!puedeControlar(grupo)) {
+function togglearLED(grupo, idx, linea = 'linea1') {
+    // 1. Verificar permisos
+    if (!puedeControlar(grupo)) {
         return alert('No tienes permiso para controlar estos LEDs');
     }
 
-    let accion = '';
-    let tiempoRecoleccion = null;
-    let horaEncendido = null;
-    let horaApagado = null;
     const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
 
-    // Lógica para LOGÍSTICA
+    // 2. Lógica para el usuario LOGÍSTICA
     if (usuarioSeleccionado === 'LOGÍSTICA') {
         if (estadoActual) {
-            // Si el LED está encendido, se apaga y se calcula el tiempo.
+            // LOGÍSTICA apaga el LED y registra el tiempo
             const tiempoEncendido = new Date(estadoLEDs[grupo][linea][idx].timestampEncendido);
             const tiempoApagado = new Date();
-            const diferencia = (tiempoApagado - tiempoEncendido) / 60000; // Diferencia en minutos
-            tiempoRecoleccion = Math.round(diferencia);
-            
-            // Guarda los timestamps para el log
-            horaEncendido = estadoLEDs[grupo][linea][idx].timestampEncendido;
-            horaApagado = tiempoApagado.toISOString();
+            const diferencia = (tiempoApagado - tiempoEncendido) / 60000;
+            const tiempoRecoleccion = Math.round(diferencia);
+            const horaEncendido = estadoLEDs[grupo][linea][idx].timestampEncendido;
+            const horaApagado = tiempoApagado.toISOString();
 
-            estadoLEDs[grupo][linea][idx].encendido = false;
-            estadoLEDs[grupo][linea][idx].timestampEncendido = null;
-            accion = 'apagado';
-            
-            guardarEstado();
-            pintarEstado();
-        } else {
-            alert('LOGÍSTICA solo puede apagar LEDs');
-            return;
-        }
-    } else { // Lógica para los demás usuarios
-        if (!estadoActual) {
-            estadoLEDs[grupo][linea][idx] = {
-                encendido: true,
-                timestampEncendido: new Date().toISOString()
-            };
-            accion = 'encendido';
-        } else {
             estadoLEDs[grupo][linea][idx] = {
                 encendido: false,
                 timestampEncendido: null
             };
-            accion = 'apagado';
-        }
-        guardarEstado();
-        pintarEstado();
-    }
 
+            // Guarda el estado en Firebase y luego el log.
+            guardarEstado();
+            pintarEstado();
+
+            const log = {
+                usuario: usuarioSeleccionado,
+                grupo: grupo,
+                led: `${linea}-${idx+1}`,
+                accion: 'apagado',
+                timestamp: new Date().toISOString(),
+                tiempoRecoleccion: tiempoRecoleccion,
+                horaEncendido: horaEncendido,
+                horaApagado: horaApagado
+            };
+            historialRef.push(log).catch(e => console.warn('Error guardando log en Firebase:', e));
+        } else {
+            alert('LOGÍSTICA solo puede apagar LEDs');
+        }
+    } 
+    // 3. Lógica para los demás usuarios (MULTIPORT, BEDROCK, DROPS)
+    else {
+        if (estadoActual) {
+            // Apaga el LED, sin registrar tiempo
+            estadoLEDs[grupo][linea][idx] = {
+                encendido: false,
+                timestampEncendido: null
+            };
+            guardarEstado();
+            pintarEstado();
+        } else {
+            // Enciende el LED
+            estadoLEDs[grupo][linea][idx] = {
+                encendido: true,
+                timestampEncendido: new Date().toISOString()
+            };
+            guardarEstado();
+            pintarEstado();
+        }
+    }
+}
     // Crea un objeto de registro y lo guarda en Firebase.
     const log = {
         usuario: usuarioSeleccionado,
