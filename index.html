@@ -161,12 +161,17 @@ body{ overflow:hidden; }
 
 <script>
 // ================= CONFIG Y ESTADO =================
-const CONFIG = { LED_COUNT:5, TITULO_FIJO:'LOGÍSTICA', USUARIOS:['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS','SUPERVISOR'] };
-let usuarioSeleccionado = null;
-let estadoLEDs = {
-  MULTIPORT: { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
-  BEDROCK:  { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
-  DROPS:    { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) }
+const CONFIG = {
+    LED_COUNT: 5,
+    TITULO_FIJO: 'LOGÍSTICA',
+    USUARIOS: ['LOGÍSTICA', 'MULTIPORT', 'BEDROCK', 'DROPS', 'SUPERVISOR'],
+    PASSWORDS: {
+        'LOGÍSTICA': 'logistica123',
+        'MULTIPORT': 'multiport123',
+        'BEDROCK': 'bedrock123',
+        'DROPS': 'drops123',
+        'SUPERVISOR': 'supervisor123'
+    }
 };
 
 // ================= FIREBASE =================
@@ -287,13 +292,25 @@ function activarPantalla(id){
   document.getElementById(id).classList.add('activa');
 }
 
-function seleccionarUsuario(usuario){
-  if(!CONFIG.USUARIOS.includes(usuario)) return;
-  usuarioSeleccionado = usuario;
-  document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
-  activarPantalla('pantalla2');
-  inyectaLEDs();
-  cargarEstado(); // Firebase sincroniza
+function seleccionarUsuario(usuario) {
+    if (!CONFIG.USUARIOS.includes(usuario)) {
+        return;
+    }
+
+    // Pedir la contraseña al usuario
+    const password = prompt(`Introduce la contraseña para ${usuario}:`);
+
+    // Verificar si la contraseña es correcta
+    if (password === CONFIG.PASSWORDS[usuario]) {
+        usuarioSeleccionado = usuario;
+        document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
+        activarPantalla('pantalla2');
+        inyectaLEDs();
+        cargarEstado(); // Firebase sincroniza
+        alert(`¡Bienvenido, ${usuario}!`);
+    } else {
+        alert('Contraseña incorrecta. Inténtalo de nuevo.');
+    }
 }
 
 // ================= ARRANQUE Y PWA: Service Worker =================
