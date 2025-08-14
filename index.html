@@ -112,6 +112,7 @@ body{ overflow:hidden; }
     <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
   </div>
 </section>
 
@@ -148,7 +149,7 @@ body{ overflow:hidden; }
 
 <script>
 // ================= CONFIG Y ESTADO =================
-const CONFIG = { LED_COUNT:5, TITULO_FIJO:'LOGÍSTICA', USUARIOS:['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS'] };
+const CONFIG = { LED_COUNT:5, TITULO_FIJO:'LOGÍSTICA', USUARIOS:['LOGÍSTICA','MULTIPORT','BEDROCK','DROPS','SUPERVISOR'] };
 let usuarioSeleccionado = null;
 let estadoLEDs = {
   MULTIPORT: { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
@@ -228,6 +229,7 @@ function cargarEstado(){
 function puedeControlar(grupo){
   if(!usuarioSeleccionado) return false;
   if(usuarioSeleccionado==='LOGÍSTICA') return true;
+  if (usuarioSeleccionado === 'SUPERVISOR') return false;
   return usuarioSeleccionado===grupo;
 }
 
