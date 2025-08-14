@@ -35,7 +35,19 @@ body{ overflow:hidden; }
 .pantalla{ display:none; width:100%; height:100vh; }
 .pantalla.activa{ display:flex; flex-direction:column; }
 
-#pantalla1{ align-items:center; justify-content:center; background:linear-gradient(135deg,#222,#444); gap:18px; }
+#pantalla1{
+    align-items:center;
+    justify-content:center;
+    flex-direction: column;
+    background:linear-gradient(135deg,#222,#444);
+    gap:18px;
+}
+.btn-contenedor{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
 #pantalla1 h1{ margin:0 0 8px; }
 .usuario-btn{
   background: var(--btn-bg);
@@ -107,13 +119,13 @@ body{ overflow:hidden; }
 
 <section id="pantalla1" class="pantalla activa">
   <h1>Selecciona tu usuario</h1>
-  <div>
+<div class="btn-contenedor">
     <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
-  </div>
+</div>
 </section>
 
 <section id="pantalla2" class="pantalla">
