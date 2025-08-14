@@ -331,9 +331,10 @@ function cargarEstado(){
         p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
         contenedorTiempos.appendChild(p);
     });
-    });
-  });
-}
+    
+    // Esta línea debe ir aquí para que se aplique después de agregar todos los elementos
+    contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
+});
 
 // ================= PERMISOS Y LÓGICA =================
 function puedeControlar(grupo){
