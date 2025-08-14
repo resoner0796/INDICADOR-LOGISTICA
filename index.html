@@ -303,11 +303,8 @@ function seleccionarUsuario(usuario) {
         return;
     }
 
-    // Pedir la contraseña al usuario
-    const password = prompt(`Introduce la contraseña para ${usuario}:`);
-
-    // Verificar si la contraseña es correcta
-    if (password === CONFIG.PASSWORDS[usuario]) {
+    // Si el usuario es SUPERVISOR, no se le pide contraseña y se avanza directamente
+    if (usuario === 'SUPERVISOR') {
         usuarioSeleccionado = usuario;
         document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
         activarPantalla('pantalla2');
@@ -315,7 +312,18 @@ function seleccionarUsuario(usuario) {
         cargarEstado(); // Firebase sincroniza
         alert(`¡Bienvenido, ${usuario}!`);
     } else {
-        alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        // Para los demás usuarios, pedir la contraseña
+        const password = prompt(`Introduce la contraseña para ${usuario}:`);
+        if (password === CONFIG.PASSWORDS[usuario]) {
+            usuarioSeleccionado = usuario;
+            document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            cargarEstado(); // Firebase sincroniza
+            alert(`¡Bienvenido, ${usuario}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
     }
 }
 
