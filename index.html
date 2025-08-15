@@ -119,7 +119,39 @@ body{ overflow-y: auto; }
   box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
   animation: blink var(--blink-duration) ease-in-out infinite;
 }
-.tiempos{
+
+.resumen-turno {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 20px;
+  background-color: #222;
+  border-radius: 12px;
+  padding: 15px 30px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.3);
+  width: min(800px, 90vw);
+}
+
+.resumen-turno.oculto {
+  display: none;
+}
+
+.dato-resumen {
+  text-align: center;
+}
+
+.dato-resumen .etiqueta {
+  font-size: 14px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.dato-resumen .valor {
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}.tiempos{
     margin-top: 10px;
     font-size: 14px;
     opacity: 0.8;
@@ -185,7 +217,17 @@ body{ overflow-y: auto; }
     <div id="tituloFijo">LOGÍSTICA</div>
   </header>
   <div class="zona-centro">
-    <div class="grupo-contenedor">
+      <div id="resumenTurno" class="resumen-turno oculto">
+  <div class="dato-resumen">
+    <div class="etiqueta">Tarimas Totales</div>
+    <div id="tarimasTotales" class="valor">0</div>
+  </div>
+  <div class="dato-resumen">
+    <div class="etiqueta">Tiempo Promedio</div>
+    <div id="tiempoPromedio" class="valor">0 min</div>
+  </div>
+</div>
+      <div class="grupo-contenedor">
 
       <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
@@ -330,53 +372,79 @@ function formatoHora(isoString) {
     return `${hours}:${minutes}`;
 }
 
+// CÓDIGO MODIFICADO
 function cargarEstado(){
-  ledRef.on('value',(snapshot)=>{
-    const data = snapshot.val();
-    if(!data) return;
-    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
-      if(data[grupo]){
-        ['linea1','linea2'].forEach(linea=>{
-          if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
-            const tempArray = Object.values(data[grupo][linea]);
-            estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
-            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
-          }
-        });
-      }
-    });
-    pintarEstado();
-  });
-  
-  historialRef.on('value', (snapshot) => {
+  ledRef.on('value',(snapshot)=>{
+    const data = snapshot.val();
+    if(!data) return;
+    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
+      if(data[grupo]){
+        ['linea1','linea2'].forEach(linea=>{
+          if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
+            const tempArray = Object.values(data[grupo][linea]);
+            estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
+            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
+          }
+        });
+      }
+    });
+    pintarEstado();
+  });
+  
+  historialRef.on('value', (snapshot) => {
     const logs = snapshot.val();
     const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
     const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+
+    // Variables para los datos totales
+    let tarimasTotales = 0;
+    let tiempoTotalRecoleccion = 0;
+
     if (logs) {
       Object.values(logs).forEach(log => {
         if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
           contadores[log.grupo]++;
         } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
           tiempos[log.grupo].push(log);
+          // Acumula datos para el cálculo total
+          tarimasTotales++;
+          tiempoTotalRecoleccion += log.tiempoRecoleccion;
         }
       });
     }
-    
-    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
-    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
-    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
 
-    // Actualiza los tiempos de recolección en la interfaz
-    Object.keys(tiempos).forEach(grupo => {
-        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-        contenedorTiempos.innerHTML = ''; // Limpiar el contenedor
-        tiempos[grupo].forEach((logEntry, index) => {
-            const p = document.createElement('p');
-            const horaInicio = formatoHora(logEntry.horaEncendido);
-            const horaFin = formatoHora(logEntry.horaApagado);
-            
-            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
-            contenedorTiempos.appendChild(p);
+    // Calcula el tiempo promedio
+    const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
+    
+    // Actualiza los datos totales en la interfaz
+    document.getElementById('tarimasTotales').textContent = tarimasTotales;
+    document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
+
+    // Muestra u oculta el resumen del turno según el usuario
+    const resumenTurnoDiv = document.getElementById('resumenTurno');
+    if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
+      resumenTurnoDiv.classList.remove('oculto');
+    } else {
+      resumenTurnoDiv.classList.add('oculto');
+    }
+    
+    // Actualiza los contadores de tarimas por grupo
+    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
+    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
+    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+
+    // Actualiza los tiempos de recolección en la interfaz
+    Object.keys(tiempos).forEach(grupo => {
+        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+        if (!contenedorTiempos) return;
+        contenedorTiempos.innerHTML = '';
+        tiempos[grupo].forEach((logEntry, index) => {
+            const p = document.createElement('p');
+            const horaInicio = formatoHora(logEntry.horaEncendido);
+            const horaFin = formatoHora(logEntry.horaApagado);
+            
+            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
+            contenedorTiempos.appendChild(p);
       });
       contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
     });
