@@ -87,11 +87,18 @@ body{ overflow-y: auto; }
   padding:10px 24px 28px;
   flex-direction: column; /* <-- Agrega esta línea */
 }
+/* Código CSS modificado */
 .grupo-contenedor{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(200px, 1fr));
+  display: flex; /* <-- CAMBIO */
+  flex-wrap: wrap; /* <-- Agrega esta línea */
   gap: clamp(24px, 4vw, 64px);
   width: min(1200px, 96vw);
+  justify-content: center; /* <-- Centra los grupos si hay menos de 3 */
+}
+
+/* Nuevo estilo para ocultar grupos no autorizados */
+.grupo.oculto {
+  display: none;
 }
 .grupo{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 .grupo .nombre{ font-size: clamp(20px,2.2vw,28px); font-weight:800; margin-bottom:8px; letter-spacing:.5px; text-shadow:0 1px 6px rgba(0,0,0,.5); }
@@ -263,19 +270,29 @@ let historialRef;
 firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err));
 
 // ================= FUNCIONES DE RENDER =================
+// CÓDIGO MODIFICADO
 function inyectaLEDs(){
-  document.querySelectorAll('.leds').forEach(contenedor=>{
-    const grupo = contenedor.dataset.grupo;
-    const linea = contenedor.dataset.linea || 'linea1';
-    contenedor.innerHTML = '';
-    for(let i=0;i<CONFIG.LED_COUNT;i++){
-      const led = document.createElement('div');
-      led.className='led';
-      led.title = `${grupo} • ${linea} • LED ${i+1}`;
-      led.addEventListener('click', ()=> togglearLED(grupo, i, linea));
-      contenedor.appendChild(led);
-    }
-  });
+    document.querySelectorAll('.grupo').forEach(grupoDiv => {
+        const grupo = grupoDiv.dataset.grupo;
+        // Si el usuario es SUPERVISOR o LOGISTICA, se muestran todos los grupos.
+        // Si no, solo se muestra el grupo del usuario.
+        if (usuarioSeleccionado === 'SUPERVISOR' || usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === grupo) {
+            grupoDiv.classList.remove('oculto');
+            grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
+                const linea = contenedor.dataset.linea || 'linea1';
+                contenedor.innerHTML = '';
+                for(let i = 0; i < CONFIG.LED_COUNT; i++){
+                    const led = document.createElement('div');
+                    led.className = 'led';
+                    led.title = `${grupo} • ${linea} • LED ${i+1}`;
+                    led.addEventListener('click', () => togglearLED(grupo, i, linea));
+                    contenedor.appendChild(led);
+                }
+            });
+        } else {
+            grupoDiv.classList.add('oculto');
+        }
+    });
 }
 
 function pintarEstado(){
@@ -463,20 +480,23 @@ function seleccionarUsuario(usuario) {
     // Si el usuario es SUPERVISOR, no se le pide contraseña y se avanza directamente
     if (usuario === 'SUPERVISOR') {
         usuarioSeleccionado = usuario;
-        document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
+        document.getElementById('tituloFijo').textContent = 'Panel de Supervisor'; // <-- Título descriptivo para supervisor
         activarPantalla('pantalla2');
         inyectaLEDs();
-        cargarEstado(); // Firebase sincroniza
+        cargarEstado();
         alert(`¡Bienvenido, ${usuario}!`);
     } else {
-        // Para los demás usuarios, pedir la contraseña
         const password = prompt(`Introduce la contraseña para ${usuario}:`);
         if (password === CONFIG.PASSWORDS[usuario]) {
             usuarioSeleccionado = usuario;
-            document.getElementById('tituloFijo').textContent = CONFIG.TITULO_FIJO;
+            if (usuario === 'LOGÍSTICA') {
+                document.getElementById('tituloFijo').textContent = 'Panel de Logística'; // <-- Título descriptivo para logística
+            } else {
+                document.getElementById('tituloFijo').textContent = usuario; // <-- El resto de usuarios usa su nombre
+            }
             activarPantalla('pantalla2');
             inyectaLEDs();
-            cargarEstado(); // Firebase sincroniza
+            cargarEstado();
             alert(`¡Bienvenido, ${usuario}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
