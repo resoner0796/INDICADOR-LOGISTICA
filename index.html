@@ -281,23 +281,36 @@ let estadoLEDs = {
 };
 
 // ================= FUNCION PARA OBTENER FECHA Y TURNO =================
+// CÓDIGO MODIFICADO
 function obtenerTurnoActual() {
     const ahora = new Date();
     const hora = ahora.getHours() + (ahora.getMinutes() / 60);
 
-    const year = ahora.getFullYear();
-    const month = String(ahora.getMonth() + 1).padStart(2, '0');
-    const day = String(ahora.getDate()).padStart(2, '0');
-    let fecha = `${year}-${month}-${day}`;
-    
+    let fecha;
     let turno;
+
     if (hora >= 6.5 && hora < 18.5) { // 06:30 a 18:30
         turno = 'Turno 1';
+        // Para el Turno 1, la fecha es la del día actual
+        fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
     } else { // 18:30 a 06:30
         turno = 'Turno 2';
+        // Para el Turno 2, si la hora es antes de las 06:30, se usa la fecha del día anterior
+        if (hora < 6.5) {
+            fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 1);
+        } else {
+            // Si la hora es después de las 18:30, se usa la fecha del día actual
+            fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+        }
     }
     
-    return { fecha, turno };
+    // Formatea la fecha al formato YYYY-MM-DD
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const fechaFormateada = `${year}-${month}-${day}`;
+    
+    return { fecha: fechaFormateada, turno };
 }
 
 // ================= FIREBASE =================
