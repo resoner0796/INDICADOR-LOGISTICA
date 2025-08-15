@@ -128,8 +128,15 @@ body{ overflow-y: auto; }
     max-height: 200px;
     overflow-y: auto;
 }
-
-/* Nuevo estilo para el botón de cambio de usuario en pantalla2 */
+/* Agrega este nuevo bloque de CSS */
+.btn-rojo{
+    background: #cc0000; /* Rojo principal */
+    outline-color: #000;
+}
+.btn-rojo:hover{
+    background: #990000; /* Rojo más oscuro para el hover */
+}
+    /* Nuevo estilo para el botón de cambio de usuario en pantalla2 */
 .footer{
     width: 100%;
     display: flex;
@@ -167,8 +174,8 @@ body{ overflow-y: auto; }
 <div class="btn-contenedor">
     <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
 </div>
 </section>
@@ -206,7 +213,7 @@ body{ overflow-y: auto; }
     </div>
   </div>
   <div class="footer">
-    <button class="usuario-btn" onclick="volverAPantalla1()">Cerrar sesión</button>
+    <button class="usuario-btn btn-rojo" onclick="volverAPantalla1()">Cerrar sesión</button>
   </div>
 </section>
 
