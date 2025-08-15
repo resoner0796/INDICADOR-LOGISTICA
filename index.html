@@ -483,6 +483,7 @@ function puedeControlar(grupo){
   return usuarioSeleccionado === grupo;
 }
     
+// CÓDIGO MODIFICADO
 function togglearLED(grupo, idx, linea='linea1'){
     if(!puedeControlar(grupo)) {
         return alert('No tienes permiso para controlar estos LEDs');
@@ -497,13 +498,16 @@ function togglearLED(grupo, idx, linea='linea1'){
     // Lógica para LOGÍSTICA
     if (usuarioSeleccionado === 'LOGÍSTICA') {
         if (estadoActual) {
-            // Si el LED está encendido, se apaga y se calcula el tiempo.
+            // CONFIRMACIÓN PARA LOGÍSTICA
+            if (!confirm('¿Está realmente recolectada la tarima?')) {
+                return; // Si el usuario cancela, la función termina aquí
+            }
+
             const tiempoEncendido = new Date(estadoLEDs[grupo][linea][idx].timestampEncendido);
             const tiempoApagado = new Date();
             const diferencia = (tiempoApagado - tiempoEncendido) / 60000; // Diferencia en minutos
             tiempoRecoleccion = Math.round(diferencia);
             
-            // Guarda los timestamps para el log
             horaEncendido = estadoLEDs[grupo][linea][idx].timestampEncendido;
             horaApagado = tiempoApagado.toISOString();
 
@@ -519,22 +523,25 @@ function togglearLED(grupo, idx, linea='linea1'){
         }
     } else { // Lógica para los demás usuarios
         if (!estadoActual) {
+            // CONFIRMACIÓN PARA USUARIOS DE PRODUCCIÓN
+            if (!confirm('¿Está realmente confirmada la tarima?')) {
+                return; // Si el usuario cancela, la función termina aquí
+            }
+
             estadoLEDs[grupo][linea][idx] = {
                 encendido: true,
                 timestampEncendido: new Date().toISOString()
             };
             accion = 'encendido';
+            
+            guardarEstado();
+            pintarEstado();
         } else {
-            estadoLEDs[grupo][linea][idx] = {
-                encendido: false,
-                timestampEncendido: null
-            };
-            accion = 'apagado';
+            // Como los usuarios de producción no pueden apagar LEDs encendidos,
+            // no se necesita una confirmación aquí.
+            return;
         }
-        guardarEstado();
-        pintarEstado();
     }
-
 
     // Crea un objeto de registro y lo guarda en Firebase.
     const log = {
