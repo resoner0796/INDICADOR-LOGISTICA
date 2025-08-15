@@ -206,7 +206,7 @@ body{ overflow-y: auto; }
     </div>
   </div>
   <div class="footer">
-    <button class="usuario-btn" onclick="volverAPantalla1()">Cambiar de usuario</button>
+    <button class="usuario-btn" onclick="volverAPantalla1()">Cerrar sesión</button>
   </div>
 </section>
 
@@ -480,7 +480,7 @@ function seleccionarUsuario(usuario) {
     // Si el usuario es SUPERVISOR, no se le pide contraseña y se avanza directamente
     if (usuario === 'SUPERVISOR') {
         usuarioSeleccionado = usuario;
-        document.getElementById('tituloFijo').textContent = 'Panel de Supervisor'; // <-- Título descriptivo para supervisor
+        document.getElementById('tituloFijo').textContent = 'SUPERVISOR'; // <-- Título descriptivo para supervisor
         activarPantalla('pantalla2');
         inyectaLEDs();
         cargarEstado();
@@ -490,7 +490,7 @@ function seleccionarUsuario(usuario) {
         if (password === CONFIG.PASSWORDS[usuario]) {
             usuarioSeleccionado = usuario;
             if (usuario === 'LOGÍSTICA') {
-                document.getElementById('tituloFijo').textContent = 'Panel de Logística'; // <-- Título descriptivo para logística
+                document.getElementById('tituloFijo').textContent = 'LOGÍSTICA'; // <-- Título descriptivo para logística
             } else {
                 document.getElementById('tituloFijo').textContent = usuario; // <-- El resto de usuarios usa su nombre
             }
