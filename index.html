@@ -324,9 +324,11 @@ const firebaseConfig = {
   appId: "1:38365879945:web:e2f3590fe77f013dba3058"
 };
 firebase.initializeApp(firebaseConfig);
+// CÓDIGO MODIFICADO
 const database = firebase.database();
 const ledRef = database.ref('estadoLEDs');
 let historialRef;
+let resumenRef; // <-- Agrega esta línea
 
 // ================= AUTENTICACIÓN ANÓNIMA =================
 firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err));
@@ -517,6 +519,9 @@ function togglearLED(grupo, idx, linea='linea1'){
             
             guardarEstado();
             pintarEstado();
+            
+            // LLAMA A LA NUEVA FUNCIÓN PARA ACTUALIZAR EL RESUMEN
+            actualizarResumen(); // <-- LÍNEA AGREGADA
         } else {
             alert('LOGÍSTICA solo puede apagar LEDs');
             return;
@@ -536,6 +541,9 @@ function togglearLED(grupo, idx, linea='linea1'){
             
             guardarEstado();
             pintarEstado();
+            
+            // LLAMA A LA NUEVA FUNCIÓN PARA ACTUALIZAR EL RESUMEN
+            actualizarResumen(); // <-- LÍNEA AGREGADA
         } else {
             // Como los usuarios de producción no pueden apagar LEDs encendidos,
             // no se necesita una confirmación aquí.
@@ -556,6 +564,50 @@ function togglearLED(grupo, idx, linea='linea1'){
     };
     historialRef.push(log).catch(e => console.warn('Error guardando log en Firebase:', e));
 }
+// CÓDIGO A AGREGAR
+function actualizarResumen() {
+    // Carga los datos actuales del resumen
+    resumenRef.once('value').then(snapshot => {
+        const resumenActual = snapshot.val() || {
+            tarimasConfirmadas: 0,
+            tarimasRecibidas: 0,
+            tiemposRecoleccion: [],
+            totalPorArea: { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 }
+        };
+
+        // Recorre el historial para recalcular el resumen (para mayor seguridad)
+        historialRef.once('value').then(historialSnapshot => {
+            const logs = historialSnapshot.val();
+            let tarimasConfirmadas = 0;
+            let tarimasRecibidas = 0;
+            const tiemposRecoleccion = [];
+            const totalPorArea = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
+
+            if (logs) {
+                Object.values(logs).forEach(log => {
+                    if (log.accion === 'encendido' && totalPorArea.hasOwnProperty(log.grupo)) {
+                        tarimasConfirmadas++;
+                    } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+                        tarimasRecibidas++;
+                        tiemposRecoleccion.push(log.tiempoRecoleccion);
+                        if (totalPorArea.hasOwnProperty(log.grupo)) {
+                            totalPorArea[log.grupo]++;
+                        }
+                    }
+                });
+            }
+
+            // Guarda el nuevo resumen en la base de datos
+            resumenRef.set({
+                tarimasConfirmadas: tarimasConfirmadas,
+                tarimasRecibidas: tarimasRecibidas,
+                tiemposRecoleccion: tiemposRecoleccion,
+                totalPorArea: totalPorArea
+            }).catch(e => console.warn('Error guardando resumen en Firebase:', e));
+        });
+    });
+}
+    
 // ================= NAVEGACIÓN =================
 function activarPantalla(id){
   document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
@@ -603,6 +655,7 @@ function seleccionarUsuario(usuario) {
 window.addEventListener('load', ()=>{
     const { fecha, turno } = obtenerTurnoActual();
     historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
+    resumenRef = database.ref(`resumenDiario/${fecha}/${turno}`); // <-- Agrega esta línea
 
     usuarioSeleccionado = null;
     activarPantalla('pantalla1');
