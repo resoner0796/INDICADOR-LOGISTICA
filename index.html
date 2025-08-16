@@ -669,14 +669,19 @@ function obtenerTurnoActual(date = new Date()) {
     let fecha;
     let turno;
 
+    // Turno 1: 06:30 a 18:30
     if (hora >= 6.5 && hora < 18.5) {
         turno = 'Turno 1';
         fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-    } else {
+    } 
+    // Turno 2: 18:30 a 06:30 del día siguiente
+    else {
         turno = 'Turno 2';
         if (hora < 6.5) {
+            // Si la hora es antes de las 6:30 AM, el turno pertenece al día anterior
             fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 1);
         } else {
+            // Si la hora es después de las 18:30, el turno pertenece al día actual
             fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
         }
     }
@@ -1163,6 +1168,10 @@ function mostrarReporte(tipo) {
     `;
 
     document.getElementById('turnoFiltro').value = turnoActual;
+    if (areaFiltroHtml) {
+        document.getElementById('areaFiltro').value = 'TODAS';
+    }
+    
     cargarDatosReporte(tipo, fechaActual, turnoActual);
 }
 
