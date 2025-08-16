@@ -479,6 +479,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     "kpis"
     "produccion"
     "calidad"
+    "logistica"
     "pendientes"
     "footer";
   gap: 20px;
@@ -582,6 +583,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       "filtros filtros"
       "kpis kpis"
       "produccion calidad"
+      "logistica logistica"
       "pendientes pendientes"
       "footer footer";
   }
@@ -593,7 +595,8 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       "header header header"
       "filtros filtros filtros"
       "kpis kpis kpis"
-      "produccion calidad pendientes"
+      "produccion calidad logistica"
+      "pendientes pendientes pendientes"
       "footer footer footer";
   }
 }
@@ -734,7 +737,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 </div>
 </section>
 
-<section id="pantalla4" class="pantalla">
+<section id="pantalla4" class="pantalla" style="display: none;">
 <header class="header">
     <h1>DASHBOARD DE SUPERVISOR</h1>
 </header>
@@ -770,11 +773,15 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 <div class="graficos-container">
     <div class="panel" style="grid-area: produccion;">
         <h3>Producción por Área</h3>
-        <canvas id="graficoProduccionDash"></canvas>
+        <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
     </div>
     <div class="panel" style="grid-area: calidad;">
         <h3>Estado de Calidad</h3>
-        <canvas id="graficoCalidadDash"></canvas>
+        <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
+    </div>
+    <div class="panel" style="grid-area: logistica;">
+        <h3>Evolución Tiempos de Recolección</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
     </div>
 </div>
 <div class="panel" style="grid-area: pendientes;">
@@ -1255,9 +1262,12 @@ function guardarRechazo(datos) {
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function activarPantalla(id){
     document.querySelectorAll('.pantalla').forEach(p => {
+        p.style.display = 'none';
         p.classList.remove('activa');
     });
-    document.getElementById(id).classList.add('activa');
+    const pantalla = document.getElementById(id);
+    pantalla.style.display = 'flex';
+    pantalla.classList.add('activa');
 }
 
 function volverAPantalla1(){
@@ -1374,7 +1384,8 @@ function actualizarDashboardConFiltros() {
     const historialRefDash = db.ref(`historialLogs/${fechaFiltro}`);
     const calidadRefDash = db.ref(`contadoresCalidad/${fechaFiltro}`);
     const ledsRefDash = db.ref('estadoLEDs');
-
+    
+    // Historial (producción y logística)
     const hListener = historialRefDash.on('value', snapshot => {
         const logsPorTurno = snapshot.val() || {};
         let logsFiltrados = {};
@@ -1387,7 +1398,9 @@ function actualizarDashboardConFiltros() {
         }
         actualizarDashboard(logsFiltrados, 'historial', null);
     });
-
+    dashboardListeners.push({ off: () => historialRefDash.off('value', hListener) });
+    
+    // Calidad
     const cListener = calidadRefDash.on('value', snapshot => {
         const contadoresPorTurno = snapshot.val() || {};
         let contadoresFiltrados = {};
@@ -1404,14 +1417,13 @@ function actualizarDashboardConFiltros() {
         }
         actualizarDashboard(null, 'calidad', contadoresFiltrados);
     });
+    dashboardListeners.push({ off: () => calidadRefDash.off('value', cListener) });
     
+    // LEDs
     const lListener = ledsRefDash.on('value', snapshot => {
         const leds = snapshot.val() || {};
         actualizarDashboard(null, 'leds', null, leds);
     });
-
-    dashboardListeners.push({ off: () => historialRefDash.off('value', hListener) });
-    dashboardListeners.push({ off: () => calidadRefDash.off('value', cListener) });
     dashboardListeners.push({ off: () => ledsRefDash.off('value', lListener) });
 }
 
@@ -1419,18 +1431,18 @@ function actualizarDashboardConFiltros() {
 function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs) {
     if (tipo === 'historial') {
         const produccionPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+        const tiemposRecoleccion = { MULTIPORT: [], DROPS: [], BEDROCK: [] };
         let tarimasRecolectadas = 0;
         let tiempoTotalRecoleccion = 0;
-        let logsRecoleccion = [];
         
         for (const logKey in historialLogs) {
             const log = historialLogs[logKey];
             if (log.accion === 'encendido' && produccionPorArea.hasOwnProperty(log.grupo)) {
                 produccionPorArea[log.grupo]++;
-            } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+            } else if (log.accion === 'apagado' && log.tiempoRecoleccion && tiemposRecoleccion.hasOwnProperty(log.grupo)) {
                 tarimasRecolectadas++;
                 tiempoTotalRecoleccion += log.tiempoRecoleccion;
-                logsRecoleccion.push(log);
+                tiemposRecoleccion[log.grupo].push(log);
             }
         }
         
@@ -1448,6 +1460,7 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         }
         
         generarGraficoProduccionDash(produccionPorArea);
+        generarGraficoLogisticaDash(tiemposRecoleccion);
     }
 
     if (tipo === 'calidad') {
@@ -1548,6 +1561,57 @@ function generarGraficoCalidadDash(datos) {
             plugins: {
                 legend: { position: 'top' },
                 title: { display: false }
+            }
+        }
+    });
+}
+
+function generarGraficoLogisticaDash(datos) {
+    if (graficosDashboard.logistica) {
+        graficosDashboard.logistica.destroy();
+    }
+    const ctx = document.getElementById('graficoLogisticaDash').getContext('2d');
+    
+    const datasets = Object.keys(datos).map((grupo, index) => {
+        const tiempos = datos[grupo].map(d => d.tiempoRecoleccion);
+        const labels = datos[grupo].map(d => formatoHora(d.horaApagado));
+        const colores = ['#007bff', '#28a745', '#dc3545'];
+        
+        return {
+            label: `Tiempos de ${grupo}`,
+            data: tiempos,
+            borderColor: colores[index],
+            backgroundColor: 'transparent',
+            pointRadius: 5,
+            pointBackgroundColor: colores[index]
+        };
+    });
+    
+    graficosDashboard.logistica = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [], 
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Tiempo de Recolección (minutos)'
+                    }
+                },
+                x: {
+                    type: 'category',
+                    labels: [],
+                    title: {
+                        display: true,
+                        text: 'Tiempo'
+                    }
+                }
             }
         }
     });
@@ -1687,14 +1751,10 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
             for (const rechazoKey in datos.rechazos[fechaKey][turnoKey]) {
                 const rechazo = datos.rechazos[fechaKey][turnoKey][rechazoKey];
                 
-                let areaDeRechazo = '';
-                if (rechazo.linea) {
-                    areaDeRechazo = rechazo.linea.split(' ')[0].toUpperCase();
-                } else if (rechazo.grupo) {
-                    areaDeRechazo = rechazo.grupo.replace('CALIDAD_', '').toUpperCase();
-                }
+                // La corrección está aquí
+                const areaRechazo = rechazo.grupo ? rechazo.grupo.replace('CALIDAD_', '') : 'N/A';
 
-                if (area === 'TODAS' || areaDeRechazo === area) {
+                if (area === 'TODAS' || areaRechazo === area) {
                     rechazosFiltrados.push(rechazo);
                 }
             }
@@ -1713,7 +1773,7 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
             <tr>
                 <td>${r.fecha}</td>
                 <td>${r.hora}</td>
-                <td>${r.linea || r.grupo.replace('CALIDAD_', '') || 'N/A'}</td>
+                <td>${r.grupo ? r.grupo.replace('CALIDAD_', '') : 'N/A'}</td>
                 <td>${r.empleado || 'N/A'}</td>
                 <td>${r.parte || 'N/A'}</td>
                 <td>${r.descripcionParte || 'N/A'}</td>
