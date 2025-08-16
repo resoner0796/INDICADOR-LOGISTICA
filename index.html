@@ -964,9 +964,8 @@ function pintarEstado() {
                     if (ledsEstado[index]) {
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.classList.add(ledsEstado[index].color);
-                            if(ledsEstado[index].color === 'verde') {
-                                led.classList.add('disabled');
-                            }
+                            // La corrección está en la lógica de toggle, no aquí.
+                            // Aquí solo se pinta el estado
                         } else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
                         }
@@ -980,6 +979,7 @@ function pintarEstado() {
         });
     });
 }
+
 
 function formatoHora(isoString) {
     if (!isoString) return 'N/A';
@@ -1105,6 +1105,10 @@ function iniciarListenersFirebase() {
 
 
 // ================= PERMISOS Y LÓGICA =================
+function esUsuarioProduccion() {
+    return ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado);
+}
+
 function puedeControlar(grupo){
     if(!usuarioSeleccionado) {
         return false;
@@ -1125,27 +1129,20 @@ function puedeControlar(grupo){
 }
     
 function togglearLED(grupo, idx, linea = 'linea1') {
-    const ledElement = document.querySelector(`.grupo[data-grupo="${grupo}"] .leds[data-linea="${linea}"] .led:nth-child(${idx + 1})`);
-    
-    if (!puedeControlar(grupo)) {
-        return alert('No tienes permiso para controlar estos LEDs');
-    }
-
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
 
     if (grupo.startsWith('CALIDAD_')) {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
-            const esUsuarioCalidad = usuarioSeleccionado.startsWith('CALIDAD_');
 
-            if (esUsuarioCalidad) {
+            if (usuarioSeleccionado.startsWith('CALIDAD_')) {
                 // Lógica para Calidad
                 if(estadoActual.color === 'verde') {
                     return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
                 }
                 mostrarOpcionesCalidad(grupo, idx, linea); 
-            } else {
-                // Lógica para Producción
+            } else if (esUsuarioProduccion()) {
+                // Lógica para Producción: APAGAR LEDs de CALIDAD
                 if (estadoActual.color) {
                     if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
@@ -1162,6 +1159,8 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 } else {
                     alert('Producción solo puede apagar LEDs de Calidad que ya tienen un estado (verde, rojo, naranja).');
                 }
+            } else {
+                alert('No tienes permiso para controlar estos LEDs.');
             }
         });
     } else { // Grupos de Producción (MULTIPORT, DROPS, BEDROCK)
@@ -1194,7 +1193,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 } else {
                     alert('LOGÍSTICA solo puede apagar LEDs');
                 }
-            } else { // Es usuario de Producción
+            } else if (esUsuarioProduccion()) { // Es usuario de Producción
                 if (!estadoActual.encendido) {
                     if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
@@ -1216,7 +1215,11 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                         horaApagado: null
                     };
                     historialRef.push(log);
+                } else {
+                     alert('El LED ya está encendido. Si necesitas apagarlo, pide a Logística que lo recolecte.');
                 }
+            } else {
+                alert('No tienes permiso para controlar estos LEDs.');
             }
         });
     }
