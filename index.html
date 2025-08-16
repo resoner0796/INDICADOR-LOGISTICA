@@ -71,13 +71,23 @@ body{ overflow-y: auto; }
   background-size: var(--grid-size) var(--grid-size);
   box-shadow: inset 0 0 90px var(--vignette);
 }
-.header{ display:flex; align-items:center; justify-content:center; padding:16px 20px 6px; }
+.header{ display:flex; align-items:center; justify-content:center; padding:16px 20px 6px; position: relative; }
 #tituloFijo{
   font-weight:800;
   text-align:center;
   letter-spacing:.5px;
   text-shadow:0 2px 8px rgba(0,0,0,.65);
   font-size:var(--titulo-size);
+}
+#turnoActual {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background-color: rgba(0,0,0,0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
 }
 .zona-centro{
   flex:1;
@@ -476,6 +486,7 @@ body{ overflow-y: auto; }
 <section id="pantalla2" class="pantalla">
   <header class="header">
     <div id="tituloFijo">LOGÍSTICA</div>
+    <div id="turnoActual"></div>
   </header>
   <div class="zona-centro">
       <div id="resumenTurno" class="resumen-turno oculto">
@@ -662,27 +673,24 @@ let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
 let reporteActual = null;
 
 // ================= FUNCION PARA OBTENER FECHA Y TURNO =================
-function obtenerTurnoActual(date = new Date()) {
-    const ahora = date;
-    const hora = ahora.getHours() + (ahora.getMinutes() / 60);
+function obtenerTurnoActual() {
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const minutos = ahora.getMinutes();
 
-    let fecha;
+    let fecha = new Date(ahora);
     let turno;
 
-    // Turno 1: 06:30 a 18:30
-    if (hora >= 6.5 && hora < 18.5) {
+    // Turno 1: 06:30 a 18:29
+    if ((hora > 6 || (hora === 6 && minutos >= 30)) && (hora < 18 || (hora === 18 && minutos < 30))) {
         turno = 'Turno 1';
-        fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
     } 
-    // Turno 2: 18:30 a 06:30 del día siguiente
+    // Turno 2: 18:30 a 06:29 del día siguiente
     else {
         turno = 'Turno 2';
-        if (hora < 6.5) {
+        if (hora < 6 || (hora === 6 && minutos < 30)) {
             // Si la hora es antes de las 6:30 AM, el turno pertenece al día anterior
-            fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 1);
-        } else {
-            // Si la hora es después de las 18:30, el turno pertenece al día actual
-            fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+            fecha.setDate(ahora.getDate() - 1);
         }
     }
     
@@ -790,17 +798,18 @@ function formatoHora(isoString) {
     return `${hours}:${minutes}`;
 }
 
-function iniciarListenersFirebase(fechaSeleccionada = obtenerTurnoActual().fecha) {
-    const { turno } = obtenerTurnoActual(new Date(fechaSeleccionada));
+function iniciarListenersFirebase() {
+    const { fecha, turno } = obtenerTurnoActual();
+    document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
 
     // Desconectar listeners anteriores si existen
     if (historialRef) historialRef.off();
     if (contadoresCalidadRef) contadoresCalidadRef.off();
     if (rechazosDetalladosRef) rechazosDetalladosRef.off();
 
-    historialRef = database.ref(`historialLogs/${fechaSeleccionada}/${turno}`);
-    contadoresCalidadRef = database.ref(`contadoresCalidad/${fechaSeleccionada}/${turno}`);
-    rechazosDetalladosRef = database.ref(`rechazosDetallados/${fechaSeleccionada}/${turno}`);
+    historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
+    contadoresCalidadRef = database.ref(`contadoresCalidad/${fecha}/${turno}`);
+    rechazosDetalladosRef = database.ref(`rechazosDetallados/${fecha}/${turno}`);
 
     historialRef.on('value', (snapshot) => {
         const logs = snapshot.val() || {};
@@ -1074,6 +1083,7 @@ function seleccionarUsuario(usuario) {
         activarPantalla('pantalla2');
         inyectaLEDs();
         pintarEstado();
+        iniciarListenersFirebase(); // Inicia los listeners y muestra el turno
         alert(`¡Bienvenido, ${usuario}!`);
     } else if (usuario === 'CALIDAD') {
         const password = prompt('Introduce la contraseña para CALIDAD:');
@@ -1093,6 +1103,7 @@ function seleccionarUsuario(usuario) {
             activarPantalla('pantalla2');
             inyectaLEDs();
             pintarEstado();
+            iniciarListenersFirebase(); // Inicia los listeners y muestra el turno
             alert(`¡Bienvenido, ${subusuario.replace('_', ' ')}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -1109,6 +1120,7 @@ function seleccionarUsuario(usuario) {
             activarPantalla('pantalla2');
             inyectaLEDs();
             pintarEstado();
+            iniciarListenersFirebase(); // Inicia los listeners y muestra el turno
             alert(`¡Bienvenido, ${usuario}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -1132,7 +1144,6 @@ function mostrarReporte(tipo) {
     reporteActual = tipo;
     document.getElementById('selectoresReportes').style.display = 'none';
     const contenedor = document.getElementById('contenedorReporte');
-    const today = new Date().toISOString().split('T')[0];
     const { fecha: fechaActual, turno: turnoActual } = obtenerTurnoActual();
     
     let areaFiltroHtml = '';
@@ -1356,8 +1367,6 @@ function exportarTablaACsv(nombreReporte) {
 
 // ================= ARRANQUE Y MANEJO DE MODALES =================
 window.addEventListener('load', ()=>{
-    const { fecha, turno } = obtenerTurnoActual();
-
     firebase.auth().signInAnonymously().catch(err => {
         console.error('Auth error:', err);
     });
