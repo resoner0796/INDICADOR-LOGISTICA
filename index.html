@@ -416,23 +416,64 @@ const ESTADOS_CALIDAD = {
     'verde': 'liberado'
 };
 
-function pintarEstado(){
-  Object.keys(estadoLEDs).forEach(grupo=>{
-    document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
-      const linea = contenedor.dataset.linea || 'linea1';
-      const leds = contenedor.querySelectorAll('.led');
-      estadoLEDs[grupo][linea].forEach((estado, i)=>{
-        if(leds[i]){
-            leds[i].classList.toggle('on', !!estado.encendido);
-        }
-      });
+function pintarEstado() {
+    // Escucha en tiempo real los cambios en la base de datos
+    db.ref('estadoLEDs').on('value', snapshot => {
+        const estados = snapshot.val() || {}; // Obtiene todos los estados de los LEDs
+        
+        document.querySelectorAll('.leds').forEach(contenedor => {
+            const grupoLeds = contenedor.dataset.grupo;
+            const linea = contenedor.dataset.linea;
+            
+            // Verifica si hay datos para este grupo y línea
+            if (estados[grupoLeds] && estados[grupoLeds][linea]) {
+                const ledsEstado = estados[grupoLeds][linea];
+                
+                contenedor.querySelectorAll('.led').forEach((led, index) => {
+                    // Si el LED tiene estado en la base de datos
+                    if (ledsEstado[index]) {
+                        // Lógica para LEDs de Calidad (revisamos la propiedad 'color')
+                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
+                            led.style.backgroundColor = ledsEstado[index].color;
+                        } 
+                        // Lógica para LEDs de Producción (revisamos la propiedad 'encendido')
+                        else if (ledsEstado[index].encendido) {
+                            led.style.backgroundColor = 'green';
+                        } else {
+                            led.style.backgroundColor = 'gray';
+                        }
+                    } else {
+                        // Si no hay estado, el LED se apaga
+                        led.style.backgroundColor = 'gray';
+                    }
+                });
+            } else {
+                // Si el grupo no tiene datos en Firebase, apaga todos los LEDs
+                contenedor.querySelectorAll('.led').forEach(led => {
+                    led.style.backgroundColor = 'gray';
+                });
+            }
+        });
     });
-  });
 }
 
 // ================= FIREBASE: sincronización en tiempo real =================
-function guardarEstado(){
-    ledRef.set(estadoLEDs).catch(e=>console.warn('Error guardando en Firebase:',e));
+function guardarEstado(grupo, index, linea, estado){
+    // La referencia de la base de datos ahora es específica para cada LED.
+    const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + index);
+    
+    // Si el estado tiene la propiedad 'color', es un LED de Calidad.
+    if (estado.color) {
+        ledRef.update({
+            color: estado.color,
+            timestamp: new Date().toISOString()
+        });
+    } else { // Si no, es un LED de Producción.
+        ledRef.update({
+            encendido: estado.encendido,
+            timestamp: new Date().toISOString()
+        });
+    }
 }
 
 // Función auxiliar para formatear la hora
@@ -565,49 +606,45 @@ function togglearLED(grupo, idx, linea='linea1'){
     
     // Nueva lógica para el grupo de CALIDAD
     if (grupo.startsWith('CALIDAD_')) {
-        const estado = prompt("¿Qué estado deseas asignar a la tarima? (naranja, rojo, verde)");
+        const estado = prompt("Selecciona el estado de la tarima: \n🟡 En proceso \n🔴 Rechazada \n🟢 Liberada");
         
         if (estado) {
-            const estadoLowerCase = estado.toLowerCase();
-            const ESTADOS_CALIDAD = {
-                'naranja': 'proceso',
-                'rojo': 'rechazado',
-                'verde': 'liberado'
-            };
+            const estadoLowerCase = estado.toLowerCase().trim();
+            let nuevoColor;
             
-            if (ESTADOS_CALIDAD[estadoLowerCase]) {
-                const led = document.querySelector(`.leds[data-grupo="${grupo}"][data-linea="${linea}"] .led:nth-child(${idx + 1})`);
-                
-                // Cambia el color del LED en la interfaz
-                led.style.backgroundColor = estadoLowerCase;
-                
-                // Guarda el estado en la base de datos (se debe ajustar tu función guardarEstado)
-                guardarEstado(grupo, idx, linea, { color: estadoLowerCase });
-
-                // Notificación si el estado es 'rojo'
-                if (estadoLowerCase === 'rojo') {
-                    const usuarioProduccion = grupo.split('_')[1];
-                    notificarRechazo(usuarioProduccion);
-                }
+            if (estadoLowerCase.includes('proceso')) {
+                nuevoColor = 'naranja';
+            } else if (estadoLowerCase.includes('rechazada')) {
+                nuevoColor = 'rojo';
+            } else if (estadoLowerCase.includes('liberada')) {
+                nuevoColor = 'verde';
             } else {
-                alert("Estado no válido. Intenta con naranja, rojo o verde.");
+                alert("Estado no válido. Intenta de nuevo.");
+                return;
+            }
+
+            const led = document.querySelector(`.leds[data-grupo="${grupo}"][data-linea="${linea}"] .led:nth-child(${idx + 1})`);
+            
+            led.style.backgroundColor = nuevoColor;
+            
+            guardarEstado(grupo, idx, linea, { color: nuevoColor });
+
+            if (nuevoColor === 'rojo') {
+                const usuarioProduccion = grupo.split('_')[1];
+                notificarRechazo(usuarioProduccion);
             }
         }
     } 
     // Lógica para LOGÍSTICA
     else if (usuarioSeleccionado === 'LOGÍSTICA') {
-        // Obtenemos el estado actual del LED para LOGÍSTICA
         const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
-
         if (estadoActual) {
-            // CONFIRMACIÓN PARA LOGÍSTICA
             if (!confirm('¿Está realmente recolectada la tarima?')) {
-                return; // Si el usuario cancela, la función termina aquí
+                return;
             }
-
             const tiempoEncendido = new Date(estadoLEDs[grupo][linea][idx].timestampEncendido);
             const tiempoApagado = new Date();
-            const diferencia = (tiempoApagado - tiempoEncendido) / 60000; // Diferencia en minutos
+            const diferencia = (tiempoApagado - tiempoEncendido) / 60000;
             tiempoRecoleccion = Math.round(diferencia);
             
             horaEncendido = estadoLEDs[grupo][linea][idx].timestampEncendido;
@@ -619,9 +656,7 @@ function togglearLED(grupo, idx, linea='linea1'){
             
             guardarEstado();
             pintarEstado();
-            
-            // LLAMA A LA NUEVA FUNCIÓN PARA ACTUALIZAR EL RESUMEN
-            actualizarResumen(); // <-- LÍNEA AGREGADA
+            actualizarResumen();
         } else {
             alert('LOGÍSTICA solo puede apagar LEDs');
             return;
@@ -629,15 +664,11 @@ function togglearLED(grupo, idx, linea='linea1'){
     } 
     // Lógica para los demás usuarios (Producción)
     else {
-        // Obtenemos el estado actual del LED para los usuarios de Producción
         const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
-        
         if (!estadoActual) {
-            // CONFIRMACIÓN PARA USUARIOS DE PRODUCCIÓN
             if (!confirm('¿Está realmente confirmada la tarima?')) {
-                return; // Si el usuario cancela, la función termina aquí
+                return;
             }
-
             estadoLEDs[grupo][linea][idx] = {
                 encendido: true,
                 timestampEncendido: new Date().toISOString()
@@ -646,17 +677,12 @@ function togglearLED(grupo, idx, linea='linea1'){
             
             guardarEstado();
             pintarEstado();
-            
-            // LLAMA A LA NUEVA FUNCIÓN PARA ACTUALIZAR EL RESUMEN
-            actualizarResumen(); // <-- LÍNEA AGREGADA
+            actualizarResumen();
         } else {
-            // Como los usuarios de producción no pueden apagar LEDs encendidos,
-            // no se necesita una confirmación aquí.
             return;
         }
     }
 
-    // Crea un objeto de registro y lo guarda en Firebase.
     const log = {
         usuario: usuarioSeleccionado,
         grupo: grupo,
