@@ -381,6 +381,8 @@ body{ overflow-y: auto; }
 #pantalla3 .header-reporte {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     justify-content: space-between;
     margin-bottom: 20px;
 }
@@ -396,10 +398,12 @@ body{ overflow-y: auto; }
 #pantalla3 .header-reporte .filtros label {
     font-size: 14px;
 }
-#pantalla3 .header-reporte .filtros input[type="date"] {
+#pantalla3 .header-reporte .filtros input[type="date"],
+#pantalla3 .header-reporte .filtros select {
     padding: 8px;
     border-radius: 5px;
     border: 1px solid #ccc;
+    font-size: 14px;
 }
 #pantalla3 table {
     width: 100%;
@@ -425,6 +429,8 @@ body{ overflow-y: auto; }
 #pantalla3 .resumen-datos {
     display: flex;
     gap: 30px;
+    flex-wrap: wrap;
+    justify-content: space-around;
     margin-bottom: 20px;
 }
 #pantalla3 .dato {
@@ -792,7 +798,7 @@ function iniciarListenersFirebase(fechaSeleccionada = obtenerTurnoActual().fecha
     rechazosDetalladosRef = database.ref(`rechazosDetallados/${fechaSeleccionada}/${turno}`);
 
     historialRef.on('value', (snapshot) => {
-        const logs = snapshot.val();
+        const logs = snapshot.val() || {};
         const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0, CALIDAD_MULTIPORT: 0, CALIDAD_BEDROCK: 0, CALIDAD_DROPS: 0 };
         const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
@@ -1122,14 +1128,31 @@ function mostrarReporte(tipo) {
     document.getElementById('selectoresReportes').style.display = 'none';
     const contenedor = document.getElementById('contenedorReporte');
     const today = new Date().toISOString().split('T')[0];
-    const { fecha, turno } = obtenerTurnoActual();
+    const { fecha: fechaActual, turno: turnoActual } = obtenerTurnoActual();
     
+    let areaFiltroHtml = '';
+    const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK'];
+    if (tipo !== 'calidad') {
+        areaFiltroHtml = `
+            <select id="areaFiltro">
+                ${areas.map(area => `<option value="${area}">${area}</option>`).join('')}
+            </select>
+        `;
+    }
+
     contenedor.innerHTML = `
         <div class="header-reporte">
-            <button onclick="seleccionarReporte()" class="usuario-btn">Regresar</button>
+            <button onclick="regresarASelectores()" class="usuario-btn">Regresar</button>
             <div class="filtros">
-                <label for="fechaReporte">Seleccionar fecha:</label>
-                <input type="date" id="fechaReporte" value="${fecha}">
+                <label for="fechaReporte">Fecha:</label>
+                <input type="date" id="fechaReporte" value="${fechaActual}">
+                <label for="turnoFiltro">Turno:</label>
+                <select id="turnoFiltro">
+                    <option value="Turno 1">Turno 1</option>
+                    <option value="Turno 2">Turno 2</option>
+                </select>
+                ${areaFiltroHtml}
+                <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>
             </div>
         </div>
         <h2 id="tituloReporteDinamico">Cargando...</h2>
@@ -1139,19 +1162,28 @@ function mostrarReporte(tipo) {
         </div>
     `;
 
-    document.getElementById('fechaReporte').addEventListener('change', (e) => {
-        cargarDatosReporte(tipo, e.target.value);
-    });
-
-    cargarDatosReporte(tipo, fecha);
+    document.getElementById('turnoFiltro').value = turnoActual;
+    cargarDatosReporte(tipo, fechaActual, turnoActual);
 }
 
-function cargarDatosReporte(tipo, fecha) {
+function regresarASelectores() {
+    document.getElementById('tituloReportes').textContent = 'REPORTES';
+    document.getElementById('selectoresReportes').style.display = 'flex';
+    document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
+}
+
+function buscarReporte() {
+    const fecha = document.getElementById('fechaReporte').value;
+    const turno = document.getElementById('turnoFiltro').value;
+    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
+    cargarDatosReporte(reporteActual, fecha, turno, area);
+}
+
+
+function cargarDatosReporte(tipo, fecha, turno, area = null) {
     const contenedor = document.getElementById('contenidoReporte');
     const tituloReporte = document.getElementById('tituloReporteDinamico');
     contenedor.innerHTML = '<p>Cargando datos...</p>';
-
-    const { turno } = obtenerTurnoActual(new Date(fecha));
     
     if (tipo === 'calidad') {
         tituloReporte.textContent = `Reporte de Calidad (${turno} - ${fecha})`;
@@ -1184,19 +1216,21 @@ function cargarDatosReporte(tipo, fecha) {
             const conteo = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
             
             Object.values(logs).forEach(log => {
-                if (log.accion === 'encendido' && conteo.hasOwnProperty(log.grupo)) {
+                if (log.accion === 'encendido' && conteo.hasOwnProperty(log.grupo) && (area === 'TODAS' || log.grupo === area)) {
                     conteo[log.grupo]++;
                 }
             });
 
             let html = `<div class="resumen-datos">`;
             Object.entries(conteo).forEach(([grupo, total]) => {
-                html += `
-                    <div class="dato">
-                        <div class="valor">${total}</div>
-                        <div class="etiqueta">${grupo}</div>
-                    </div>
-                `;
+                if (area === 'TODAS' || grupo === area) {
+                    html += `
+                        <div class="dato">
+                            <div class="valor">${total}</div>
+                            <div class="etiqueta">${grupo}</div>
+                        </div>
+                    `;
+                }
             });
             html += `</div>`;
 
@@ -1209,12 +1243,19 @@ function cargarDatosReporte(tipo, fecha) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>MULTIPORT</td><td>${conteo.MULTIPORT}</td></tr>
-                        <tr><td>DROPS</td><td>${conteo.DROPS}</td></tr>
-                        <tr><td>BEDROCK</td><td>${conteo.BEDROCK}</td></tr>
-                    </tbody>
-                </table>
             `;
+            if (area === 'TODAS') {
+                html += `
+                    <tr><td>MULTIPORT</td><td>${conteo.MULTIPORT}</td></tr>
+                    <tr><td>DROPS</td><td>${conteo.DROPS}</td></tr>
+                    <tr><td>BEDROCK</td><td>${conteo.BEDROCK}</td></tr>
+                `;
+            } else {
+                html += `
+                    <tr><td>${area}</td><td>${conteo[area]}</td></tr>
+                `;
+            }
+            html += `</tbody></table>`;
             contenedor.innerHTML = html;
         });
     } else if (tipo === 'logistica') {
@@ -1226,7 +1267,7 @@ function cargarDatosReporte(tipo, fecha) {
             let tiempoTotal = 0;
             
             Object.values(logs).forEach(log => {
-                if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+                if (log.accion === 'apagado' && log.tiempoRecoleccion && (area === 'TODAS' || log.grupo === area)) {
                     tiemposRecoleccion.push(log);
                     tarimasTotales++;
                     tiempoTotal += log.tiempoRecoleccion;
@@ -1287,7 +1328,7 @@ function exportarTablaACsv(nombreReporte) {
         let filaDatos = [];
         const celdas = fila.querySelectorAll('th, td');
         for (const celda of celdas) {
-            filaDatos.push(celda.textContent.trim());
+            filaDatos.push(`"${celda.textContent.trim().replace(/"/g, '""')}"`); // Escapar comillas dobles
         }
         csv.push(filaDatos.join(','));
     }
