@@ -452,9 +452,6 @@ function pintarEstado() {
     });
 }
 
-
-// ================= FIREBASE: sincronización en tiempo real =================
-
 // Función auxiliar para formatear la hora
 function formatoHora(isoString) {
     if (!isoString) return 'N/A';
@@ -578,7 +575,6 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         return alert('No tienes permiso para controlar estos LEDs');
     }
 
-    let accion = '';
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
 
     // Lógica para Calidad
@@ -604,15 +600,17 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 color: nuevoColor,
                 timestamp: new Date().toISOString(),
                 usuario: usuarioSeleccionado
-            }).then(() => {
-                // Notificación para el usuario de producción si es rechazada
-                if (nuevoColor === 'rojo') {
-                    const usuarioProduccion = grupo.split('_')[1];
-                    notificarRechazo(usuarioProduccion);
-                }
             });
+
+            if (nuevoColor === 'rojo') {
+                const usuarioProduccion = grupo.split('_')[1];
+                notificarRechazo(usuarioProduccion);
+            }
         }
-    } else { // Lógica para Producción y Logística
+    } 
+    // Lógica para Producción y Logística
+    else {
+        // Obtenemos el estado actual directamente para decidir la acción
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
             
@@ -669,6 +667,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         });
     }
 }
+
 // CÓDIGO A AGREGAR
 function actualizarResumen() {
     // Carga los datos actuales del resumen
