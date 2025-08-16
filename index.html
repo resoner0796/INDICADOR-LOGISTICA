@@ -471,6 +471,115 @@ body{ overflow-y: auto; }
     max-width: 600px;
     margin: 20px auto;
 }
+/* ================= CSS PARA PANTALLA 4 (DASHBOARD) ================= */
+#pantalla4 {
+    background-color: #000;
+    color: #fff;
+    padding: 20px;
+    display: grid;
+    grid-template-areas:
+        "header"
+        "kpis"
+        "produccion"
+        "calidad"
+        "logistica"
+        "pendientes"
+        "footer";
+    gap: 20px;
+    align-content: start;
+}
+#pantalla4 .header {
+    grid-area: header;
+    text-align: center;
+}
+#pantalla4 .kpis-grid {
+    grid-area: kpis;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+#pantalla4 .kpi-card {
+    background-color: #1a1a1a;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border: 1px solid #333;
+}
+#pantalla4 .kpi-card h3 {
+    margin-top: 0;
+    font-size: 1rem;
+    color: #aaa;
+    text-transform: uppercase;
+}
+#pantalla4 .kpi-card .valor {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #00ff88;
+}
+#pantalla4 .kpi-card.alerta .valor {
+    color: #ff3333;
+}
+#pantalla4 .graficos-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+#pantalla4 .graficos-container .panel {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border: 1px solid #333;
+}
+#pantalla4 .graficos-container h3 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #eee;
+}
+#pantalla4 #tablaPendientes {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+}
+#pantalla4 #tablaPendientes th, #pantalla4 #tablaPendientes td {
+    padding: 12px;
+    border-bottom: 1px solid #444;
+    text-align: left;
+}
+#pantalla4 #tablaPendientes th {
+    background-color: #222;
+}
+#pantalla4 #tablaPendientes tbody tr:hover {
+    background-color: #333;
+}
+#pantalla4 .footer {
+    grid-area: footer;
+}
+@media (min-width: 768px) {
+    #pantalla4 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "header header"
+            "kpis kpis"
+            "produccion calidad"
+            "logistica logistica"
+            "pendientes pendientes"
+            "footer footer";
+    }
+}
+@media (min-width: 1200px) {
+    #pantalla4 {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-areas:
+            "header header header"
+            "kpis kpis kpis"
+            "produccion calidad pendientes"
+            "logistica logistica logistica"
+            "footer footer footer";
+    }
+}
 </style>
 </head>
 
@@ -486,6 +595,7 @@ body{ overflow-y: auto; }
     <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button> 
     <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
+    <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
 </div>
 </section>
 
@@ -607,6 +717,62 @@ body{ overflow-y: auto; }
     </div>
 </section>
 
+<section id="pantalla4" class="pantalla">
+    <header class="header">
+        <h1>DASHBOARD DE SUPERVISOR</h1>
+        <div id="turnoDashboard"></div>
+    </header>
+    <div class="kpis-grid">
+        <div class="kpi-card">
+            <h3>Tarimas Confirmadas</h3>
+            <div class="valor" id="dashTarimasConfirmadas">0</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Tarimas Recolectadas</h3>
+            <div class="valor" id="dashTarimasRecolectadas">0</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Tiempo Promedio</h3>
+            <div class="valor" id="dashTiempoPromedio">0 min</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Tasa de Rechazo</h3>
+            <div class="valor" id="dashTasaRechazo">0%</div>
+        </div>
+    </div>
+    <div class="graficos-container">
+        <div class="panel" style="grid-area: produccion;">
+            <h3>Producción por Área</h3>
+            <canvas id="graficoProduccionDash"></canvas>
+        </div>
+        <div class="panel" style="grid-area: calidad;">
+            <h3>Estado de Calidad</h3>
+            <canvas id="graficoCalidadDash"></canvas>
+        </div>
+    </div>
+    <div class="graficos-container">
+        <div class="panel" style="grid-area: logistica;">
+            <h3>Evolución de Tiempos de Recolección</h3>
+            <canvas id="graficoLogisticaDash"></canvas>
+        </div>
+    </div>
+    <div class="panel" style="grid-area: pendientes;">
+        <h3>Tarimas Pendientes por Recolectar</h3>
+        <table id="tablaPendientes">
+            <thead>
+                <tr>
+                    <th>Área</th>
+                    <th>Tarimas Pendientes</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="footer">
+        <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
+    </div>
+</section>
+
 <div id="modalCalidad" class="modal-calidad">
     <div class="modal-content">
         <h3>Selecciona el estado de la tarima:</h3>
@@ -663,7 +829,8 @@ const CONFIG = {
         'CALIDAD_MULTIPORT': 'calidadmp123',
         'CALIDAD_DROPS': 'calidaddp123',
         'CALIDAD_BEDROCK': 'calidadbr123',
-        'REPORTES': 'reportes123'
+        'REPORTES': 'reportes123',
+        'DASHBOARD': 'dashboard123'
     },
     LEDS_POR_GRUPO: {
         'MULTIPORT': 5,
@@ -678,7 +845,8 @@ const CONFIG = {
 let usuarioSeleccionado = null;
 let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
 let reporteActual = null;
-let miGrafico; // Variable global para el gráfico
+let miGrafico; // Variable global para el gráfico de reportes
+let graficosDashboard = {}; // Objeto para los gráficos del dashboard
 
 // ================= FUNCION PARA OBTENER FECHA Y TURNO =================
 function obtenerTurnoActual() {
@@ -1087,13 +1255,18 @@ function seleccionarUsuario(usuario) {
     }
 
     if (usuario === 'SUPERVISOR') {
-        usuarioSeleccionado = usuario;
-        document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
-        activarPantalla('pantalla2');
-        inyectaLEDs();
-        pintarEstado();
-        iniciarListenersFirebase(); // Inicia los listeners y muestra el turno
-        alert(`¡Bienvenido, ${usuario}!`);
+        const password = prompt('Introduce la contraseña para SUPERVISOR:');
+        if (password === CONFIG.PASSWORDS['SUPERVISOR']) {
+             usuarioSeleccionado = usuario;
+            document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            pintarEstado();
+            iniciarListenersFirebase(); 
+            alert(`¡Bienvenido, ${usuario}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
     } else if (usuario === 'CALIDAD') {
         const password = prompt('Introduce la contraseña para CALIDAD:');
         let subusuario = null;
@@ -1148,6 +1321,210 @@ function seleccionarReporte() {
         alert('Contraseña incorrecta. Acceso denegado.');
     }
 }
+
+function seleccionarDashboard() {
+    const password = prompt('Introduce la contraseña para DASHBOARD:');
+    if (password === CONFIG.PASSWORDS['DASHBOARD']) {
+        activarPantalla('pantalla4');
+        iniciarDashboard();
+    } else {
+        alert('Contraseña incorrecta. Acceso denegado.');
+    }
+}
+
+function iniciarDashboard() {
+    const { fecha, turno } = obtenerTurnoActual();
+    document.getElementById('turnoDashboard').textContent = `Turno actual: ${turno}`;
+    
+    // Iniciar listeners para el dashboard
+    db.ref(`historialLogs/${fecha}/${turno}`).on('value', snapshot => {
+        const logs = snapshot.val() || {};
+        actualizarDashboard(logs, 'historial');
+    });
+
+    db.ref(`contadoresCalidad/${fecha}/${turno}`).on('value', snapshot => {
+        const contadores = snapshot.val() || {};
+        actualizarDashboard(contadores, 'calidad');
+    });
+
+    db.ref('estadoLEDs').on('value', snapshot => {
+        const leds = snapshot.val() || {};
+        actualizarDashboard(leds, 'leds');
+    });
+}
+
+function actualizarDashboard(datos, tipo) {
+    const { fecha, turno } = obtenerTurnoActual();
+    let historialLogs = {};
+    let contadoresCalidad = {};
+    let estadoLEDs = {};
+
+    // Cargar los datos más recientes en las variables globales
+    if (tipo === 'historial') {
+        historialLogs = datos;
+    }
+    if (tipo === 'calidad') {
+        contadoresCalidad = datos;
+    }
+    if (tipo === 'leds') {
+        estadoLEDs = datos;
+    }
+
+    // Calcular KPIs
+    let tarimasConfirmadas = 0;
+    let tarimasRecolectadas = 0;
+    let tiempoTotalRecoleccion = 0;
+    let logsRecoleccion = [];
+    const produccionPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+    
+    for (const logKey in historialLogs) {
+        const log = historialLogs[logKey];
+        if (log.accion === 'encendido' && produccionPorArea.hasOwnProperty(log.grupo)) {
+            tarimasConfirmadas++;
+            produccionPorArea[log.grupo]++;
+        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+            tarimasRecolectadas++;
+            tiempoTotalRecoleccion += log.tiempoRecoleccion;
+            logsRecoleccion.push(log);
+        }
+    }
+    
+    const tiempoPromedio = tarimasRecolectadas > 0 ? (tiempoTotalRecoleccion / tarimasRecolectadas).toFixed(1) : 0;
+    
+    let liberadas = 0;
+    let rechazadas = 0;
+    for (const grupo in contadoresCalidad) {
+        liberadas += contadoresCalidad[grupo].liberadas || 0;
+        rechazadas += contadoresCalidad[grupo].rechazadas || 0;
+    }
+    const totalCalidad = liberadas + rechazadas;
+    const tasaRechazo = totalCalidad > 0 ? ((rechazadas / totalCalidad) * 100).toFixed(1) : 0;
+
+    // Actualizar KPIs en el HTML
+    document.getElementById('dashTarimasConfirmadas').textContent = tarimasConfirmadas;
+    document.getElementById('dashTarimasRecolectadas').textContent = tarimasRecolectadas;
+    document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`;
+    document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`;
+
+    // Actualizar gráficos
+    generarGraficoProduccionDash(produccionPorArea);
+    generarGraficoCalidadDash({ liberadas, rechazadas });
+    generarGraficoLogisticaDash(logsRecoleccion);
+    
+    // Actualizar tabla de pendientes
+    const pendientesPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+    for (const grupo in estadoLEDs) {
+        for (const linea in estadoLEDs[grupo]) {
+            for (const led in estadoLEDs[grupo][linea]) {
+                const estado = estadoLEDs[grupo][linea][led];
+                if (estado && estado.encendido) {
+                    pendientesPorArea[grupo]++;
+                }
+            }
+        }
+    }
+    const tablaPendientesBody = document.querySelector('#tablaPendientes tbody');
+    tablaPendientesBody.innerHTML = '';
+    for (const area in pendientesPorArea) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${area}</td><td>${pendientesPorArea[area]}</td>`;
+        tablaPendientesBody.appendChild(tr);
+    }
+}
+
+function generarGraficoProduccionDash(datos) {
+    if (graficosDashboard.produccion) {
+        graficosDashboard.produccion.destroy();
+    }
+    const ctx = document.getElementById('graficoProduccionDash').getContext('2d');
+    const labels = Object.keys(datos);
+    const data = Object.values(datos);
+    graficosDashboard.produccion = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tarimas Confirmadas',
+                data: data,
+                backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56'],
+                borderColor: ['#4BC0C0', '#36A2EB', '#FFCE56'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Tarimas' } }
+            },
+            plugins: {
+                legend: { display: false },
+                title: { display: false }
+            }
+        }
+    });
+}
+
+function generarGraficoCalidadDash(datos) {
+    if (graficosDashboard.calidad) {
+        graficosDashboard.calidad.destroy();
+    }
+    const ctx = document.getElementById('graficoCalidadDash').getContext('2d');
+    const labels = ['Liberadas', 'Rechazadas'];
+    const data = [datos.liberadas, datos.rechazadas];
+    graficosDashboard.calidad = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: ['#4caf50', '#f44336']
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: false }
+            }
+        }
+    });
+}
+
+function generarGraficoLogisticaDash(datos) {
+    if (graficosDashboard.logistica) {
+        graficosDashboard.logistica.destroy();
+    }
+    const ctx = document.getElementById('graficoLogisticaDash').getContext('2d');
+    const logsOrdenados = datos.sort((a, b) => new Date(a.horaApagado) - new Date(b.horaApagado));
+    const labels = logsOrdenados.map(log => formatoHora(log.horaApagado));
+    const data = logsOrdenados.map(log => log.tiempoRecoleccion);
+    graficosDashboard.logistica = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tiempo (min)',
+                data: data,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                x: { title: { display: true, text: 'Hora de Recolección' } },
+                y: { beginAtZero: true, title: { display: true, text: 'Tiempo (min)' } }
+            },
+            plugins: {
+                legend: { display: false },
+                title: { display: false }
+            }
+        }
+    });
+}
+
 
 function mostrarReporte(tipo) {
     reporteActual = tipo;
@@ -1320,6 +1697,7 @@ function procesarReporteCalidad(datos, contenedor, area) {
                 <td>${r.linea || 'N/A'}</td>
                 <td>${r.empleado || 'N/A'}</td>
                 <td>${r.parte || 'N/A'}</td>
+                <td>${r.descripcionParte || 'N/A'}</td>
                 <td>${r.problema || 'N/A'}</td>
                 <td>${r.causa || 'N/A'}</td>
                 <td>${r.accion || 'N/A'}</td>
