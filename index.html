@@ -600,62 +600,45 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 return;
             }
 
-            // Actualiza el estado en Firebase
             ledRef.set({
                 color: nuevoColor,
                 timestamp: new Date().toISOString(),
                 usuario: usuarioSeleccionado
+            }).then(() => {
+                // Notificación para el usuario de producción si es rechazada
+                if (nuevoColor === 'rojo') {
+                    const usuarioProduccion = grupo.split('_')[1];
+                    notificarRechazo(usuarioProduccion);
+                }
             });
-
-            // Notificación para el usuario de producción si es rechazada
-            if (nuevoColor === 'rojo') {
-                const usuarioProduccion = grupo.split('_')[1];
-                notificarRechazo(usuarioProduccion);
-            }
         }
     } else { // Lógica para Producción y Logística
-        let tiempoRecoleccion = null;
-        let horaEncendido = null;
-        let horaApagado = null;
-        
-        // Obtiene el estado actual del LED directamente desde la base de datos
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
-
+            
             if (usuarioSeleccionado === 'LOGÍSTICA') {
                 if (estadoActual.encendido) {
                     if (!confirm('¿Está realmente recolectada la tarima?')) {
                         return;
                     }
 
-                    const tiempoEncendido = new Date(estadoActual.timestamp);
-                    const tiempoApagado = new Date();
-                    const diferencia = (tiempoApagado - tiempoEncendido) / 60000;
-                    tiempoRecoleccion = Math.round(diferencia);
-                    
-                    horaEncendido = estadoActual.timestamp;
-                    horaApagado = tiempoApagado.toISOString();
-
                     ledRef.set({
                         encendido: false,
-                        timestamp: tiempoApagado.toISOString()
+                        timestamp: new Date().toISOString()
                     });
                     
-                    accion = 'apagado';
-                    actualizarResumen();
-                    
-                    // Crea un objeto de registro y lo guarda en Firebase
+                    const tiempoRecoleccion = (new Date() - new Date(estadoActual.timestamp)) / 60000;
                     const log = {
                         usuario: usuarioSeleccionado,
                         grupo: grupo,
                         led: `${linea}-${idx+1}`,
-                        accion: accion,
+                        accion: 'apagado',
                         timestamp: new Date().toISOString(),
-                        tiempoRecoleccion: tiempoRecoleccion,
-                        horaEncendido: horaEncendido,
-                        horaApagado: horaApagado
+                        tiempoRecoleccion: Math.round(tiempoRecoleccion),
+                        horaEncendido: estadoActual.timestamp,
+                        horaApagado: new Date().toISOString()
                     };
-                    historialRef.push(log).catch(e => console.warn('Error guardando log en Firebase:', e));
+                    historialRef.push(log);
                 } else {
                     alert('LOGÍSTICA solo puede apagar LEDs');
                 }
@@ -669,23 +652,18 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                         timestamp: new Date().toISOString(),
                         usuario: usuarioSeleccionado
                     });
-
-                    accion = 'encendido';
-                    actualizarResumen();
                     
                     const log = {
                         usuario: usuarioSeleccionado,
                         grupo: grupo,
                         led: `${linea}-${idx+1}`,
-                        accion: accion,
+                        accion: 'encendido',
                         timestamp: new Date().toISOString(),
                         tiempoRecoleccion: null,
                         horaEncendido: new Date().toISOString(),
                         horaApagado: null
                     };
-                    historialRef.push(log).catch(e => console.warn('Error guardando log en Firebase:', e));
-                } else {
-                    return;
+                    historialRef.push(log);
                 }
             }
         });
