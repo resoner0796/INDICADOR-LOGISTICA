@@ -464,6 +464,24 @@ function formatoHora(isoString) {
 
 const db = firebase.database(); // Declara la variable db globalmente
 
+function cargarEstado(){
+  ledRef.on('value',(snapshot)=>{
+    const data = snapshot.val();
+    if(!data) return;
+    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
+      if(data[grupo]){
+        ['linea1','linea2'].forEach(linea=>{
+          if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
+            const tempArray = Object.values(data[grupo][linea]);
+            estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
+            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
+          }
+        });
+      }
+    });
+    pintarEstado();
+  });
+  
 historialRef.on('value', (snapshot) => {
     const logs = snapshot.val();
     const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
