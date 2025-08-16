@@ -385,14 +385,12 @@ function inyectaLEDs(){
             mostrarGrupo = true;
         } else if (usuarioSeleccionado === 'LOGÍSTICA' && !grupo.startsWith('CALIDAD_')) {
             mostrarGrupo = true;
-        } else if (usuarioSeleccionado === 'LOGÍSTICA' && grupo.startsWith('CALIDAD_')) {
-            mostrarGrupo = false;
-        } else if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && usuarioSeleccionado === grupo) {
+        } else if (usuarioSeleccionado === grupo) {
             mostrarGrupo = true;
-        } else if (usuarioSeleccionado.startsWith('CALIDAD_') && usuarioSeleccionado === grupo) {
+        } else if (['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
             mostrarGrupo = true;
         }
-
+        
         if (mostrarGrupo) {
             grupoDiv.classList.remove('oculto');
         } else {
