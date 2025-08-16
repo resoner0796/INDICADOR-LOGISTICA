@@ -229,58 +229,46 @@ body{ overflow-y: auto; }
   </div>
 </div>
       <div class="grupo-contenedor">
-
-      <div class="grupo" data-grupo="MULTIPORT">
+    <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="MULTIPORT"></div>
-      </div>
 
-      <div class="grupo" data-grupo="DROPS">
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
+        </div>
+    </div>
+
+    <div class="grupo" data-grupo="DROPS">
         <div class="nombre">DROPS</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
         <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="DROPS"></div>
-      </div>
+        
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
+        </div>
+    </div>
 
-      <div class="grupo" data-grupo="BEDROCK">
+    <div class="grupo" data-grupo="BEDROCK">
         <div class="nombre">BEDROCK</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="BEDROCK"></div>
-      </div>
-      
-      <div class="grupo-contenedor">
-    <div class="grupo" data-grupo="MULTIPORT">
+        
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
         </div>
-    <div class="grupo" data-grupo="DROPS">
-        </div>
-    <div class="grupo" data-grupo="BEDROCK">
-        </div>
-    
-    <div class="grupo" data-grupo="CALIDAD_MULTIPORT">
-        <div class="nombre">CALIDAD MULTIPORT</div>
-        <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
-        <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
-    <div class="grupo" data-grupo="CALIDAD_DROPS">
-        <div class="nombre">CALIDAD DROPS</div>
-        <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
-        <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
+
     </div>
-    <div class="grupo" data-grupo="CALIDAD_BEDROCK">
-        <div class="nombre">CALIDAD BEDROCK</div>
-        <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
-        <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
-    </div>
-</div>
   </div>
   <div class="footer">
     <button class="usuario-btn btn-rojo" onclick="volverAPantalla1()">Cerrar sesión</button>
@@ -382,29 +370,31 @@ function inyectaLEDs(){
         const grupo = grupoDiv.dataset.grupo;
         let mostrarGrupo = false;
 
-        // Reglas para mostrar u ocultar grupos
+        // Reglas de visibilidad
         if (usuarioSeleccionado === 'SUPERVISOR' || usuarioSeleccionado === 'LOGÍSTICA') {
             mostrarGrupo = true;
         } else if (usuarioSeleccionado === grupo) {
             mostrarGrupo = true;
         } else if (usuarioSeleccionado.startsWith('CALIDAD_') && usuarioSeleccionado === grupo) {
             mostrarGrupo = true;
+        } else if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
+            mostrarGrupo = true;
         }
-
+        
         if (mostrarGrupo) {
             grupoDiv.classList.remove('oculto');
             grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
                 const linea = contenedor.dataset.linea || 'linea1';
                 contenedor.innerHTML = '';
                 
-                // OBTENEMOS EL NÚMERO DE LEDS DEL OBJETO LEDS_POR_GRUPO
-                const numLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 0;
+                const grupoLeds = contenedor.dataset.grupo;
+                const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
 
                 for(let i = 0; i < numLeds; i++){
                     const led = document.createElement('div');
                     led.className = 'led';
-                    led.title = `${grupo} • ${linea} • LED ${i+1}`;
-                    led.addEventListener('click', () => togglearLED(grupo, i, linea));
+                    led.title = `${grupoLeds} • ${linea} • LED ${i+1}`;
+                    led.addEventListener('click', () => togglearLED(grupoLeds, i, linea));
                     contenedor.appendChild(led);
                 }
             });
@@ -522,27 +512,32 @@ function cargarEstado(){
 }
 // ================= PERMISOS Y LÓGICA =================
 function puedeControlar(grupo){
-  if(!usuarioSeleccionado) {
-    return false;
-  }
+    if(!usuarioSeleccionado) {
+        return false;
+    }
   
-  // Si el usuario es SUPERVISOR, no puede controlar nada
-  if (usuarioSeleccionado === 'SUPERVISOR') {
-    return false;
-  }
+    // Si el usuario es SUPERVISOR, no puede controlar nada
+    if (usuarioSeleccionado === 'SUPERVISOR') {
+        return false;
+    }
   
-  // LOGÍSTICA puede controlar todos los grupos
-  if (usuarioSeleccionado === 'LOGÍSTICA') {
-    return true;
-  }
+    // LOGÍSTICA puede controlar todos los grupos
+    if (usuarioSeleccionado === 'LOGÍSTICA') {
+        return true;
+    }
   
-  // Los usuarios de Calidad solo controlan su grupo específico
-  if (usuarioSeleccionado.startsWith('CALIDAD_')) {
-    return usuarioSeleccionado === grupo;
-  }
+    // LÓGICA CLAVE: Un usuario puede controlar su propio grupo
+    // O puede controlar el grupo de Calidad que le corresponde
+    if (usuarioSeleccionado === grupo) {
+        return true;
+    }
+    
+    // Si el usuario es de producción, puede controlar su grupo de Calidad anidado
+    if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
+        return true;
+    }
 
-  // Los demás usuarios (MULTIPORT, DROPS, BEDROCK) solo pueden controlar su propio grupo
-  return usuarioSeleccionado === grupo;
+    return false;
 }
     
 // CÓDIGO MODIFICADO
