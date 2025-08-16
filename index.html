@@ -361,6 +361,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 // CÓDIGO MODIFICADO
 const database = firebase.database();
+const db = database; // Variable global para la base de datos
 const ledRef = database.ref('estadoLEDs');
 let historialRef;
 let resumenRef; // <-- Agrega esta línea
@@ -461,66 +462,66 @@ function formatoHora(isoString) {
     return `${hours}:${minutes}`;
 }
 
-  
-  historialRef.on('value', (snapshot) => {
-    const logs = snapshot.val();
-    const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
-    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+const db = firebase.database(); // Declara la variable db globalmente
 
-    // Variables para los datos totales
-    let tarimasTotales = 0;
-    let tiempoTotalRecoleccion = 0;
+historialRef.on('value', (snapshot) => {
+    const logs = snapshot.val();
+    const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
+    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
-    if (logs) {
-      Object.values(logs).forEach(log => {
-        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-          contadores[log.grupo]++;
-        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log);
-          // Acumula datos para el cálculo total
-          tarimasTotales++;
-          tiempoTotalRecoleccion += log.tiempoRecoleccion;
-        }
-      });
-    }
+    // Variables para los datos totales
+    let tarimasTotales = 0;
+    let tiempoTotalRecoleccion = 0;
 
-    // Calcula el tiempo promedio
-    const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
-    
-    // Actualiza los datos totales en la interfaz
-    document.getElementById('tarimasTotales').textContent = tarimasTotales;
-    document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
+    if (logs) {
+      Object.values(logs).forEach(log => {
+        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+          contadores[log.grupo]++;
+        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+          tiempos[log.grupo].push(log);
+          // Acumula datos para el cálculo total
+          tarimasTotales++;
+          tiempoTotalRecoleccion += log.tiempoRecoleccion;
+        }
+      });
+    }
 
-    // Muestra u oculta el resumen del turno según el usuario
-    const resumenTurnoDiv = document.getElementById('resumenTurno');
-    if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
-      resumenTurnoDiv.classList.remove('oculto');
-    } else {
-      resumenTurnoDiv.classList.add('oculto');
-    }
-    
-    // Actualiza los contadores de tarimas por grupo
-    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
-    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
-    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+    // Calcula el tiempo promedio
+    const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
+    
+    // Actualiza los datos totales en la interfaz
+    document.getElementById('tarimasTotales').textContent = tarimasTotales;
+    document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
 
-    // Actualiza los tiempos de recolección en la interfaz
-    Object.keys(tiempos).forEach(grupo => {
-        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-        if (!contenedorTiempos) return;
-        contenedorTiempos.innerHTML = '';
-        tiempos[grupo].forEach((logEntry, index) => {
-            const p = document.createElement('p');
-            const horaInicio = formatoHora(logEntry.horaEncendido);
-            const horaFin = formatoHora(logEntry.horaApagado);
-            
-            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
-            contenedorTiempos.appendChild(p);
-      });
-      contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
-    });
-  });
-}
+    // Muestra u oculta el resumen del turno según el usuario
+    const resumenTurnoDiv = document.getElementById('resumenTurno');
+    if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
+      resumenTurnoDiv.classList.remove('oculto');
+    } else {
+      resumenTurnoDiv.classList.add('oculto');
+    }
+    
+    // Actualiza los contadores de tarimas por grupo
+    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
+    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
+    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+
+    // Actualiza los tiempos de recolección en la interfaz
+    Object.keys(tiempos).forEach(grupo => {
+        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+        if (!contenedorTiempos) return;
+        contenedorTiempos.innerHTML = '';
+        tiempos[grupo].forEach((logEntry, index) => {
+            const p = document.createElement('p');
+            const horaInicio = formatoHora(logEntry.horaEncendido);
+            const horaFin = formatoHora(logEntry.horaApagado);
+            
+            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
+            contenedorTiempos.appendChild(p);
+      });
+      contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
+    });
+});
 // ================= PERMISOS Y LÓGICA =================
 function puedeControlar(grupo){
     if(!usuarioSeleccionado) {
@@ -728,23 +729,23 @@ function volverAPantalla1(){
     activarPantalla('pantalla1');
 }
 
-function seleccionarUsuario(usuario) {
-    if (!CONFIG.USUARIOS.includes(usuario)) {
-        return;
-    }
-
 function notificarRechazo(usuarioProduccion) {
     if (usuarioSeleccionado === usuarioProduccion) {
         alert("🚨 ¡ATENCIÓN! Calidad ha RECHAZADO una tarima en tu área.");
     }
 }
+function seleccionarUsuario(usuario) {
+    if (!CONFIG.USUARIOS.includes(usuario)) {
+        return;
+    }
+
     // Lógica para el usuario SUPERVISOR
     if (usuario === 'SUPERVISOR') {
         usuarioSeleccionado = usuario;
         document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
         activarPantalla('pantalla2');
         inyectaLEDs();
-        cargarEstado();
+        // Se ELIMINA la llamada a cargarEstado()
         alert(`¡Bienvenido, ${usuario}!`);
 
     // Lógica para el nuevo usuario CALIDAD
@@ -768,7 +769,7 @@ function notificarRechazo(usuarioProduccion) {
             document.getElementById('tituloFijo').textContent = `CALIDAD - ${subusuario.split('_')[1]}`;
             activarPantalla('pantalla2');
             inyectaLEDs();
-            cargarEstado();
+            // Se ELIMINA la llamada a cargarEstado()
             alert(`¡Bienvenido, ${subusuario.replace('_', ' ')}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -786,7 +787,7 @@ function notificarRechazo(usuarioProduccion) {
             }
             activarPantalla('pantalla2');
             inyectaLEDs();
-            cargarEstado();
+            // Se ELIMINA la llamada a cargarEstado()
             alert(`¡Bienvenido, ${usuario}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -798,13 +799,12 @@ function notificarRechazo(usuarioProduccion) {
 window.addEventListener('load', ()=>{
     const { fecha, turno } = obtenerTurnoActual();
     historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
-    resumenRef = database.ref(`resumenDiario/${fecha}/${turno}`); // <-- Agrega esta línea
+    resumenRef = database.ref(`resumenDiario/${fecha}/${turno}`);
 
     usuarioSeleccionado = null;
     activarPantalla('pantalla1');
-    inyectaLEDs();
-    cargarEstado();
-
+    pintarEstado(); // Se llama a pintarEstado aquí para iniciar el listener
+    
     // Registro del Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
