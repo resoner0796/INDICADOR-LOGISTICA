@@ -268,6 +268,27 @@ body{ overflow-y: auto; }
         </div>
     </div>
 
+    <div class="grupo" data-grupo="CALIDAD_MULTIPORT">
+        <div class="nombre">CALIDAD MULTIPORT</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
+        <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
+    </div>
+    
+    <div class="grupo" data-grupo="CALIDAD_DROPS">
+        <div class="nombre">CALIDAD DROPS</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
+        <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
+    </div>
+    
+    <div class="grupo" data-grupo="CALIDAD_BEDROCK">
+        <div class="nombre">CALIDAD BEDROCK</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
+        <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
+    </div>
+</div>
     </div>
   </div>
   <div class="footer">
@@ -381,26 +402,36 @@ function inyectaLEDs(){
             mostrarGrupo = true;
         }
         
-        if (mostrarGrupo) {
-            grupoDiv.classList.remove('oculto');
-            grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
-                const linea = contenedor.dataset.linea || 'linea1';
-                contenedor.innerHTML = '';
-                
-                const grupoLeds = contenedor.dataset.grupo;
-                const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
-
-                for(let i = 0; i < numLeds; i++){
-                    const led = document.createElement('div');
-                    led.className = 'led';
-                    led.title = `${grupoLeds} • ${linea} • LED ${i+1}`;
-                    led.addEventListener('click', () => togglearLED(grupoLeds, i, linea));
-                    contenedor.appendChild(led);
-                }
-            });
+        // CORRECCIÓN: Usa el `data-grupo` para decidir si mostrar o no
+        const grupoMostrar = grupoDiv.dataset.grupo;
+        const contenedorLeds = grupoDiv.querySelector('.leds');
+        if (contenedorLeds) {
+            const grupoLeds = contenedorLeds.dataset.grupo;
+            if (['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado) && grupoMostrar === `CALIDAD_${usuarioSeleccionado}`) {
+                grupoDiv.classList.remove('oculto');
+            } else if (usuarioSeleccionado.startsWith('CALIDAD_') && grupoMostrar === usuarioSeleccionado) {
+                grupoDiv.classList.remove('oculto');
+            } else if (['SUPERVISOR', 'LOGÍSTICA'].includes(usuarioSeleccionado)) {
+                grupoDiv.classList.remove('oculto');
+            } else {
+                grupoDiv.classList.add('oculto');
+            }
         } else {
-            grupoDiv.classList.add('oculto');
+             grupoDiv.classList.add('oculto');
         }
+
+        grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
+            const grupoLeds = contenedor.dataset.grupo;
+            const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
+            contenedor.innerHTML = '';
+            for(let i = 0; i < numLeds; i++){
+                const led = document.createElement('div');
+                led.className = 'led';
+                led.title = `${grupoLeds} • LED ${i+1}`;
+                led.addEventListener('click', () => togglearLED(grupoLeds, i, 'linea1'));
+                contenedor.appendChild(led);
+            }
+        });
     });
 }
 
