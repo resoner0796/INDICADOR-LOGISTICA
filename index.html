@@ -235,10 +235,6 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="MULTIPORT"></div>
-        <div class="grupo-calidad-anidado">
-            <div class="nombre">CALIDAD</div>
-            <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
-        </div>
     </div>
 
     <div class="grupo" data-grupo="DROPS">
@@ -247,10 +243,6 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
         <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="DROPS"></div>
-        <div class="grupo-calidad-anidado">
-            <div class="nombre">CALIDAD</div>
-            <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
-        </div>
     </div>
 
     <div class="grupo" data-grupo="BEDROCK">
@@ -259,10 +251,6 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="BEDROCK"></div>
-        <div class="grupo-calidad-anidado">
-            <div class="nombre">CALIDAD</div>
-            <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
-        </div>
     </div>
 
     <div class="grupo" data-grupo="CALIDAD_MULTIPORT">
@@ -271,14 +259,14 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
         <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
-    
+
     <div class="grupo" data-grupo="CALIDAD_DROPS">
         <div class="nombre">CALIDAD DROPS</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
         <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
     </div>
-    
+
     <div class="grupo" data-grupo="CALIDAD_BEDROCK">
         <div class="nombre">CALIDAD BEDROCK</div>
         <div class="tarimas">Tarimas: 0</div>
@@ -388,37 +376,24 @@ function inyectaLEDs(){
         let mostrarGrupo = false;
 
         // Reglas de visibilidad
+        // SUPERVISOR: Ve todos los grupos (Producción y Calidad)
         if (usuarioSeleccionado === 'SUPERVISOR') {
             mostrarGrupo = true;
-        } else if (usuarioSeleccionado === 'LOGÍSTICA') {
-            // Logística solo ve los grupos de producción principales
-            if (grupo.startsWith('CALIDAD_')) {
-                mostrarGrupo = false;
-            } else {
-                mostrarGrupo = true;
-            }
-        } else if (usuarioSeleccionado === grupo) {
+        } 
+        // LOGÍSTICA: Solo ve los grupos de Producción (MULTIPORT, DROPS, BEDROCK)
+        else if (usuarioSeleccionado === 'LOGÍSTICA' && !grupo.startsWith('CALIDAD_')) {
             mostrarGrupo = true;
-        } else if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
+        } 
+        // USUARIOS DE PRODUCCIÓN: Solo ven su grupo principal
+        else if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && usuarioSeleccionado === grupo) {
             mostrarGrupo = true;
-        } else if (usuarioSeleccionado.startsWith('CALIDAD_') && grupo === usuarioSeleccionado) {
+        }
+        // USUARIOS DE CALIDAD: Solo ven su grupo de Calidad
+        else if (usuarioSeleccionado.startsWith('CALIDAD_') && usuarioSeleccionado === grupo) {
             mostrarGrupo = true;
         }
         
-        // CORRECCIÓN: Si el usuario es de producción, también debe ver el grupo de calidad anidado
-        if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado)) {
-            const grupoAnidado = grupoDiv.querySelector('.grupo-calidad-anidado');
-            if (grupoAnidado) {
-                if (grupo === `CALIDAD_${usuarioSeleccionado}`) {
-                    grupoAnidado.classList.remove('oculto');
-                } else {
-                    grupoAnidado.classList.add('oculto');
-                }
-            }
-        } else if (!grupo.startsWith('CALIDAD_')) {
-            grupoDiv.classList.add('oculto');
-        }
-
+        // Aplica la clase para mostrar u ocultar
         if (mostrarGrupo) {
             grupoDiv.classList.remove('oculto');
             grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
