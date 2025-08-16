@@ -209,6 +209,7 @@ body{ overflow-y: auto; }
     <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button> 
 </div>
 </section>
 
@@ -252,7 +253,34 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="BEDROCK"></div>
       </div>
+      
+      <div class="grupo-contenedor">
+    <div class="grupo" data-grupo="MULTIPORT">
+        </div>
+    <div class="grupo" data-grupo="DROPS">
+        </div>
+    <div class="grupo" data-grupo="BEDROCK">
+        </div>
+    
+    <div class="grupo" data-grupo="CALIDAD_MULTIPORT">
+        <div class="nombre">CALIDAD MULTIPORT</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
+        <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
+    <div class="grupo" data-grupo="CALIDAD_DROPS">
+        <div class="nombre">CALIDAD DROPS</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
+        <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
+    </div>
+    <div class="grupo" data-grupo="CALIDAD_BEDROCK">
+        <div class="nombre">CALIDAD BEDROCK</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
+        <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
+    </div>
+</div>
   </div>
   <div class="footer">
     <button class="usuario-btn btn-rojo" onclick="volverAPantalla1()">Cerrar sesión</button>
@@ -261,18 +289,21 @@ body{ overflow-y: auto; }
 
 <script>
 // ================= CONFIG Y ESTADO =================
+// CÓDIGO MODIFICADO
 const CONFIG = {
-    LED_COUNT: 5,
-    TITULO_FIJO: 'LOGÍSTICA',
-    USUARIOS: ['LOGÍSTICA', 'MULTIPORT', 'BEDROCK', 'DROPS', 'SUPERVISOR'],
+    // ...
     PASSWORDS: {
         'LOGÍSTICA': 'logistica123',
         'MULTIPORT': 'multiport123',
         'BEDROCK': 'bedrock123',
         'DROPS': 'drops123',
-        'SUPERVISOR': 'supervisor123'
+        'SUPERVISOR': 'supervisor123',
+        'CALIDAD_MULTIPORT': 'calidadmp123', // Nueva contraseña
+        'CALIDAD_DROPS': 'calidaddp123',   // Nueva contraseña
+        'CALIDAD_BEDROCK': 'calidadbr123'  // Nueva contraseña
     }
 };
+
 let usuarioSeleccionado = null;
 let estadoLEDs = {
   MULTIPORT: { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
@@ -481,7 +512,12 @@ function puedeControlar(grupo){
     return true;
   }
   
-  // Los demás usuarios solo pueden controlar su propio grupo
+  // Los usuarios de Calidad solo controlan su grupo específico
+  if (usuarioSeleccionado.startsWith('CALIDAD_')) {
+    return usuarioSeleccionado === grupo;
+  }
+
+  // Los demás usuarios (MULTIPORT, DROPS, BEDROCK) solo pueden controlar su propio grupo
   return usuarioSeleccionado === grupo;
 }
     
@@ -620,26 +656,56 @@ function volverAPantalla1(){
 }
 
 function seleccionarUsuario(usuario) {
-    if (!CONFIG.USUARIOS.includes(usuario)) {
+    // Si el usuario no está en la lista y no es CALIDAD, la función termina.
+    if (!CONFIG.USUARIOS.includes(usuario) && usuario !== 'CALIDAD') {
         return;
     }
 
-    // Si el usuario es SUPERVISOR, no se le pide contraseña y se avanza directamente
+    // Lógica para el usuario SUPERVISOR
     if (usuario === 'SUPERVISOR') {
         usuarioSeleccionado = usuario;
-        document.getElementById('tituloFijo').textContent = 'SUPERVISOR'; // <-- Título descriptivo para supervisor
+        document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
         activarPantalla('pantalla2');
         inyectaLEDs();
         cargarEstado();
         alert(`¡Bienvenido, ${usuario}!`);
+
+    // Lógica para el nuevo usuario CALIDAD
+    } else if (usuario === 'CALIDAD') {
+        const password = prompt('Introduce la contraseña para CALIDAD:');
+        let subusuario = null;
+        
+        // Verifica la contraseña para determinar el subusuario de Calidad
+        if (password === CONFIG.PASSWORDS['CALIDAD_MULTIPORT']) {
+            subusuario = 'CALIDAD_MULTIPORT';
+        } else if (password === CONFIG.PASSWORDS['CALIDAD_DROPS']) {
+            subusuario = 'CALIDAD_DROPS';
+        } else if (password === CONFIG.PASSWORDS['CALIDAD_BEDROCK']) {
+            subusuario = 'CALIDAD_BEDROCK';
+        }
+
+        // Si la contraseña fue correcta, procede con el subusuario
+        if (subusuario) {
+            usuarioSeleccionado = subusuario;
+            // El título muestra "CALIDAD" y el nombre del subgrupo (MP, DROPS, BR)
+            document.getElementById('tituloFijo').textContent = `CALIDAD - ${subusuario.split('_')[1]}`;
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            cargarEstado();
+            alert(`¡Bienvenido, ${subusuario.replace('_', ' ')}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
+
+    // Lógica para los demás usuarios (LOGÍSTICA, MULTIPORT, DROPS, BEDROCK)
     } else {
         const password = prompt(`Introduce la contraseña para ${usuario}:`);
         if (password === CONFIG.PASSWORDS[usuario]) {
             usuarioSeleccionado = usuario;
             if (usuario === 'LOGÍSTICA') {
-                document.getElementById('tituloFijo').textContent = 'LOGÍSTICA'; // <-- Título descriptivo para logística
+                document.getElementById('tituloFijo').textContent = 'LOGÍSTICA';
             } else {
-                document.getElementById('tituloFijo').textContent = usuario; // <-- El resto de usuarios usa su nombre
+                document.getElementById('tituloFijo').textContent = usuario;
             }
             activarPantalla('pantalla2');
             inyectaLEDs();
