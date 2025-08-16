@@ -477,9 +477,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     "header"
     "filtros"
     "kpis"
-    "produccion"
-    "calidad"
-    "logistica"
+    "graficos"
     "pendientes"
     "footer";
   gap: 20px;
@@ -539,6 +537,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   color: #ff3333;
 }
 #pantalla4 .graficos-container {
+  grid-area: graficos;
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
@@ -582,10 +581,15 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       "header header"
       "filtros filtros"
       "kpis kpis"
-      "produccion calidad"
-      "logistica logistica"
+      "graficos graficos"
       "pendientes pendientes"
       "footer footer";
+  }
+  #pantalla4 .graficos-container {
+      grid-template-columns: 1fr 1fr;
+  }
+  .graficos-container > *:nth-child(3) {
+      grid-column: span 2;
   }
 }
 @media (min-width: 1200px) {
@@ -598,6 +602,12 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       "produccion calidad logistica"
       "pendientes pendientes pendientes"
       "footer footer footer";
+  }
+  #pantalla4 .graficos-container {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .graficos-container > *:nth-child(3) {
+      grid-column: span 1;
   }
 }
 </style>
@@ -771,15 +781,15 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     </div>
 </div>
 <div class="graficos-container">
-    <div class="panel" style="grid-area: produccion;">
+    <div class="panel">
         <h3>Producción por Área</h3>
         <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
     </div>
-    <div class="panel" style="grid-area: calidad;">
+    <div class="panel">
         <h3>Estado de Calidad</h3>
         <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
     </div>
-    <div class="panel" style="grid-area: logistica;">
+    <div class="panel">
         <h3>Evolución Tiempos de Recolección</h3>
         <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
     </div>
@@ -875,6 +885,7 @@ let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
 let reporteActual = null;
 let miGrafico;
 let graficosDashboard = {};
+let dashboardUpdateInterval;
 
 // ================= FIREBASE =================
 const firebaseConfig = {
@@ -1242,7 +1253,8 @@ function guardarRechazo(datos) {
         ...datos,
         fecha: fecha,
         hora: hora,
-        timestamp: ahora.toISOString()
+        timestamp: ahora.toISOString(),
+        areaRechazo: ledActivoParaFormulario.grupo // Agregado para el filtro
     };
 
     rechazosDetalladosRef.push(datosCompletos)
@@ -1276,6 +1288,7 @@ function volverAPantalla1(){
     if (historialRef) historialRef.off();
     if (contadoresCalidadRef) contadoresCalidadRef.off();
     if (rechazosDetalladosRef) rechazosDetalladosRef.off();
+    clearInterval(dashboardUpdateInterval);
     activarPantalla('pantalla1');
 }
 
@@ -1357,6 +1370,7 @@ function seleccionarDashboard() {
     if (password === CONFIG.PASSWORDS['DASHBOARD']) {
         activarPantalla('pantalla4');
         iniciarDashboard();
+        dashboardUpdateInterval = setInterval(actualizarDashboardConFiltros, 30000);
     } else {
         alert('Contraseña incorrecta. Acceso denegado.');
     }
@@ -1369,6 +1383,7 @@ function limpiarDashboardListeners() {
 
 function iniciarDashboard() {
     limpiarDashboardListeners();
+    clearInterval(dashboardUpdateInterval);
     const { fecha, turno } = obtenerTurnoActual();
     document.getElementById('fechaDashboard').value = fecha;
     document.getElementById('turnoDashboardSelect').value = 'todos';
@@ -1377,7 +1392,6 @@ function iniciarDashboard() {
 }
 
 function actualizarDashboardConFiltros() {
-    limpiarDashboardListeners();
     const fechaFiltro = document.getElementById('fechaDashboard').value;
     const turnoFiltro = document.getElementById('turnoDashboardSelect').value;
 
@@ -1386,7 +1400,7 @@ function actualizarDashboardConFiltros() {
     const ledsRefDash = db.ref('estadoLEDs');
     
     // Historial (producción y logística)
-    const hListener = historialRefDash.on('value', snapshot => {
+    historialRefDash.once('value', snapshot => {
         const logsPorTurno = snapshot.val() || {};
         let logsFiltrados = {};
         if (turnoFiltro === 'todos') {
@@ -1398,10 +1412,9 @@ function actualizarDashboardConFiltros() {
         }
         actualizarDashboard(logsFiltrados, 'historial', null);
     });
-    dashboardListeners.push({ off: () => historialRefDash.off('value', hListener) });
     
     // Calidad
-    const cListener = calidadRefDash.on('value', snapshot => {
+    calidadRefDash.once('value', snapshot => {
         const contadoresPorTurno = snapshot.val() || {};
         let contadoresFiltrados = {};
         if (turnoFiltro === 'todos') {
@@ -1417,14 +1430,12 @@ function actualizarDashboardConFiltros() {
         }
         actualizarDashboard(null, 'calidad', contadoresFiltrados);
     });
-    dashboardListeners.push({ off: () => calidadRefDash.off('value', cListener) });
     
     // LEDs
-    const lListener = ledsRefDash.on('value', snapshot => {
+    ledsRefDash.once('value', snapshot => {
         const leds = snapshot.val() || {};
         actualizarDashboard(null, 'leds', null, leds);
     });
-    dashboardListeners.push({ off: () => ledsRefDash.off('value', lListener) });
 }
 
 
@@ -1625,7 +1636,7 @@ function mostrarReporte(tipo) {
     const { fecha: fechaActual, turno: turnoActual } = obtenerTurnoActual();
 
     let areaFiltroHtml = '';
-    const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK'];
+    const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK', 'CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
     areaFiltroHtml = `
         <select id="areaFiltro">
             ${areas.map(area => `<option value="${area}">${area}</option>`).join('')}
@@ -1751,10 +1762,8 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
             for (const rechazoKey in datos.rechazos[fechaKey][turnoKey]) {
                 const rechazo = datos.rechazos[fechaKey][turnoKey][rechazoKey];
                 
-                // La corrección está aquí
-                const areaRechazo = rechazo.grupo ? rechazo.grupo.replace('CALIDAD_', '') : 'N/A';
-
-                if (area === 'TODAS' || areaRechazo === area) {
+                // Ahora usamos el nuevo campo areaRechazo para el filtro
+                if (area === 'TODAS' || rechazo.areaRechazo === area) {
                     rechazosFiltrados.push(rechazo);
                 }
             }
@@ -1767,13 +1776,15 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
         conteoCausas[causa] = (conteoCausas[causa] || 0) + 1;
     });
     
-    let html = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción de la Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
+    let html = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Área</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción de la Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
     rechazosFiltrados.forEach(r => {
+        const areaRechazoFormateada = r.areaRechazo ? r.areaRechazo.replace('CALIDAD_', '') : 'N/A';
         html += `
             <tr>
                 <td>${r.fecha}</td>
                 <td>${r.hora}</td>
-                <td>${r.grupo ? r.grupo.replace('CALIDAD_', '') : 'N/A'}</td>
+                <td>${areaRechazoFormateada}</td>
+                <td>${r.linea || 'N/A'}</td>
                 <td>${r.empleado || 'N/A'}</td>
                 <td>${r.parte || 'N/A'}</td>
                 <td>${r.descripcionParte || 'N/A'}</td>
