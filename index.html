@@ -380,14 +380,27 @@ firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err)
 function inyectaLEDs(){
     document.querySelectorAll('.grupo').forEach(grupoDiv => {
         const grupo = grupoDiv.dataset.grupo;
-        // Si el usuario es SUPERVISOR o LOGISTICA, se muestran todos los grupos.
-        // Si no, solo se muestra el grupo del usuario.
-        if (usuarioSeleccionado === 'SUPERVISOR' || usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === grupo) {
+        let mostrarGrupo = false;
+
+        // Reglas para mostrar u ocultar grupos
+        if (usuarioSeleccionado === 'SUPERVISOR' || usuarioSeleccionado === 'LOGÍSTICA') {
+            mostrarGrupo = true;
+        } else if (usuarioSeleccionado === grupo) {
+            mostrarGrupo = true;
+        } else if (usuarioSeleccionado.startsWith('CALIDAD_') && usuarioSeleccionado === grupo) {
+            mostrarGrupo = true;
+        }
+
+        if (mostrarGrupo) {
             grupoDiv.classList.remove('oculto');
             grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
                 const linea = contenedor.dataset.linea || 'linea1';
                 contenedor.innerHTML = '';
-                for(let i = 0; i < CONFIG.LED_COUNT; i++){
+                
+                // OBTENEMOS EL NÚMERO DE LEDS DEL OBJETO LEDS_POR_GRUPO
+                const numLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 0;
+
+                for(let i = 0; i < numLeds; i++){
                     const led = document.createElement('div');
                     led.className = 'led';
                     led.title = `${grupo} • ${linea} • LED ${i+1}`;
