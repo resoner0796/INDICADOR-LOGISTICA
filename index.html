@@ -479,7 +479,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     "kpis"
     "produccion"
     "calidad"
-    "logistica"
     "pendientes"
     "footer";
   gap: 20px;
@@ -583,7 +582,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       "filtros filtros"
       "kpis kpis"
       "produccion calidad"
-      "logistica logistica"
       "pendientes pendientes"
       "footer footer";
   }
@@ -596,7 +594,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       "filtros filtros filtros"
       "kpis kpis kpis"
       "produccion calidad pendientes"
-      "logistica logistica logistica"
       "footer footer footer";
   }
 }
@@ -778,12 +775,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     <div class="panel" style="grid-area: calidad;">
         <h3>Estado de Calidad</h3>
         <canvas id="graficoCalidadDash"></canvas>
-    </div>
-</div>
-<div class="graficos-container">
-    <div class="panel" style="grid-area: logistica;">
-        <h3>Evolución de Tiempos de Recolección</h3>
-        <canvas id="graficoLogisticaDash"></canvas>
     </div>
 </div>
 <div class="panel" style="grid-area: pendientes;">
@@ -1372,29 +1363,7 @@ function iniciarDashboard() {
     document.getElementById('fechaDashboard').value = fecha;
     document.getElementById('turnoDashboardSelect').value = 'todos';
     
-    // Listeners en tiempo real para el dashboard
-    const historialRefDash = db.ref('historialLogs');
-    const calidadRefDash = db.ref('contadoresCalidad');
-    const ledsRefDash = db.ref('estadoLEDs');
-    
-    const hListener = historialRefDash.on('value', snapshot => {
-        const logs = snapshot.val() || {};
-        actualizarDashboard(logs, 'historial', null);
-    });
-    
-    const cListener = calidadRefDash.on('value', snapshot => {
-        const contadores = snapshot.val() || {};
-        actualizarDashboard(null, 'calidad', contadores);
-    });
-
-    const lListener = ledsRefDash.on('value', snapshot => {
-        const leds = snapshot.val() || {};
-        actualizarDashboard(null, 'leds', null, leds);
-    });
-
-    dashboardListeners.push({ off: () => historialRefDash.off('value', hListener) });
-    dashboardListeners.push({ off: () => calidadRefDash.off('value', cListener) });
-    dashboardListeners.push({ off: () => ledsRefDash.off('value', lListener) });
+    actualizarDashboardConFiltros();
 }
 
 function actualizarDashboardConFiltros() {
@@ -1479,7 +1448,6 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         }
         
         generarGraficoProduccionDash(produccionPorArea);
-        generarGraficoLogisticaDash(logsRecoleccion);
     }
 
     if (tipo === 'calidad') {
@@ -1585,41 +1553,6 @@ function generarGraficoCalidadDash(datos) {
     });
 }
 
-function generarGraficoLogisticaDash(datos) {
-    if (graficosDashboard.logistica) {
-        graficosDashboard.logistica.destroy();
-    }
-    const ctx = document.getElementById('graficoLogisticaDash').getContext('2d');
-    const logsOrdenados = datos.sort((a, b) => new Date(a.horaApagado) - new Date(b.horaApagado));
-    const labels = logsOrdenados.map(log => formatoHora(log.horaApagado));
-    const data = logsOrdenados.map(log => log.tiempoRecoleccion);
-    graficosDashboard.logistica = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Tiempo (min)',
-                data: data,
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1,
-                pointRadius: 5,
-                pointHoverRadius: 8
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                x: { title: { display: true, text: 'Hora de Recolección' } },
-                y: { beginAtZero: true, title: { display: true, text: 'Tiempo (min)' } }
-            },
-            plugins: {
-                legend: { display: false },
-                title: { display: false }
-            }
-        }
-    });
-}
-
 
 function mostrarReporte(tipo) {
     reporteActual = tipo;
@@ -1657,7 +1590,7 @@ function mostrarReporte(tipo) {
             <div class="filtros">
                 ${fechaFiltroHtml}
                 ${turnoFiltroHtml}
-                ${areaFiltroHtml}
+                ${tipo === 'resumen' ? '' : areaFiltroHtml}
                 <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>
             </div>
         </div>
@@ -1677,7 +1610,7 @@ function mostrarReporte(tipo) {
     
     const fecha = document.getElementById('fechaReporte').value;
     const turno = document.getElementById('turnoFiltro').value;
-    const area = document.getElementById('areaFiltro').value;
+    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
 
     cargarDatosReporte(tipo, fecha, turno, area);
 }
@@ -1696,7 +1629,7 @@ function buscarReporte() {
     const tipo = reporteActual;
     const fecha = document.getElementById('fechaReporte').value;
     const turno = document.getElementById('turnoFiltro').value;
-    const area = document.getElementById('areaFiltro').value;
+    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
 
     cargarDatosReporte(tipo, fecha, turno, area);
 }
@@ -1720,20 +1653,20 @@ function cargarDatosReporte(tipo, fecha, turno, area) {
         refCalidad.once('value').then(s => s.val()),
         refRechazos.once('value').then(s => s.val())
     ]).then(([historial, calidad, rechazos]) => {
-        const datosDelDia = { historial: historial[fecha] || {}, calidad: calidad[fecha] || {}, rechazos: rechazos[fecha] || {} };
-
+        const datosCompletos = { historial, calidad, rechazos };
+        
         if (tipo === 'calidad') {
             tituloReporte.textContent = `Reporte de Calidad - ${fecha}`;
-            procesarReporteCalidad(datosDelDia.rechazos, contenedor, turno, area);
+            procesarReporteCalidad(datosCompletos, contenedor, fecha, turno, area);
         } else if (tipo === 'produccion') {
             tituloReporte.textContent = `Reporte de Producción - ${fecha}`;
-            procesarReporteProduccion(datosDelDia.historial, contenedor, turno, area);
+            procesarReporteProduccion(datosCompletos, contenedor, fecha, turno, area);
         } else if (tipo === 'logistica') {
             tituloReporte.textContent = `Reporte de Logística - ${fecha}`;
-            procesarReporteLogistica(datosDelDia.historial, contenedor, turno, area);
+            procesarReporteLogistica(datosCompletos, contenedor, fecha, turno, area);
         } else if (tipo === 'resumen') {
             tituloReporte.textContent = `Resumen Ejecutivo`;
-            procesarReporteResumen({ historial, calidad, rechazos });
+            procesarReporteResumen(datosCompletos, contenedor, fecha, turno);
         }
     }).catch(error => {
         console.error("Error al cargar los datos:", error);
@@ -1742,13 +1675,25 @@ function cargarDatosReporte(tipo, fecha, turno, area) {
 }
 
 
-function procesarReporteCalidad(datos, contenedor, turno, area) {
+function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
     let rechazosFiltrados = [];
-    for (const turnoKey in datos) {
-        if (turno === 'todos' || turnoKey === turno) {
-            for (const rechazoKey in datos[turnoKey]) {
-                const rechazo = datos[turnoKey][rechazoKey];
-                const areaDeRechazo = rechazo.linea.split(' ')[0].toUpperCase();
+    
+    for (const fechaKey in datos.rechazos) {
+        if (fecha !== fechaKey) continue;
+        
+        for (const turnoKey in datos.rechazos[fechaKey]) {
+            if (turno !== 'todos' && turnoKey !== turno) continue;
+            
+            for (const rechazoKey in datos.rechazos[fechaKey][turnoKey]) {
+                const rechazo = datos.rechazos[fechaKey][turnoKey][rechazoKey];
+                
+                let areaDeRechazo = '';
+                if (rechazo.linea) {
+                    areaDeRechazo = rechazo.linea.split(' ')[0].toUpperCase();
+                } else if (rechazo.grupo) {
+                    areaDeRechazo = rechazo.grupo.replace('CALIDAD_', '').toUpperCase();
+                }
+
                 if (area === 'TODAS' || areaDeRechazo === area) {
                     rechazosFiltrados.push(rechazo);
                 }
@@ -1768,7 +1713,7 @@ function procesarReporteCalidad(datos, contenedor, turno, area) {
             <tr>
                 <td>${r.fecha}</td>
                 <td>${r.hora}</td>
-                <td>${r.linea || 'N/A'}</td>
+                <td>${r.linea || r.grupo.replace('CALIDAD_', '') || 'N/A'}</td>
                 <td>${r.empleado || 'N/A'}</td>
                 <td>${r.parte || 'N/A'}</td>
                 <td>${r.descripcionParte || 'N/A'}</td>
@@ -1791,14 +1736,18 @@ function procesarReporteCalidad(datos, contenedor, turno, area) {
 }
 
 
-function procesarReporteProduccion(datos, contenedor, turno, area) {
+function procesarReporteProduccion(datos, contenedor, fecha, turno, area) {
     let logsProduccion = [];
     const conteo = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
     
-    for (const turnoKey in datos) {
-        if (turno === 'todos' || turnoKey === turno) {
-            for (const logKey in datos[turnoKey]) {
-                const log = datos[turnoKey][logKey];
+    for (const fechaKey in datos.historial) {
+        if (fecha !== fechaKey) continue;
+        
+        for (const turnoKey in datos.historial[fechaKey]) {
+            if (turno !== 'todos' && turnoKey !== turno) continue;
+
+            for (const logKey in datos.historial[fechaKey][turnoKey]) {
+                const log = datos.historial[fechaKey][turnoKey][logKey];
                 if (log.accion === 'encendido' && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
                     if (area === 'TODAS' || log.grupo === area) {
                         logsProduccion.push(log);
@@ -1851,14 +1800,18 @@ function procesarReporteProduccion(datos, contenedor, turno, area) {
 }
 
 
-function procesarReporteLogistica(datos, contenedor, turno, area) {
+function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
     let logsRecoleccion = [];
     let tiempoTotal = 0;
     
-    for (const turnoKey in datos) {
-        if (turno === 'todos' || turnoKey === turno) {
-            for (const logKey in datos[turnoKey]) {
-                const log = datos[turnoKey][logKey];
+    for (const fechaKey in datos.historial) {
+        if (fecha !== fechaKey) continue;
+        
+        for (const turnoKey in datos.historial[fechaKey]) {
+            if (turno !== 'todos' && turnoKey !== turno) continue;
+            
+            for (const logKey in datos.historial[fechaKey][turnoKey]) {
+                const log = datos.historial[fechaKey][turnoKey][logKey];
                 if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
                      if (area === 'TODAS' || log.grupo === area) {
                         logsRecoleccion.push(log);
@@ -1907,16 +1860,9 @@ function procesarReporteLogistica(datos, contenedor, turno, area) {
     });
     html += `</tbody></table>`;
     contenedor.innerHTML = html;
-    
-    const graficoDiv = document.createElement('div');
-    graficoDiv.className = 'grafico-contenedor';
-    graficoDiv.innerHTML = '<canvas id="graficoLogistica"></canvas>';
-    contenedor.appendChild(graficoDiv);
-    generarGraficoLogistica(logsRecoleccion);
 }
 
-function procesarReporteResumen(datos) {
-    const contenedor = document.getElementById('contenidoReporte');
+function procesarReporteResumen(datos, contenedor, fecha, turno) {
     const areas = ['MULTIPORT', 'DROPS', 'BEDROCK'];
     const resumen = {};
     
@@ -1931,7 +1877,9 @@ function procesarReporteResumen(datos) {
 
     // Procesar historial (producción y logística)
     for (const fechaKey in datos.historial) {
+        if (fechaKey !== fecha && fecha !== null) continue; // Si se elige una fecha, procesar solo esa
         for (const turnoKey in datos.historial[fechaKey]) {
+            if (turnoKey !== turno && turno !== 'todos') continue; // Si se elige un turno, procesar solo ese
             for (const logKey in datos.historial[fechaKey][turnoKey]) {
                 const log = datos.historial[fechaKey][turnoKey][logKey];
                 if (log.accion === 'encendido' && resumen.hasOwnProperty(log.grupo)) {
@@ -1946,7 +1894,9 @@ function procesarReporteResumen(datos) {
 
     // Procesar contadores de calidad
     for (const fechaKey in datos.calidad) {
+        if (fechaKey !== fecha && fecha !== null) continue;
         for (const turnoKey in datos.calidad[fechaKey]) {
+            if (turnoKey !== turno && turno !== 'todos') continue;
             for (const grupoKey in datos.calidad[fechaKey][turnoKey]) {
                 const grupoBase = grupoKey.replace('CALIDAD_', '');
                 if (resumen.hasOwnProperty(grupoBase)) {
@@ -2097,60 +2047,6 @@ function generarGraficoProduccion(datos) {
                 title: {
                     display: true,
                     text: 'Producción por Área'
-                }
-            }
-        }
-    });
-}
-
-function generarGraficoLogistica(datos) {
-    const ctx = document.getElementById('graficoLogistica').getContext('2d');
-    
-    const logsOrdenados = datos.sort((a, b) => new Date(a.horaApagado) - new Date(b.horaApagado));
-    const labels = logsOrdenados.map((log, index) => formatoHora(log.horaApagado));
-    const data = logsOrdenados.map(log => log.tiempoRecoleccion);
-    
-    if (miGrafico) {
-        miGrafico.destroy();
-    }
-    
-    miGrafico = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Tiempo de Recolección (min)',
-                data: data,
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1,
-                pointRadius: 5,
-                pointHoverRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Hora de Recolección'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Tiempo (min)'
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                title: {
-                    display: true,
-                    text: 'Evolución del Tiempo de Recolección'
                 }
             }
         }
