@@ -129,8 +129,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 }
 .led.disabled {
     cursor: not-allowed;
-    filter: grayscale(100%);
-    opacity: 0.5;
+    pointer-events: none;
 }
 
 .resumen-turno {
@@ -1119,23 +1118,15 @@ function puedeControlar(grupo){
         return true;
     }
   
-    if (usuarioSeleccionado === grupo) {
-        return true;
-    }
-    
-    if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
-        return true;
-    }
+    const grupoBaseUsuario = usuarioSeleccionado.startsWith('CALIDAD_') ? usuarioSeleccionado.replace('CALIDAD_', '') : usuarioSeleccionado;
+    const grupoBaseLed = grupo.startsWith('CALIDAD_') ? grupo.replace('CALIDAD_', '') : grupo;
 
-    return false;
+    return grupoBaseUsuario === grupoBaseLed;
 }
     
 function togglearLED(grupo, idx, linea = 'linea1') {
     const ledElement = document.querySelector(`.grupo[data-grupo="${grupo}"] .leds[data-linea="${linea}"] .led:nth-child(${idx + 1})`);
-    if(ledElement.classList.contains('disabled')) {
-        return alert('Este LED está inhabilitado por el área de Calidad. Producción debe apagarlo.');
-    }
-
+    
     if (!puedeControlar(grupo)) {
         return alert('No tienes permiso para controlar estos LEDs');
     }
@@ -1143,9 +1134,18 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
 
     if (grupo.startsWith('CALIDAD_')) {
-        if (['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado)) {
-            ledRef.once('value', snapshot => {
-                const estadoActual = snapshot.val() || {};
+        ledRef.once('value', snapshot => {
+            const estadoActual = snapshot.val() || {};
+            const esUsuarioCalidad = usuarioSeleccionado.startsWith('CALIDAD_');
+
+            if (esUsuarioCalidad) {
+                // Lógica para Calidad
+                if(estadoActual.color === 'verde') {
+                    return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
+                }
+                mostrarOpcionesCalidad(grupo, idx, linea); 
+            } else {
+                // Lógica para Producción
                 if (estadoActual.color) {
                     if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
@@ -1160,15 +1160,11 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     };
                     historialRef.push(log);
                 } else {
-                    alert('Producción solo puede apagar LEDs de Calidad');
+                    alert('Producción solo puede apagar LEDs de Calidad que ya tienen un estado (verde, rojo, naranja).');
                 }
-            });
-        } 
-        else {
-            mostrarOpcionesCalidad(grupo, idx, linea); 
-        }
-    }
-    else {
+            }
+        });
+    } else { // Grupos de Producción (MULTIPORT, DROPS, BEDROCK)
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
             
@@ -1198,7 +1194,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 } else {
                     alert('LOGÍSTICA solo puede apagar LEDs');
                 }
-            } else {
+            } else { // Es usuario de Producción
                 if (!estadoActual.encendido) {
                     if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
