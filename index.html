@@ -127,6 +127,11 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
   animation: blink var(--blink-duration) ease-in-out infinite;
 }
+.led.disabled {
+    cursor: not-allowed;
+    filter: grayscale(100%);
+    opacity: 0.5;
+}
 
 .resumen-turno {
   display: flex;
@@ -955,11 +960,14 @@ function pintarEstado() {
                 const ledsEstado = estados[grupoLeds][linea];
                 
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
-                    led.classList.remove('on', 'naranja', 'rojo', 'verde');
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
 
                     if (ledsEstado[index]) {
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.classList.add(ledsEstado[index].color);
+                            if(ledsEstado[index].color === 'verde') {
+                                led.classList.add('disabled');
+                            }
                         } else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
                         }
@@ -967,7 +975,7 @@ function pintarEstado() {
                 });
             } else {
                 contenedor.querySelectorAll('.led').forEach(led => {
-                    led.classList.remove('on', 'naranja', 'rojo', 'verde');
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                 });
             }
         });
@@ -1123,6 +1131,11 @@ function puedeControlar(grupo){
 }
     
 function togglearLED(grupo, idx, linea = 'linea1') {
+    const ledElement = document.querySelector(`.grupo[data-grupo="${grupo}"] .leds[data-linea="${linea}"] .led:nth-child(${idx + 1})`);
+    if(ledElement.classList.contains('disabled')) {
+        return alert('Este LED está inhabilitado por el área de Calidad. Producción debe apagarlo.');
+    }
+
     if (!puedeControlar(grupo)) {
         return alert('No tienes permiso para controlar estos LEDs');
     }
@@ -1226,12 +1239,18 @@ function aplicarEstadoCalidad(nuevoColor) {
     if (nuevoColor === 'verde') {
         const contadorRef = contadoresCalidadRef.child(grupo);
         contadorRef.child('liberadas').transaction(currentCount => (currentCount || 0) + 1);
-        ledRef.set(null); // Elimina el LED para evitar clics fantasma
-    } else {
-        ledRef.set({
+        ledRef.update({
             color: nuevoColor,
             timestamp: new Date().toISOString(),
-            usuario: usuarioSeleccionado
+            usuario: usuarioSeleccionado,
+            disabled: true // Nuevo estado para deshabilitar
+        });
+    } else {
+        ledRef.update({
+            color: nuevoColor,
+            timestamp: new Date().toISOString(),
+            usuario: usuarioSeleccionado,
+            disabled: false // Asegurarse de que no esté deshabilitado en otros estados
         });
         if (nuevoColor === 'rojo') {
             const contadorRef = contadoresCalidadRef.child(grupo);
