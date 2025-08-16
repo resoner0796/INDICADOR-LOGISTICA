@@ -364,32 +364,32 @@ firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err)
 // ================= FUNCIONES DE RENDER =================
 // CÓDIGO MODIFICADO
 function inyectaLEDs(){
-    // Oculta todos los grupos al inicio
+    // Primero, oculta todos los grupos principales
     document.querySelectorAll('.grupo').forEach(grupoDiv => {
         grupoDiv.classList.add('oculto');
     });
 
-    // Luego, muestra solo los grupos que corresponden al usuario
+    // Luego, muestra solo los que corresponden al usuario
     if (usuarioSeleccionado === 'SUPERVISOR') {
-        // El supervisor ve todos los grupos
+        // Supervisor ve todos los grupos principales
         document.querySelectorAll('.grupo').forEach(grupoDiv => {
             grupoDiv.classList.remove('oculto');
         });
     } else if (usuarioSeleccionado === 'LOGÍSTICA') {
-        // Logística solo ve los grupos de producción principales
-        document.querySelectorAll('.grupo:not([data-grupo*="CALIDAD_"])').forEach(grupoDiv => {
-            grupoDiv.classList.remove('oculto');
-        });
+        // Logística solo ve los grupos de producción
+        document.querySelector('.grupo[data-grupo="MULTIPORT"]').classList.remove('oculto');
+        document.querySelector('.grupo[data-grupo="DROPS"]').classList.remove('oculto');
+        document.querySelector('.grupo[data-grupo="BEDROCK"]').classList.remove('oculto');
     } else if (usuarioSeleccionado.startsWith('CALIDAD_')) {
-        // Usuarios de Calidad solo ven su grupo principal de Calidad
+        // Usuarios de Calidad ven su propio grupo principal de Calidad
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
-    } else if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado)) {
-        // Usuarios de producción ven su grupo principal Y el anidado de Calidad
+    } else { // Usuarios de producción
+        // Los usuarios de producción ven su propio grupo principal Y su grupo de Calidad anidado
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"] .grupo-calidad-anidado`).classList.remove('oculto');
     }
-    
-    // Inyecta los LEDs en los contenedores visibles
+
+    // Inyecta los LEDs en cada contenedor visible
     document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
         const grupoLeds = contenedor.dataset.grupo;
         const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
