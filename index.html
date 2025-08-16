@@ -333,6 +333,51 @@ body{ overflow-y: auto; }
     background: radial-gradient(circle at 48% 45%, #4caf50 40%, #388e3c 100%);
     box-shadow: 0 0 22px #4caf50, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
 }
+
+/* ================= CSS PARA PANTALLA 3 (REPORTES) ================= */
+#pantalla3 {
+    background-color: #f5f5f5;
+    color: #333;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+#pantalla3 h1 {
+    font-size: 2.5rem;
+    color: #0066cc;
+    margin-bottom: 20px;
+}
+#pantalla3 .btn-contenedor {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 800px;
+}
+#pantalla3 .usuario-btn {
+    background-color: #0066cc;
+    color: #fff;
+    font-size: 1.2rem;
+    padding: 15px 30px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+#pantalla3 .usuario-btn:hover {
+    background-color: #004c99;
+}
+#pantalla3 .contenedor-reportes {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 1200px;
+    margin-top: 20px;
+}
 </style>
 </head>
 
@@ -347,6 +392,7 @@ body{ overflow-y: auto; }
     <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button> 
+    <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
 </div>
 </section>
 
@@ -447,6 +493,25 @@ body{ overflow-y: auto; }
   </div>
 </section>
 
+<section id="pantalla3" class="pantalla">
+    <header class="header">
+        <h1 id="tituloReportes">REPORTES</h1>
+    </header>
+    <div class="zona-centro">
+        <div id="selectoresReportes" class="btn-contenedor">
+            <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
+            <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
+            <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
+        </div>
+        <div id="contenedorReporte" class="contenedor-reportes">
+            <h2>Selecciona un reporte</h2>
+        </div>
+    </div>
+    <div class="footer">
+        <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver</button>
+    </div>
+</section>
+
 <div id="modalCalidad" class="modal-calidad">
     <div class="modal-content">
         <h3>Selecciona el estado de la tarima:</h3>
@@ -502,7 +567,8 @@ const CONFIG = {
         'SUPERVISOR': 'supervisor123',
         'CALIDAD_MULTIPORT': 'calidadmp123',
         'CALIDAD_DROPS': 'calidaddp123',
-        'CALIDAD_BEDROCK': 'calidadbr123'
+        'CALIDAD_BEDROCK': 'calidadbr123',
+        'REPORTES': 'reportes123'
     },
     LEDS_POR_GRUPO: {
         'MULTIPORT': 5,
@@ -864,9 +930,20 @@ function mostrarFormularioRechazo() {
 }
 
 function guardarRechazo(datos) {
-    rechazosDetalladosRef.push(datos)
+    const ahora = new Date();
+    const fecha = ahora.toLocaleDateString('es-MX');
+    const hora = ahora.toLocaleTimeString('es-MX', {hour: '2-digit', minute: '2-digit'});
+
+    const datosCompletos = {
+        ...datos,
+        fecha: fecha,
+        hora: hora,
+        timestamp: ahora.toISOString()
+    };
+
+    rechazosDetalladosRef.push(datosCompletos)
         .then(() => {
-            console.log("Rechazo guardado exitosamente:", datos);
+            console.log("Rechazo guardado exitosamente:", datosCompletos);
             aplicarEstadoCalidad('rojo');
         })
         .catch(error => {
@@ -878,7 +955,7 @@ function guardarRechazo(datos) {
         });
 }
 
-// ================= NAVEGACIÓN =================
+// ================= NAVEGACIÓN Y ARRANQUE =================
 function activarPantalla(id){
   document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
   document.getElementById(id).classList.add('activa');
@@ -890,12 +967,6 @@ function volverAPantalla1(){
     historialRef.off();
     contadoresCalidadRef.off();
     activarPantalla('pantalla1');
-}
-
-function notificarRechazo(usuarioProduccion) {
-    if (usuarioSeleccionado === usuarioProduccion) {
-        alert("🚨 ¡ATENCIÓN! Calidad ha RECHAZADO una tarima en tu área.");
-    }
 }
 
 function seleccionarUsuario(usuario) {
@@ -951,6 +1022,43 @@ function seleccionarUsuario(usuario) {
     }
 }
 
+function seleccionarReporte() {
+    const password = prompt('Introduce la contraseña para REPORTES:');
+    if (password === CONFIG.PASSWORDS['REPORTES']) {
+        activarPantalla('pantalla3');
+        document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
+    } else {
+        alert('Contraseña incorrecta. Acceso denegado.');
+    }
+}
+
+function mostrarReporte(tipo) {
+    const contenedor = document.getElementById('contenedorReporte');
+    contenedor.innerHTML = '';
+    
+    let titulo = '';
+    switch(tipo) {
+        case 'produccion':
+            titulo = 'Reporte de Producción';
+            // Aquí irá la lógica para mostrar los datos de producción
+            contenedor.innerHTML = `<h2>${titulo}</h2><p>Aquí se mostrarán los datos de tarimas confirmadas y conteo por hora para cada línea.</p>`;
+            break;
+        case 'logistica':
+            titulo = 'Reporte de Logística';
+            // Aquí irá la lógica para mostrar los datos de logística
+            contenedor.innerHTML = `<h2>${titulo}</h2><p>Aquí se mostrarán los datos de tarimas recolectadas, tiempos de recolección y promedio de respuesta.</p>`;
+            break;
+        case 'calidad':
+            titulo = 'Reporte de Calidad';
+            // Aquí irá la lógica para mostrar los datos de rechazos
+            contenedor.innerHTML = `<h2>${titulo}</h2><p>Aquí se mostrará la tabla de rechazos y sus detalles.</p>`;
+            break;
+        default:
+            contenedor.innerHTML = '<h2>Reporte no encontrado</h2>';
+    }
+    document.getElementById('tituloReportes').textContent = titulo;
+}
+
 // ================= ARRANQUE Y MANEJO DE MODALES =================
 window.addEventListener('load', ()=>{
     const { fecha, turno } = obtenerTurnoActual();
@@ -1002,14 +1110,19 @@ window.addEventListener('load', ()=>{
             problema: formulario.problema.value,
             causa: formulario.causa.value,
             accion: formulario.accion.value,
-            timestamp: new Date().toISOString(),
-            usuario: usuarioSeleccionado,
-            grupo: ledActivoParaFormulario.grupo,
-            led: `${ledActivoParaFormulario.linea}-${ledActivoParaFormulario.idx + 1}`
         };
         
         guardarRechazo(datos);
         formulario.reset();
+    });
+
+    // Configurar listeners para la pantalla de reportes
+    const selectoresReportes = document.getElementById('selectoresReportes');
+    selectoresReportes.querySelectorAll('.usuario-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tipoReporte = btn.dataset.reporte;
+            mostrarReporte(tipoReporte);
+        });
     });
 
     // PWA: Service Worker
