@@ -760,7 +760,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <option value="Turno 1">Turno 1</option>
         <option value="Turno 2">Turno 2</option>
     </select>
-    <button class="usuario-btn" onclick="actualizarDashboardConFiltros()">Buscar</button>
 </div>
 <div class="kpis-grid">
     <div class="kpi-card">
@@ -1370,7 +1369,6 @@ function seleccionarDashboard() {
     if (password === CONFIG.PASSWORDS['DASHBOARD']) {
         activarPantalla('pantalla4');
         iniciarDashboard();
-        dashboardUpdateInterval = setInterval(actualizarDashboardConFiltros, 30000);
     } else {
         alert('Contraseña incorrecta. Acceso denegado.');
     }
@@ -1383,59 +1381,66 @@ function limpiarDashboardListeners() {
 
 function iniciarDashboard() {
     limpiarDashboardListeners();
-    clearInterval(dashboardUpdateInterval);
     const { fecha, turno } = obtenerTurnoActual();
     document.getElementById('fechaDashboard').value = fecha;
     document.getElementById('turnoDashboardSelect').value = 'todos';
     
-    actualizarDashboardConFiltros();
+    setupDashboardListeners(fecha, turno);
+    
+    // Listeners para los filtros de fecha y turno
+    document.getElementById('fechaDashboard').addEventListener('change', () => {
+        setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value);
+    });
+
+    document.getElementById('turnoDashboardSelect').addEventListener('change', () => {
+        setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value);
+    });
 }
 
-function actualizarDashboardConFiltros() {
-    const fechaFiltro = document.getElementById('fechaDashboard').value;
-    const turnoFiltro = document.getElementById('turnoDashboardSelect').value;
-
-    const historialRefDash = db.ref(`historialLogs/${fechaFiltro}`);
-    const calidadRefDash = db.ref(`contadoresCalidad/${fechaFiltro}`);
-    const ledsRefDash = db.ref('estadoLEDs');
+function setupDashboardListeners(fecha, turno) {
+    limpiarDashboardListeners();
     
-    // Historial (producción y logística)
-    historialRefDash.once('value', snapshot => {
+    const historialRefDash = db.ref(`historialLogs/${fecha}`);
+    const calidadRefDash = db.ref(`contadoresCalidad/${fecha}`);
+    const ledsRefDash = db.ref('estadoLEDs');
+
+    const historialListener = historialRefDash.on('value', snapshot => {
         const logsPorTurno = snapshot.val() || {};
         let logsFiltrados = {};
-        if (turnoFiltro === 'todos') {
+        if (turno === 'todos') {
             Object.values(logsPorTurno).forEach(logs => {
                 logsFiltrados = { ...logsFiltrados, ...logs };
             });
         } else {
-            logsFiltrados = logsPorTurno[turnoFiltro] || {};
+            logsFiltrados = logsPorTurno[turno] || {};
         }
-        actualizarDashboard(logsFiltrados, 'historial', null);
+        actualizarDashboard(logsFiltrados, 'historial', null, null);
     });
-    
-    // Calidad
-    calidadRefDash.once('value', snapshot => {
+    dashboardListeners.push({ off: () => historialRefDash.off('value', historialListener) });
+
+    const calidadListener = calidadRefDash.on('value', snapshot => {
         const contadoresPorTurno = snapshot.val() || {};
         let contadoresFiltrados = {};
-        if (turnoFiltro === 'todos') {
-            for (const turno in contadoresPorTurno) {
-                for (const grupo in contadoresPorTurno[turno]) {
-                    contadoresFiltrados[grupo] = contadoresFiltrados[grupo] || { liberadas: 0, rechazadas: 0 };
-                    contadoresFiltrados[grupo].liberadas += contadoresPorTurno[turno][grupo].liberadas || 0;
-                    contadoresFiltrados[grupo].rechazadas += contadoresPorTurno[turno][grupo].rechazadas || 0;
+        if (turno === 'todos') {
+            for (const t in contadoresPorTurno) {
+                for (const g in contadoresPorTurno[t]) {
+                    contadoresFiltrados[g] = contadoresFiltrados[g] || { liberadas: 0, rechazadas: 0 };
+                    contadoresFiltrados[g].liberadas += contadoresPorTurno[t][g].liberadas || 0;
+                    contadoresFiltrados[g].rechazadas += contadoresPorTurno[t][g].rechazadas || 0;
                 }
             }
         } else {
-            contadoresFiltrados = contadoresPorTurno[turnoFiltro] || {};
+            contadoresFiltrados = contadoresPorTurno[turno] || {};
         }
-        actualizarDashboard(null, 'calidad', contadoresFiltrados);
+        actualizarDashboard(null, 'calidad', contadoresFiltrados, null);
     });
+    dashboardListeners.push({ off: () => calidadRefDash.off('value', calidadListener) });
     
-    // LEDs
-    ledsRefDash.once('value', snapshot => {
+    const ledsListener = ledsRefDash.on('value', snapshot => {
         const leds = snapshot.val() || {};
         actualizarDashboard(null, 'leds', null, leds);
     });
+    dashboardListeners.push({ off: () => ledsRefDash.off('value', ledsListener) });
 }
 
 
@@ -1445,6 +1450,7 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         const tiemposRecoleccion = { MULTIPORT: [], DROPS: [], BEDROCK: [] };
         let tarimasRecolectadas = 0;
         let tiempoTotalRecoleccion = 0;
+        const tiemposPorHora = {};
         
         for (const logKey in historialLogs) {
             const log = historialLogs[logKey];
@@ -1453,7 +1459,12 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
             } else if (log.accion === 'apagado' && log.tiempoRecoleccion && tiemposRecoleccion.hasOwnProperty(log.grupo)) {
                 tarimasRecolectadas++;
                 tiempoTotalRecoleccion += log.tiempoRecoleccion;
-                tiemposRecoleccion[log.grupo].push(log);
+                
+                const horaApagado = new Date(log.horaApagado);
+                const horaRedondeada = horaApagado.getHours();
+                tiemposPorHora[horaRedondeada] = tiemposPorHora[horaRedondeada] || { total: 0, count: 0 };
+                tiemposPorHora[horaRedondeada].total += log.tiempoRecoleccion;
+                tiemposPorHora[horaRedondeada].count++;
             }
         }
         
@@ -1471,7 +1482,7 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         }
         
         generarGraficoProduccionDash(produccionPorArea);
-        generarGraficoLogisticaDash(tiemposRecoleccion);
+        generarGraficoLogisticaDash(tiemposPorHora);
     }
 
     if (tipo === 'calidad') {
@@ -1577,32 +1588,31 @@ function generarGraficoCalidadDash(datos) {
     });
 }
 
-function generarGraficoLogisticaDash(datos) {
+function generarGraficoLogisticaDash(tiemposPorHora) {
     if (graficosDashboard.logistica) {
         graficosDashboard.logistica.destroy();
     }
     const ctx = document.getElementById('graficoLogisticaDash').getContext('2d');
     
-    const datasets = Object.keys(datos).map((grupo, index) => {
-        const tiempos = datos[grupo].map(d => d.tiempoRecoleccion);
-        const labels = datos[grupo].map(d => formatoHora(d.horaApagado));
-        const colores = ['#007bff', '#28a745', '#dc3545'];
-        
-        return {
-            label: `Tiempos de ${grupo}`,
-            data: tiempos,
-            borderColor: colores[index],
-            backgroundColor: 'transparent',
-            pointRadius: 5,
-            pointBackgroundColor: colores[index]
-        };
+    const horasOrdenadas = Object.keys(tiemposPorHora).sort((a, b) => a - b);
+    const labels = horasOrdenadas.map(hora => `${hora}:00 - ${parseInt(hora) + 1}:00`);
+    const data = horasOrdenadas.map(hora => {
+        const { total, count } = tiemposPorHora[hora];
+        return count > 0 ? (total / count).toFixed(1) : 0;
     });
-    
+
     graficosDashboard.logistica = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: [], 
-            datasets: datasets
+            labels: labels, 
+            datasets: [{
+                label: 'Tiempo Promedio por Hora',
+                data: data,
+                borderColor: '#4BC0C0',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
         },
         options: {
             responsive: true,
@@ -1616,13 +1626,14 @@ function generarGraficoLogisticaDash(datos) {
                     }
                 },
                 x: {
-                    type: 'category',
-                    labels: [],
                     title: {
                         display: true,
-                        text: 'Tiempo'
+                        text: 'Hora del Día'
                     }
                 }
+            },
+            plugins: {
+                legend: { display: false }
             }
         }
     });
