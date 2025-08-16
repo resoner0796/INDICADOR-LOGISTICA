@@ -403,7 +403,16 @@ function inyectaLEDs(){
                 const grupoLeds = contenedor.dataset.grupo;
                 const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
                 contenedor.innerHTML = '';
-                for(let i = 0; i < numLeds; i++){
+                
+                // Si el grupo es de producción y tiene 10 LEDs, ajusta la cantidad por línea
+                let ledsEnLinea = 5;
+                if (numLeds === 10) {
+                    ledsEnLinea = 5; // Asumimos que hay dos líneas de 5
+                } else {
+                    ledsEnLinea = numLeds;
+                }
+                
+                for(let i = 0; i < ledsEnLinea; i++){
                     const led = document.createElement('div');
                     led.className = 'led';
                     led.title = `${grupoLeds} • LED ${i+1}`;
