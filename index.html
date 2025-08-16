@@ -479,6 +479,7 @@ body{ overflow-y: auto; }
     display: grid;
     grid-template-areas:
         "header"
+        "filtros"
         "kpis"
         "produccion"
         "calidad"
@@ -491,6 +492,25 @@ body{ overflow-y: auto; }
 #pantalla4 .header {
     grid-area: header;
     text-align: center;
+}
+#pantalla4 .filtros-dashboard {
+    grid-area: filtros;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+#pantalla4 .filtros-dashboard label {
+    font-size: 14px;
+}
+#pantalla4 .filtros-dashboard input[type="date"],
+#pantalla4 .filtros-dashboard select {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background-color: #222;
+    color: #fff;
 }
 #pantalla4 .kpis-grid {
     grid-area: kpis;
@@ -516,6 +536,7 @@ body{ overflow-y: auto; }
     font-size: 3rem;
     font-weight: bold;
     color: #00ff88;
+    transition: color 0.3s ease;
 }
 #pantalla4 .kpi-card.alerta .valor {
     color: #ff3333;
@@ -562,6 +583,7 @@ body{ overflow-y: auto; }
         grid-template-columns: 1fr 1fr;
         grid-template-areas:
             "header header"
+            "filtros filtros"
             "kpis kpis"
             "produccion calidad"
             "logistica logistica"
@@ -574,6 +596,7 @@ body{ overflow-y: auto; }
         grid-template-columns: repeat(3, 1fr);
         grid-template-areas:
             "header header header"
+            "filtros filtros filtros"
             "kpis kpis kpis"
             "produccion calidad pendientes"
             "logistica logistica logistica"
@@ -682,7 +705,7 @@ body{ overflow-y: auto; }
             <div class="contador-calidad">
                 <span class="valor" id="liberadas_CALIDAD_BEDROCK">0</span>
                 <div class="etiqueta">Liberadas</div>
-            </div>
+            -</div>
             <div class="contador-calidad">
                 <span class="valor" id="rechazadas_CALIDAD_BEDROCK">0</span>
                 <div class="etiqueta">Rechazadas</div>
@@ -720,8 +743,17 @@ body{ overflow-y: auto; }
 <section id="pantalla4" class="pantalla">
     <header class="header">
         <h1>DASHBOARD DE SUPERVISOR</h1>
-        <div id="turnoDashboard"></div>
     </header>
+    <div class="filtros-dashboard">
+        <label for="fechaDashboard">Fecha:</label>
+        <input type="date" id="fechaDashboard">
+        <label for="turnoDashboardSelect">Turno:</label>
+        <select id="turnoDashboardSelect">
+            <option value="Turno 1">Turno 1</option>
+            <option value="Turno 2">Turno 2</option>
+        </select>
+        <button class="usuario-btn" onclick="actualizarDashboardConFiltros()">Buscar</button>
+    </div>
     <div class="kpis-grid">
         <div class="kpi-card">
             <h3>Tarimas Confirmadas</h3>
@@ -731,11 +763,11 @@ body{ overflow-y: auto; }
             <h3>Tarimas Recolectadas</h3>
             <div class="valor" id="dashTarimasRecolectadas">0</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpiTiempoPromedio">
             <h3>Tiempo Promedio</h3>
             <div class="valor" id="dashTiempoPromedio">0 min</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpiTasaRechazo">
             <h3>Tasa de Rechazo</h3>
             <div class="valor" id="dashTasaRechazo">0%</div>
         </div>
@@ -1334,9 +1366,30 @@ function seleccionarDashboard() {
 
 function iniciarDashboard() {
     const { fecha, turno } = obtenerTurnoActual();
-    document.getElementById('turnoDashboard').textContent = `Turno actual: ${turno}`;
-    
-    // Iniciar listeners para el dashboard
+    document.getElementById('fechaDashboard').value = fecha;
+    document.getElementById('turnoDashboardSelect').value = turno;
+
+    // Configurar listeners en tiempo real
+    db.ref(`historialLogs/${fecha}/${turno}`).on('value', snapshot => {
+        const logs = snapshot.val() || {};
+        actualizarDashboard(logs, 'historial');
+    });
+
+    db.ref(`contadoresCalidad/${fecha}/${turno}`).on('value', snapshot => {
+        const contadores = snapshot.val() || {};
+        actualizarDashboard(contadores, 'calidad');
+    });
+
+    db.ref('estadoLEDs').on('value', snapshot => {
+        const leds = snapshot.val() || {};
+        actualizarDashboard(leds, 'leds');
+    });
+}
+
+function actualizarDashboardConFiltros() {
+    const fecha = document.getElementById('fechaDashboard').value;
+    const turno = document.getElementById('turnoDashboardSelect').value;
+
     db.ref(`historialLogs/${fecha}/${turno}`).on('value', snapshot => {
         const logs = snapshot.val() || {};
         actualizarDashboard(logs, 'historial');
@@ -1354,7 +1407,6 @@ function iniciarDashboard() {
 }
 
 function actualizarDashboard(datos, tipo) {
-    const { fecha, turno } = obtenerTurnoActual();
     let historialLogs = {};
     let contadoresCalidad = {};
     let estadoLEDs = {};
@@ -1405,6 +1457,22 @@ function actualizarDashboard(datos, tipo) {
     document.getElementById('dashTarimasRecolectadas').textContent = tarimasRecolectadas;
     document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`;
     document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`;
+
+    // Aplicar alertas visuales
+    const kpiTiempoPromedio = document.getElementById('kpiTiempoPromedio');
+    const kpiTasaRechazo = document.getElementById('kpiTasaRechazo');
+
+    if (tiempoPromedio > 10) {
+        kpiTiempoPromedio.classList.add('alerta');
+    } else {
+        kpiTiempoPromedio.classList.remove('alerta');
+    }
+
+    if (tasaRechazo > 5) {
+        kpiTasaRechazo.classList.add('alerta');
+    } else {
+        kpiTasaRechazo.classList.remove('alerta');
+    }
 
     // Actualizar gráficos
     generarGraficoProduccionDash(produccionPorArea);
@@ -1616,7 +1684,6 @@ function cargarDatosReporte(tipo, fecha, turno, area) {
         miGrafico.destroy();
     }
     
-    // Ahora solo carga datos para una fecha y turno específico
     const refHistorial = db.ref(`historialLogs/${fecha}`);
     const refCalidad = db.ref(`contadoresCalidad/${fecha}`);
     const refRechazos = db.ref(`rechazosDetallados/${fecha}`);
