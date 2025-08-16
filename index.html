@@ -410,6 +410,12 @@ function inyectaLEDs(){
     });
 }
 
+const ESTADOS_CALIDAD = {
+    'naranja': 'proceso',
+    'rojo': 'rechazado',
+    'verde': 'liberado'
+};
+
 function pintarEstado(){
   Object.keys(estadoLEDs).forEach(grupo=>{
     document.querySelectorAll(`.leds[data-grupo="${grupo}"]`).forEach(contenedor=>{
@@ -556,10 +562,43 @@ function togglearLED(grupo, idx, linea='linea1'){
     let tiempoRecoleccion = null;
     let horaEncendido = null;
     let horaApagado = null;
-    const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
+    
+    // Nueva lógica para el grupo de CALIDAD
+    if (grupo.startsWith('CALIDAD_')) {
+        const estado = prompt("¿Qué estado deseas asignar a la tarima? (naranja, rojo, verde)");
+        
+        if (estado) {
+            const estadoLowerCase = estado.toLowerCase();
+            const ESTADOS_CALIDAD = {
+                'naranja': 'proceso',
+                'rojo': 'rechazado',
+                'verde': 'liberado'
+            };
+            
+            if (ESTADOS_CALIDAD[estadoLowerCase]) {
+                const led = document.querySelector(`.leds[data-grupo="${grupo}"][data-linea="${linea}"] .led:nth-child(${idx + 1})`);
+                
+                // Cambia el color del LED en la interfaz
+                led.style.backgroundColor = estadoLowerCase;
+                
+                // Guarda el estado en la base de datos (se debe ajustar tu función guardarEstado)
+                guardarEstado(grupo, idx, linea, { color: estadoLowerCase });
 
+                // Notificación si el estado es 'rojo'
+                if (estadoLowerCase === 'rojo') {
+                    const usuarioProduccion = grupo.split('_')[1];
+                    notificarRechazo(usuarioProduccion);
+                }
+            } else {
+                alert("Estado no válido. Intenta con naranja, rojo o verde.");
+            }
+        }
+    } 
     // Lógica para LOGÍSTICA
-    if (usuarioSeleccionado === 'LOGÍSTICA') {
+    else if (usuarioSeleccionado === 'LOGÍSTICA') {
+        // Obtenemos el estado actual del LED para LOGÍSTICA
+        const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
+
         if (estadoActual) {
             // CONFIRMACIÓN PARA LOGÍSTICA
             if (!confirm('¿Está realmente recolectada la tarima?')) {
@@ -587,7 +626,12 @@ function togglearLED(grupo, idx, linea='linea1'){
             alert('LOGÍSTICA solo puede apagar LEDs');
             return;
         }
-    } else { // Lógica para los demás usuarios
+    } 
+    // Lógica para los demás usuarios (Producción)
+    else {
+        // Obtenemos el estado actual del LED para los usuarios de Producción
+        const estadoActual = estadoLEDs[grupo][linea][idx].encendido;
+        
         if (!estadoActual) {
             // CONFIRMACIÓN PARA USUARIOS DE PRODUCCIÓN
             if (!confirm('¿Está realmente confirmada la tarima?')) {
@@ -685,6 +729,11 @@ function seleccionarUsuario(usuario) {
         return;
     }
 
+function notificarRechazo(usuarioProduccion) {
+    if (usuarioSeleccionado === usuarioProduccion) {
+        alert("🚨 ¡ATENCIÓN! Calidad ha RECHAZADO una tarima en tu área.");
+    }
+}
     // Lógica para el usuario SUPERVISOR
     if (usuario === 'SUPERVISOR') {
         usuarioSeleccionado = usuario;
