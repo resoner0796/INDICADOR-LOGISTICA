@@ -577,38 +577,62 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
 
-    // Lógica para Calidad
+    // Lógica para los grupos de Calidad
     if (grupo.startsWith('CALIDAD_')) {
-        const estado = prompt("Selecciona el estado de la tarima: \n🟡 En proceso \n🔴 Rechazada \n🟢 Liberada");
-
-        if (estado) {
-            const estadoLowerCase = estado.toLowerCase().trim();
-            let nuevoColor = null;
-
-            if (estadoLowerCase.includes('proceso')) {
-                nuevoColor = 'naranja';
-            } else if (estadoLowerCase.includes('rechazada')) {
-                nuevoColor = 'rojo';
-            } else if (estadoLowerCase.includes('liberada')) {
-                nuevoColor = 'verde';
-            } else {
-                alert("Estado no válido. Intenta con las opciones sugeridas.");
-                return;
-            }
-
-            ledRef.set({
-                color: nuevoColor,
-                timestamp: new Date().toISOString(),
-                usuario: usuarioSeleccionado
+        // Lógica para Producción (puede apagar LEDs de Calidad)
+        if (['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado)) {
+            ledRef.once('value', snapshot => {
+                const estadoActual = snapshot.val() || {};
+                if (estadoActual.color) { // Si el LED está encendido con algún color
+                    if (!confirm('¿Está realmente confirmada la tarima?')) {
+                        return;
+                    }
+                    ledRef.set(null); // Apaga el LED borrando el estado de la base de datos
+                    const log = {
+                        usuario: usuarioSeleccionado,
+                        grupo: grupo,
+                        led: `${linea}-${idx+1}`,
+                        accion: 'apagado_calidad',
+                        timestamp: new Date().toISOString(),
+                    };
+                    historialRef.push(log);
+                } else {
+                    alert('Producción solo puede apagar LEDs de Calidad');
+                }
             });
+        } 
+        // Lógica para Calidad (puede cambiar el estado de los LEDs)
+        else {
+            const estado = prompt("Selecciona el estado de la tarima: \n🟡 En proceso \n🔴 Rechazada \n🟢 Liberada");
+            if (estado) {
+                const estadoLowerCase = estado.toLowerCase().trim();
+                let nuevoColor = null;
 
-            if (nuevoColor === 'rojo') {
-                const usuarioProduccion = grupo.split('_')[1];
-                notificarRechazo(usuarioProduccion);
+                if (estadoLowerCase.includes('proceso')) {
+                    nuevoColor = 'naranja';
+                } else if (estadoLowerCase.includes('rechazada')) {
+                    nuevoColor = 'rojo';
+                } else if (estadoLowerCase.includes('liberada')) {
+                    nuevoColor = 'verde';
+                } else {
+                    alert("Estado no válido. Intenta con las opciones sugeridas.");
+                    return;
+                }
+
+                ledRef.set({
+                    color: nuevoColor,
+                    timestamp: new Date().toISOString(),
+                    usuario: usuarioSeleccionado
+                });
+
+                if (nuevoColor === 'rojo') {
+                    const usuarioProduccion = grupo.split('_')[1];
+                    notificarRechazo(usuarioProduccion);
+                }
             }
         }
-    } 
-    // Lógica para Producción y Logística
+    }
+    // Lógica para Producción y Logística (en sus propios LEDs)
     else {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
