@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -455,7 +456,7 @@ function inyectaLEDs(){
 
     document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
         const grupoLeds = contenedor.dataset.grupo;
-        const linea = contenedor.dataset.linea;
+        const linea = contenedor.dataset.dinea;
         
         const ledsPorLinea = 5;
         contenedor.innerHTML = '';
@@ -485,15 +486,16 @@ function pintarEstado() {
                     if (ledsEstado[index]) {
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             if (ledsEstado[index].color === 'naranja') {
-                                led.style.backgroundColor = '#ff9800';
+                                led.style.backgroundColor = 'orange';
+                                led.classList.remove('on');
                             } else if (ledsEstado[index].color === 'rojo') {
-                                led.style.backgroundColor = '#f44336';
+                                led.style.backgroundColor = 'red';
+                                led.classList.remove('on');
                             } else if (ledsEstado[index].color === 'verde') {
-                                led.style.backgroundColor = '#4caf50';
+                                led.style.backgroundColor = 'green';
+                                led.classList.remove('on');
                             }
-                            led.classList.remove('on');
-                        } 
-                        else if (ledsEstado[index].encendido) {
+                        } else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
                             led.style.backgroundColor = '';
                         } else {
@@ -535,10 +537,11 @@ function iniciarListenersFirebase() {
 
         if (logs) {
             Object.values(logs).forEach(log => {
-                if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-                    contadores[log.grupo]++;
+                const grupoBase = log.grupo.includes('_') ? log.grupo.split('_')[1] : log.grupo;
+                if (log.accion === 'encendido' && contadores.hasOwnProperty(grupoBase)) {
+                    contadores[grupoBase]++;
                 } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-                    tiempos[log.grupo].push(log);
+                    tiempos[grupoBase].push(log);
                     tarimasTotales++;
                     tiempoTotalRecoleccion += log.tiempoRecoleccion;
                 }
