@@ -1442,7 +1442,7 @@ function actualizarDashboardConFiltros() {
     });
 
     dashboardListeners.push({ off: () => historialRefDash.off('value', hListener) });
-    dashboardListeners.push({ off: () => calidadRefDash.off('value', cListener) });
+    dashboardListeners.push({ off: () to calidadRefDash.off('value', cListener) });
     dashboardListeners.push({ off: () => ledsRefDash.off('value', lListener) });
 }
 
@@ -1732,8 +1732,8 @@ function cargarDatosReporte(tipo, fecha, turno, area) {
             tituloReporte.textContent = `Reporte de Logística - ${fecha}`;
             procesarReporteLogistica(datosDelDia.historial, contenedor, turno, area);
         } else if (tipo === 'resumen') {
-            tituloReporte.textContent = `Resumen Ejecutivo - ${fecha}`;
-            procesarReporteResumen(datos); // Se pasa el objeto completo
+            tituloReporte.textContent = `Resumen Ejecutivo`;
+            procesarReporteResumen({ historial, calidad, rechazos });
         }
     }).catch(error => {
         console.error("Error al cargar los datos:", error);
