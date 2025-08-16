@@ -376,7 +376,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 #pantalla3 .usuario-btn:hover {
   background-color: #004c99;
 }
-#pantalla3 .contenedor-reportes {
+#pantalla3 .contenedor-reporte {
   background-color: #fff;
   border-radius: 10px;
   padding: 20px;
@@ -738,7 +738,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
         <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
     </div>
-    <div id="contenedorReporte" class="contenedor-reportes">
+    <div id="contenedorReporte" class="contenedor-reporte">
         <h2>Selecciona un reporte</h2>
     </div>
 </div>
@@ -1223,18 +1223,20 @@ function aplicarEstadoCalidad(nuevoColor) {
     const { grupo, idx, linea } = ledActivoParaFormulario;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
 
-    ledRef.set({
-        color: nuevoColor,
-        timestamp: new Date().toISOString(),
-        usuario: usuarioSeleccionado
-    });
-
     if (nuevoColor === 'verde') {
         const contadorRef = contadoresCalidadRef.child(grupo);
         contadorRef.child('liberadas').transaction(currentCount => (currentCount || 0) + 1);
-    } else if (nuevoColor === 'rojo') {
-        const contadorRef = contadoresCalidadRef.child(grupo);
-        contadorRef.child('rechazadas').transaction(currentCount => (currentCount || 0) + 1);
+        ledRef.set(null); // Elimina el LED para evitar clics fantasma
+    } else {
+        ledRef.set({
+            color: nuevoColor,
+            timestamp: new Date().toISOString(),
+            usuario: usuarioSeleccionado
+        });
+        if (nuevoColor === 'rojo') {
+            const contadorRef = contadoresCalidadRef.child(grupo);
+            contadorRef.child('rechazadas').transaction(currentCount => (currentCount || 0) + 1);
+        }
     }
 }
 
@@ -1507,13 +1509,13 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
     }
 
     if (tipo === 'leds') {
-        const pendientesPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+        const pendientesPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0, CALIDAD_MULTIPORT: 0, CALIDAD_DROPS: 0, CALIDAD_BEDROCK: 0 };
         for (const grupo in estadoLEDs) {
             if (pendientesPorArea.hasOwnProperty(grupo)) {
                 for (const linea in estadoLEDs[grupo]) {
                     for (const led in estadoLEDs[grupo][linea]) {
                         const estado = estadoLEDs[grupo][linea][led];
-                        if (estado && estado.encendido) {
+                        if (estado && estado.encendido || (estado && estado.color)) {
                             pendientesPorArea[grupo]++;
                         }
                     }
@@ -1524,7 +1526,8 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         tablaPendientesBody.innerHTML = '';
         for (const area in pendientesPorArea) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${area}</td><td>${pendientesPorArea[area]}</td>`;
+            const areaDisplay = area.startsWith('CALIDAD_') ? `Calidad ${area.replace('CALIDAD_', '')}` : area;
+            tr.innerHTML = `<td>${areaDisplay}</td><td>${pendientesPorArea[area]}</td>`;
             tablaPendientesBody.appendChild(tr);
         }
     }
@@ -1650,7 +1653,7 @@ function mostrarReporte(tipo) {
     const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK', 'CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
     areaFiltroHtml = `
         <select id="areaFiltro">
-            ${areas.map(area => `<option value="${area}">${area}</option>`).join('')}
+            ${areas.map(area => `<option value="${area}">${area.replace('CALIDAD_', 'Calidad ')}</option>`).join('')}
         </select>
     `;
 
