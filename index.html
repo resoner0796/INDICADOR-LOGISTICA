@@ -739,17 +739,8 @@ function seleccionarUsuario(usuario) {
         return;
     }
 
-    // Lógica para el usuario SUPERVISOR
-    if (usuario === 'SUPERVISOR') {
-        usuarioSeleccionado = usuario;
-        document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
-        activarPantalla('pantalla2');
-        inyectaLEDs();
-        // Se ELIMINA la llamada a cargarEstado()
-        alert(`¡Bienvenido, ${usuario}!`);
-
     // Lógica para el nuevo usuario CALIDAD
-    } else if (usuario === 'CALIDAD') {
+    if (usuario === 'CALIDAD') {
         const password = prompt('Introduce la contraseña para CALIDAD:');
         let subusuario = null;
         
@@ -764,22 +755,32 @@ function seleccionarUsuario(usuario) {
 
         // Si la contraseña fue correcta, procede con el subusuario
         if (subusuario) {
-            usuarioSeleccionado = subusuario;
+            usuarioSeleccionado = subusuario; // <--- Línea corregida
             // El título muestra "CALIDAD" y el nombre del subgrupo (MP, DROPS, BR)
             document.getElementById('tituloFijo').textContent = `CALIDAD - ${subusuario.split('_')[1]}`;
             activarPantalla('pantalla2');
             inyectaLEDs();
-            // Se ELIMINA la llamada a cargarEstado()
             alert(`¡Bienvenido, ${subusuario.replace('_', ' ')}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
         }
+    } 
+    // Lógica para los demás usuarios (LOGÍSTICA, MULTIPORT, DROPS, BEDROCK, SUPERVISOR)
+    else {
+        // Asignamos el usuario aquí para que el prompt funcione
+        usuarioSeleccionado = usuario;
+        
+        // El supervisor no tiene contraseña
+        if (usuario === 'SUPERVISOR') {
+            document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            alert(`¡Bienvenido, ${usuario}!`);
+            return;
+        }
 
-    // Lógica para los demás usuarios (LOGÍSTICA, MULTIPORT, DROPS, BEDROCK)
-    } else {
         const password = prompt(`Introduce la contraseña para ${usuario}:`);
         if (password === CONFIG.PASSWORDS[usuario]) {
-            usuarioSeleccionado = usuario;
             if (usuario === 'LOGÍSTICA') {
                 document.getElementById('tituloFijo').textContent = 'LOGÍSTICA';
             } else {
@@ -787,7 +788,6 @@ function seleccionarUsuario(usuario) {
             }
             activarPantalla('pantalla2');
             inyectaLEDs();
-            // Se ELIMINA la llamada a cargarEstado()
             alert(`¡Bienvenido, ${usuario}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
