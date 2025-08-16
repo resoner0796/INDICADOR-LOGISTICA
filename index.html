@@ -235,8 +235,9 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="MULTIPORT"></div>
-        <div class="grupo-calidad-anidado" data-grupo="CALIDAD_MULTIPORT">
-            <div class="nombre">CALIDAD MULTIPORT</div>
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="tarimas">Tarimas: 0</div>
             <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
             <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
         </div>
@@ -248,8 +249,9 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
         <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="DROPS"></div>
-        <div class="grupo-calidad-anidado" data-grupo="CALIDAD_DROPS">
-            <div class="nombre">CALIDAD DROPS</div>
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="tarimas">Tarimas: 0</div>
             <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
             <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
         </div>
@@ -261,8 +263,9 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="BEDROCK"></div>
-        <div class="grupo-calidad-anidado" data-grupo="CALIDAD_BEDROCK">
-            <div class="nombre">CALIDAD BEDROCK</div>
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="tarimas">Tarimas: 0</div>
             <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
             <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
         </div>
@@ -363,33 +366,40 @@ firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err)
 
 // ================= FUNCIONES DE RENDER =================
 // CÓDIGO MODIFICADO
-function inyectaLEDs(){
+function inyectaLEDs() {
     // Primero, oculta todos los grupos principales
     document.querySelectorAll('.grupo').forEach(grupoDiv => {
         grupoDiv.classList.add('oculto');
     });
 
+    // Oculta todos los grupos anidados de Calidad al inicio
+    document.querySelectorAll('.grupo-calidad-anidado').forEach(grupoAnidadoDiv => {
+        grupoAnidadoDiv.classList.add('oculto');
+    });
+
     // Luego, muestra solo los que corresponden al usuario
-    if (usuarioSeleccionado === 'SUPERVISOR') {
-        // Supervisor ve todos los grupos principales
+    if (usuarioSeleccionado === 'SUPERVISOR' || usuarioSeleccionado === 'LOGÍSTICA') {
+        // Logística y Supervisor ven todos los grupos de producción principales
         document.querySelectorAll('.grupo').forEach(grupoDiv => {
             grupoDiv.classList.remove('oculto');
         });
-    } else if (usuarioSeleccionado === 'LOGÍSTICA') {
-        // Logística solo ve los grupos de producción
-        document.querySelector('.grupo[data-grupo="MULTIPORT"]').classList.remove('oculto');
-        document.querySelector('.grupo[data-grupo="DROPS"]').classList.remove('oculto');
-        document.querySelector('.grupo[data-grupo="BEDROCK"]').classList.remove('oculto');
+        // Solo el Supervisor ve los grupos de Calidad anidados
+        if (usuarioSeleccionado === 'SUPERVISOR') {
+            document.querySelectorAll('.grupo-calidad-anidado').forEach(grupoAnidadoDiv => {
+                grupoAnidadoDiv.classList.remove('oculto');
+            });
+        }
     } else if (usuarioSeleccionado.startsWith('CALIDAD_')) {
-        // Usuarios de Calidad ven su propio grupo principal de Calidad
-        document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
+        // Los usuarios de Calidad ven solo el grupo principal de su área
+        document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado.split('_')[1]}"]`).classList.remove('oculto');
+        document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado.split('_')[1]}"] .grupo-calidad-anidado`).classList.remove('oculto');
     } else { // Usuarios de producción
-        // Los usuarios de producción ven su propio grupo principal Y su grupo de Calidad anidado
+        // Los usuarios de producción ven su grupo principal y el anidado de Calidad
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"] .grupo-calidad-anidado`).classList.remove('oculto');
     }
-
-    // Inyecta los LEDs en cada contenedor visible
+    
+    // Inyecta los LEDs en los contenedores visibles
     document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
         const grupoLeds = contenedor.dataset.grupo;
         const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
