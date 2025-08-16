@@ -282,11 +282,8 @@ body{ overflow-y: auto; }
 
 <script>
 // ================= CONFIG Y ESTADO =================
-// CÓDIGO MODIFICADO
 const CONFIG = {
-    // Lista completa de usuarios, incluyendo el nuevo usuario CALIDAD
     USUARIOS: ['MULTIPORT', 'BEDROCK', 'DROPS', 'LOGÍSTICA', 'SUPERVISOR', 'CALIDAD'],
-    // Contraseñas para cada usuario y subusuario
     PASSWORDS: {
         'LOGÍSTICA': 'logistica123',
         'MULTIPORT': 'multiport123',
@@ -297,7 +294,6 @@ const CONFIG = {
         'CALIDAD_DROPS': 'calidaddp123',
         'CALIDAD_BEDROCK': 'calidadbr123'
     },
-    // Parámetros de los LEDs
     LEDS_POR_GRUPO: {
         'MULTIPORT': 5,
         'BEDROCK': 5,
@@ -310,13 +306,12 @@ const CONFIG = {
 
 let usuarioSeleccionado = null;
 let estadoLEDs = {
-  MULTIPORT: { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
-  BEDROCK:  { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) },
-  DROPS:    { linea1:Array(CONFIG.LED_COUNT).fill(false), linea2:Array(CONFIG.LED_COUNT).fill(false) }
+  MULTIPORT: { linea1:Array(5).fill(false), linea2:Array(5).fill(false) },
+  BEDROCK:  { linea1:Array(5).fill(false), linea2:Array(5).fill(false) },
+  DROPS:    { linea1:Array(5).fill(false), linea2:Array(5).fill(false) }
 };
 
 // ================= FUNCION PARA OBTENER FECHA Y TURNO =================
-// CÓDIGO MODIFICADO
 function obtenerTurnoActual() {
     const ahora = new Date();
     const hora = ahora.getHours() + (ahora.getMinutes() / 60);
@@ -324,22 +319,18 @@ function obtenerTurnoActual() {
     let fecha;
     let turno;
 
-    if (hora >= 6.5 && hora < 18.5) { // 06:30 a 18:30
+    if (hora >= 6.5 && hora < 18.5) {
         turno = 'Turno 1';
-        // Para el Turno 1, la fecha es la del día actual
         fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-    } else { // 18:30 a 06:30
+    } else {
         turno = 'Turno 2';
-        // Para el Turno 2, si la hora es antes de las 06:30, se usa la fecha del día anterior
         if (hora < 6.5) {
             fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 1);
         } else {
-            // Si la hora es después de las 18:30, se usa la fecha del día actual
             fecha = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
         }
     }
     
-    // Formatea la fecha al formato YYYY-MM-DD
     const year = fecha.getFullYear();
     const month = String(fecha.getMonth() + 1).padStart(2, '0');
     const day = String(fecha.getDate()).padStart(2, '0');
@@ -359,20 +350,17 @@ const firebaseConfig = {
   appId: "1:38365879945:web:e2f3590fe77f013dba3058"
 };
 firebase.initializeApp(firebaseConfig);
-// CÓDIGO MODIFICADO
 const database = firebase.database();
-const db = database; // Variable global para la base de datos
+const db = database; 
 const ledRef = database.ref('estadoLEDs');
 let historialRef;
-let resumenRef; // <-- Agrega esta línea
+let resumenRef;
 
 // ================= AUTENTICACIÓN ANÓNIMA =================
 firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err));
 
 // ================= FUNCIONES DE RENDER =================
-// CÓDIGO MODIFICADO
 function inyectaLEDs(){
-    // La lógica de visibilidad de la interfaz se mantiene intacta
     document.querySelectorAll('.grupo').forEach(grupoDiv => {
         grupoDiv.classList.add('oculto');
     });
@@ -392,12 +380,10 @@ function inyectaLEDs(){
         document.querySelector(`.grupo[data-grupo="CALIDAD_${usuarioSeleccionado}"]`).classList.remove('oculto');
     }
 
-    // Esta sección SÍ se modifica para solucionar el problema de los 10 LEDs
     document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
         const grupoLeds = contenedor.dataset.grupo;
         const linea = contenedor.dataset.linea;
         
-        // Define el número de LEDs por línea
         const ledsPorLinea = 5;
         contenedor.innerHTML = '';
         
@@ -410,12 +396,6 @@ function inyectaLEDs(){
         }
     });
 }
-
-const ESTADOS_CALIDAD = {
-    'naranja': 'proceso',
-    'rojo': 'rechazado',
-    'verde': 'liberado'
-};
 
 function pintarEstado() {
     db.ref('estadoLEDs').on('value', snapshot => {
@@ -430,30 +410,30 @@ function pintarEstado() {
                 
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     if (ledsEstado[index]) {
-                        // Lógica para LEDs de Calidad
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.style.backgroundColor = ledsEstado[index].color;
                         } 
-                        // Lógica para LEDs de producción
                         else if (ledsEstado[index].encendido) {
-                            led.style.backgroundColor = 'green';
+                            led.classList.add('on');
                         } else {
-                            led.style.backgroundColor = 'gray';
+                            led.classList.remove('on');
+                            led.style.backgroundColor = '';
                         }
                     } else {
-                        led.style.backgroundColor = 'gray';
+                        led.classList.remove('on');
+                        led.style.backgroundColor = '';
                     }
                 });
             } else {
                 contenedor.querySelectorAll('.led').forEach(led => {
-                    led.style.backgroundColor = 'gray';
+                    led.classList.remove('on');
+                    led.style.backgroundColor = '';
                 });
             }
         });
     });
 }
 
-// Función auxiliar para formatear la hora
 function formatoHora(isoString) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -462,32 +442,11 @@ function formatoHora(isoString) {
     return `${hours}:${minutes}`;
 }
 
-const db = firebase.database(); // Declara la variable db globalmente
-
-function cargarEstado(){
-  ledRef.on('value',(snapshot)=>{
-    const data = snapshot.val();
-    if(!data) return;
-    ['MULTIPORT','BEDROCK','DROPS'].forEach(grupo=>{
-      if(data[grupo]){
-        ['linea1','linea2'].forEach(linea=>{
-          if(data[grupo][linea] && typeof data[grupo][linea] === 'object'){
-            const tempArray = Object.values(data[grupo][linea]);
-            estadoLEDs[grupo][linea] = tempArray.slice(0, CONFIG.LED_COUNT);
-            while(estadoLEDs[grupo][linea].length < CONFIG.LED_COUNT) estadoLEDs[grupo][linea].push({encendido: false, timestampEncendido: null});
-          }
-        });
-      }
-    });
-    pintarEstado();
-  });
-  
 historialRef.on('value', (snapshot) => {
     const logs = snapshot.val();
     const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
     const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
-    // Variables para los datos totales
     let tarimasTotales = 0;
     let tiempoTotalRecoleccion = 0;
 
@@ -497,21 +456,17 @@ historialRef.on('value', (snapshot) => {
           contadores[log.grupo]++;
         } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
           tiempos[log.grupo].push(log);
-          // Acumula datos para el cálculo total
           tarimasTotales++;
           tiempoTotalRecoleccion += log.tiempoRecoleccion;
         }
       });
     }
 
-    // Calcula el tiempo promedio
     const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
     
-    // Actualiza los datos totales en la interfaz
     document.getElementById('tarimasTotales').textContent = tarimasTotales;
     document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
 
-    // Muestra u oculta el resumen del turno según el usuario
     const resumenTurnoDiv = document.getElementById('resumenTurno');
     if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
       resumenTurnoDiv.classList.remove('oculto');
@@ -519,12 +474,10 @@ historialRef.on('value', (snapshot) => {
       resumenTurnoDiv.classList.add('oculto');
     }
     
-    // Actualiza los contadores de tarimas por grupo
     document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
     document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
     document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
 
-    // Actualiza los tiempos de recolección en la interfaz
     Object.keys(tiempos).forEach(grupo => {
         const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
         if (!contenedorTiempos) return;
@@ -546,23 +499,18 @@ function puedeControlar(grupo){
         return false;
     }
   
-    // Si el usuario es SUPERVISOR, no puede controlar nada
     if (usuarioSeleccionado === 'SUPERVISOR') {
         return false;
     }
   
-    // LOGÍSTICA puede controlar todos los grupos
     if (usuarioSeleccionado === 'LOGÍSTICA') {
         return true;
     }
   
-    // LÓGICA CLAVE: Un usuario puede controlar su propio grupo
-    // O puede controlar el grupo de Calidad que le corresponde
     if (usuarioSeleccionado === grupo) {
         return true;
     }
     
-    // Si el usuario es de producción, puede controlar su grupo de Calidad anidado
     if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
         return true;
     }
@@ -570,7 +518,6 @@ function puedeControlar(grupo){
     return false;
 }
     
-// CÓDIGO MODIFICADO
 function togglearLED(grupo, idx, linea = 'linea1') {
     if (!puedeControlar(grupo)) {
         return alert('No tienes permiso para controlar estos LEDs');
@@ -578,17 +525,15 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
 
-    // Lógica para los grupos de Calidad
     if (grupo.startsWith('CALIDAD_')) {
-        // Lógica para Producción (puede apagar LEDs de Calidad)
         if (['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado)) {
             ledRef.once('value', snapshot => {
                 const estadoActual = snapshot.val() || {};
-                if (estadoActual.color) { // Si el LED está encendido con algún color
+                if (estadoActual.color) {
                     if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
                     }
-                    ledRef.set(null); // Apaga el LED borrando el estado de la base de datos
+                    ledRef.set(null);
                     const log = {
                         usuario: usuarioSeleccionado,
                         grupo: grupo,
@@ -602,7 +547,6 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 }
             });
         } 
-        // Lógica para Calidad (puede cambiar el estado de los LEDs)
         else {
             const estado = prompt("Selecciona el estado de la tarima: \n🟡 En proceso \n🔴 Rechazada \n🟢 Liberada");
             if (estado) {
@@ -633,7 +577,6 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
     }
-    // Lógica para Producción y Logística (en sus propios LEDs)
     else {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
@@ -664,7 +607,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 } else {
                     alert('LOGÍSTICA solo puede apagar LEDs');
                 }
-            } else { // Lógica para los usuarios de Producción
+            } else {
                 if (!estadoActual.encendido) {
                     if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
@@ -692,9 +635,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     }
 }
 
-// CÓDIGO A AGREGAR
 function actualizarResumen() {
-    // Carga los datos actuales del resumen
     resumenRef.once('value').then(snapshot => {
         const resumenActual = snapshot.val() || {
             tarimasConfirmadas: 0,
@@ -702,15 +643,12 @@ function actualizarResumen() {
             tiemposRecoleccion: [],
             totalPorArea: { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 }
         };
-
-        // Recorre el historial para recalcular el resumen (para mayor seguridad)
         historialRef.once('value').then(historialSnapshot => {
             const logs = historialSnapshot.val();
             let tarimasConfirmadas = 0;
             let tarimasRecibidas = 0;
             const tiemposRecoleccion = [];
             const totalPorArea = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
-
             if (logs) {
                 Object.values(logs).forEach(log => {
                     if (log.accion === 'encendido' && totalPorArea.hasOwnProperty(log.grupo)) {
@@ -724,8 +662,6 @@ function actualizarResumen() {
                     }
                 });
             }
-
-            // Guarda el nuevo resumen en la base de datos
             resumenRef.set({
                 tarimasConfirmadas: tarimasConfirmadas,
                 tarimasRecibidas: tarimasRecibidas,
@@ -752,17 +688,22 @@ function notificarRechazo(usuarioProduccion) {
         alert("🚨 ¡ATENCIÓN! Calidad ha RECHAZADO una tarima en tu área.");
     }
 }
+
 function seleccionarUsuario(usuario) {
     if (!CONFIG.USUARIOS.includes(usuario)) {
         return;
     }
 
-    // Lógica para el nuevo usuario CALIDAD
-    if (usuario === 'CALIDAD') {
+    if (usuario === 'SUPERVISOR') {
+        usuarioSeleccionado = usuario;
+        document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
+        activarPantalla('pantalla2');
+        inyectaLEDs();
+        alert(`¡Bienvenido, ${usuario}!`);
+    } else if (usuario === 'CALIDAD') {
         const password = prompt('Introduce la contraseña para CALIDAD:');
         let subusuario = null;
         
-        // Verifica la contraseña para determinar el subusuario de Calidad
         if (password === CONFIG.PASSWORDS['CALIDAD_MULTIPORT']) {
             subusuario = 'CALIDAD_MULTIPORT';
         } else if (password === CONFIG.PASSWORDS['CALIDAD_DROPS']) {
@@ -771,10 +712,8 @@ function seleccionarUsuario(usuario) {
             subusuario = 'CALIDAD_BEDROCK';
         }
 
-        // Si la contraseña fue correcta, procede con el subusuario
         if (subusuario) {
-            usuarioSeleccionado = subusuario; // <--- Línea corregida
-            // El título muestra "CALIDAD" y el nombre del subgrupo (MP, DROPS, BR)
+            usuarioSeleccionado = subusuario;
             document.getElementById('tituloFijo').textContent = `CALIDAD - ${subusuario.split('_')[1]}`;
             activarPantalla('pantalla2');
             inyectaLEDs();
@@ -782,23 +721,10 @@ function seleccionarUsuario(usuario) {
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
         }
-    } 
-    // Lógica para los demás usuarios (LOGÍSTICA, MULTIPORT, DROPS, BEDROCK, SUPERVISOR)
-    else {
-        // Asignamos el usuario aquí para que el prompt funcione
-        usuarioSeleccionado = usuario;
-        
-        // El supervisor no tiene contraseña
-        if (usuario === 'SUPERVISOR') {
-            document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
-            activarPantalla('pantalla2');
-            inyectaLEDs();
-            alert(`¡Bienvenido, ${usuario}!`);
-            return;
-        }
-
+    } else {
         const password = prompt(`Introduce la contraseña para ${usuario}:`);
         if (password === CONFIG.PASSWORDS[usuario]) {
+            usuarioSeleccionado = usuario;
             if (usuario === 'LOGÍSTICA') {
                 document.getElementById('tituloFijo').textContent = 'LOGÍSTICA';
             } else {
@@ -818,12 +744,16 @@ window.addEventListener('load', ()=>{
     const { fecha, turno } = obtenerTurnoActual();
     historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
     resumenRef = database.ref(`resumenDiario/${fecha}/${turno}`);
-
-    usuarioSeleccionado = null;
-    activarPantalla('pantalla1');
-    pintarEstado(); // Se llama a pintarEstado aquí para iniciar el listener
     
-    // Registro del Service Worker
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            pintarEstado(); 
+            activarPantalla('pantalla1');
+        } else {
+            // Manejar el caso de no autenticación si es necesario
+        }
+    });
+
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(reg => {
