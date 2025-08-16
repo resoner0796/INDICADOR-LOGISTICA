@@ -228,14 +228,13 @@ body{ overflow-y: auto; }
     <div id="tiempoPromedio" class="valor">0 min</div>
   </div>
 </div>
-      <div class="grupo-contenedor">
+<div class="grupo-contenedor">
     <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="MULTIPORT"></div>
-
         <div class="grupo-calidad-anidado">
             <div class="nombre">CALIDAD</div>
             <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
@@ -248,7 +247,6 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
         <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="DROPS"></div>
-        
         <div class="grupo-calidad-anidado">
             <div class="nombre">CALIDAD</div>
             <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
@@ -261,7 +259,6 @@ body{ overflow-y: auto; }
         <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="BEDROCK"></div>
-        
         <div class="grupo-calidad-anidado">
             <div class="nombre">CALIDAD</div>
             <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
@@ -289,7 +286,6 @@ body{ overflow-y: auto; }
         <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
     </div>
 </div>
-    </div>
   </div>
   <div class="footer">
     <button class="usuario-btn btn-rojo" onclick="volverAPantalla1()">Cerrar sesión</button>
@@ -392,22 +388,37 @@ function inyectaLEDs(){
         let mostrarGrupo = false;
 
         // Reglas de visibilidad
-        if (usuarioSeleccionado === 'SUPERVISOR' || usuarioSeleccionado === 'LOGÍSTICA') {
-            // Supervisor y Logística ven todos los grupos principales
-            if (!grupo.startsWith('CALIDAD_')) {
+        if (usuarioSeleccionado === 'SUPERVISOR') {
+            mostrarGrupo = true;
+        } else if (usuarioSeleccionado === 'LOGÍSTICA') {
+            // Logística solo ve los grupos de producción principales
+            if (grupo.startsWith('CALIDAD_')) {
+                mostrarGrupo = false;
+            } else {
                 mostrarGrupo = true;
             }
         } else if (usuarioSeleccionado === grupo) {
-            // Un usuario de producción ve su propio grupo principal
-            mostrarGrupo = true;
-        } else if (usuarioSeleccionado.startsWith('CALIDAD_') && usuarioSeleccionado === grupo) {
-            // Un usuario de Calidad ve su propio grupo principal de Calidad
             mostrarGrupo = true;
         } else if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
-            // Un usuario de producción ve su grupo de Calidad anidado
+            mostrarGrupo = true;
+        } else if (usuarioSeleccionado.startsWith('CALIDAD_') && grupo === usuarioSeleccionado) {
             mostrarGrupo = true;
         }
         
+        // CORRECCIÓN: Si el usuario es de producción, también debe ver el grupo de calidad anidado
+        if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado)) {
+            const grupoAnidado = grupoDiv.querySelector('.grupo-calidad-anidado');
+            if (grupoAnidado) {
+                if (grupo === `CALIDAD_${usuarioSeleccionado}`) {
+                    grupoAnidado.classList.remove('oculto');
+                } else {
+                    grupoAnidado.classList.add('oculto');
+                }
+            }
+        } else if (!grupo.startsWith('CALIDAD_')) {
+            grupoDiv.classList.add('oculto');
+        }
+
         if (mostrarGrupo) {
             grupoDiv.classList.remove('oculto');
             grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
