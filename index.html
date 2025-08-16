@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 :root{
@@ -465,6 +466,11 @@ body{ overflow-y: auto; }
     gap: 15px;
     justify-content: flex-end;
 }
+.grafico-contenedor {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+}
 </style>
 </head>
 
@@ -671,6 +677,7 @@ const CONFIG = {
 let usuarioSeleccionado = null;
 let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
 let reporteActual = null;
+let miGrafico; // Variable global para el gráfico
 
 // ================= FUNCION PARA OBTENER FECHA Y TURNO =================
 function obtenerTurnoActual() {
@@ -1067,8 +1074,9 @@ function activarPantalla(id){
 function volverAPantalla1(){
     usuarioSeleccionado = null;
     db.ref('estadoLEDs').off(); 
-    historialRef.off();
-    contadoresCalidadRef.off();
+    if (historialRef) historialRef.off();
+    if (contadoresCalidadRef) contadoresCalidadRef.off();
+    if (rechazosDetalladosRef) rechazosDetalladosRef.off();
     activarPantalla('pantalla1');
 }
 
@@ -1148,13 +1156,11 @@ function mostrarReporte(tipo) {
     
     let areaFiltroHtml = '';
     const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK'];
-    if (tipo !== 'calidad') {
-        areaFiltroHtml = `
-            <select id="areaFiltro">
-                ${areas.map(area => `<option value="${area}">${area}</option>`).join('')}
-            </select>
-        `;
-    }
+    areaFiltroHtml = `
+        <select id="areaFiltro">
+            ${areas.map(area => `<option value="${area}">${area}</option>`).join('')}
+        </select>
+    `;
 
     contenedor.innerHTML = `
         <div class="header-reporte">
@@ -1179,9 +1185,7 @@ function mostrarReporte(tipo) {
     `;
 
     document.getElementById('turnoFiltro').value = turnoActual;
-    if (areaFiltroHtml) {
-        document.getElementById('areaFiltro').value = 'TODAS';
-    }
+    document.getElementById('areaFiltro').value = 'TODAS';
     
     cargarDatosReporte(tipo, fechaActual, turnoActual);
 }
@@ -1205,29 +1209,52 @@ function cargarDatosReporte(tipo, fecha, turno, area = null) {
     const tituloReporte = document.getElementById('tituloReporteDinamico');
     contenedor.innerHTML = '<p>Cargando datos...</p>';
     
+    // Si ya existe un gráfico, destrúyelo para evitar errores
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
+    
     if (tipo === 'calidad') {
         tituloReporte.textContent = `Reporte de Calidad (${turno} - ${fecha})`;
         db.ref(`rechazosDetallados/${fecha}/${turno}`).once('value', snapshot => {
             const rechazos = snapshot.val() || {};
             let html = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
+            const conteoCausas = {};
             
             Object.values(rechazos).forEach(rechazo => {
-                html += `
-                    <tr>
-                        <td>${rechazo.fecha}</td>
-                        <td>${rechazo.hora}</td>
-                        <td>${rechazo.linea || 'N/A'}</td>
-                        <td>${rechazo.empleado || 'N/A'}</td>
-                        <td>${rechazo.parte || 'N/A'}</td>
-                        <td>${rechazo.problema || 'N/A'}</td>
-                        <td>${rechazo.causa || 'N/A'}</td>
-                        <td>${rechazo.accion || 'N/A'}</td>
-                    </tr>
-                `;
+                const areaDeRechazo = rechazo.linea.split(' ')[0].toUpperCase();
+                
+                // Aplicar el filtro de área
+                if (area === 'TODAS' || areaDeRechazo === area) {
+                    html += `
+                        <tr>
+                            <td>${rechazo.fecha}</td>
+                            <td>${rechazo.hora}</td>
+                            <td>${rechazo.linea || 'N/A'}</td>
+                            <td>${rechazo.empleado || 'N/A'}</td>
+                            <td>${rechazo.parte || 'N/A'}</td>
+                            <td>${rechazo.problema || 'N/A'}</td>
+                            <td>${rechazo.causa || 'N/A'}</td>
+                            <td>${rechazo.accion || 'N/A'}</td>
+                        </tr>
+                    `;
+                    // Contar las causas
+                    const causa = rechazo.causa || 'Desconocida';
+                    conteoCausas[causa] = (conteoCausas[causa] || 0) + 1;
+                }
             });
             
             html += `</tbody></table>`;
             contenedor.innerHTML = html;
+            
+            // Generar el gráfico si hay datos
+            if (Object.keys(conteoCausas).length > 0) {
+                const graficoDiv = document.createElement('div');
+                graficoDiv.className = 'grafico-contenedor';
+                graficoDiv.innerHTML = '<canvas id="graficoRechazos"></canvas>';
+                contenedor.appendChild(graficoDiv);
+                generarGraficoRechazos(conteoCausas);
+            }
         });
     } else if (tipo === 'produccion') {
         tituloReporte.textContent = `Reporte de Producción (${turno} - ${fecha})`;
@@ -1332,6 +1359,66 @@ function cargarDatosReporte(tipo, fecha, turno, area = null) {
             contenedor.innerHTML = html;
         });
     }
+}
+
+function generarGraficoRechazos(datos) {
+    const ctx = document.getElementById('graficoRechazos').getContext('2d');
+    const labels = Object.keys(datos);
+    const data = Object.values(datos);
+    
+    // Paleta de colores más amigable
+    const backgroundColors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
+        '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
+    ];
+    
+    const hoverBackgroundColors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
+        '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
+    ];
+    
+    miGrafico = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                hoverBackgroundColor: hoverBackgroundColors
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Causas de Rechazo',
+                    font: {
+                        size: 20
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 function exportarTablaACsv(nombreReporte) {
