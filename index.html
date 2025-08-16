@@ -610,7 +610,6 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     } 
     // Lógica para Producción y Logística
     else {
-        // Obtenemos el estado actual directamente para decidir la acción
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
             
