@@ -1442,7 +1442,7 @@ function actualizarDashboardConFiltros() {
     });
 
     dashboardListeners.push({ off: () => historialRefDash.off('value', hListener) });
-    dashboardListeners.push({ off: () to calidadRefDash.off('value', cListener) });
+    dashboardListeners.push({ off: () => calidadRefDash.off('value', cListener) });
     dashboardListeners.push({ off: () => ledsRefDash.off('value', lListener) });
 }
 
