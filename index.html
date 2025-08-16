@@ -193,6 +193,85 @@ body{ overflow-y: auto; }
         box-shadow: 0 0 40px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
     }
 }
+/* ================= CSS DEL MODAL DE CALIDAD ================= */
+.modal-calidad {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #222;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 90%;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.opcion-btn {
+    padding: 15px 25px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.opcion-btn[data-color="naranja"] { background-color: #ff9800; color: #fff; }
+.opcion-btn[data-color="rojo"] { background-color: #f44336; color: #fff; }
+.opcion-btn[data-color="verde"] { background-color: #4caf50; color: #fff; }
+
+.opcion-btn:hover {
+    filter: brightness(1.2);
+}
+
+.cerrar-btn {
+    background-color: #555;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.cerrar-btn:hover {
+    background-color: #777;
+}
+
+/* Nuevos estilos de color para los LEDs de Calidad */
+.led[style*="background-color: naranja"] {
+    background: radial-gradient(circle at 48% 45%, orange 40%, darkorange 100%);
+    box-shadow: 0 0 22px orange, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+}
+.led[style*="background-color: rojo"] {
+    background: radial-gradient(circle at 48% 45%, red 40%, darkred 100%);
+    box-shadow: 0 0 22px red, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+}
+.led[style*="background-color: verde"] {
+    background: radial-gradient(circle at 48% 45%, green 40%, darkgreen 100%);
+    box-shadow: 0 0 22px green, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+}
 </style>
 </head>
 
@@ -405,7 +484,8 @@ function pintarEstado() {
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     if (ledsEstado[index]) {
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
-                            led.style.backgroundColor = ledsEstado[index].color;
+                            // Asignar el color dinámicamente usando una variable CSS
+                            led.style.backgroundColor = `var(--led-color-${ledsEstado[index].color})`;
                             led.classList.remove('on');
                         } 
                         else if (ledsEstado[index].encendido) {
@@ -549,33 +629,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             });
         } 
         else {
-            const estado = prompt("Selecciona el estado de la tarima: \n🟡 En proceso \n🔴 Rechazada \n🟢 Liberada");
-            if (estado) {
-                const estadoLowerCase = estado.toLowerCase().trim();
-                let nuevoColor = null;
-
-                if (estadoLowerCase.includes('proceso')) {
-                    nuevoColor = 'naranja';
-                } else if (estadoLowerCase.includes('rechazada')) {
-                    nuevoColor = 'rojo';
-                } else if (estadoLowerCase.includes('liberada')) {
-                    nuevoColor = 'verde';
-                } else {
-                    alert("Estado no válido. Intenta con las opciones sugeridas.");
-                    return;
-                }
-
-                ledRef.set({
-                    color: nuevoColor,
-                    timestamp: new Date().toISOString(),
-                    usuario: usuarioSeleccionado
-                });
-
-                if (nuevoColor === 'rojo') {
-                    const usuarioProduccion = grupo.split('_')[1];
-                    notificarRechazo(usuarioProduccion);
-                }
-            }
+            mostrarOpcionesCalidad(ledRef, grupo, idx, linea); 
         }
     }
     else {
@@ -636,6 +690,52 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     }
 }
 
+// ================= LÓGICA DE CALIDAD MODAL =================
+function mostrarOpcionesCalidad(ledRef, grupo, idx, linea) {
+    // Si ya existe el modal, no lo crees de nuevo
+    if (document.getElementById('modalCalidad')) {
+        return;
+    }
+
+    const modalHTML = `
+        <div id="modalCalidad" class="modal-calidad">
+            <div class="modal-content">
+                <h3>Selecciona el estado de la tarima:</h3>
+                <div class="opciones">
+                    <button class="opcion-btn" data-color="naranja">En proceso 🟡</button>
+                    <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
+                    <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
+                </div>
+                <button class="cerrar-btn">Cerrar</button>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    const modal = document.getElementById('modalCalidad');
+    modal.querySelector('.cerrar-btn').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    modal.querySelectorAll('.opcion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const nuevoColor = btn.dataset.color;
+            ledRef.set({
+                color: nuevoColor,
+                timestamp: new Date().toISOString(),
+                usuario: usuarioSeleccionado
+            });
+
+            if (nuevoColor === 'rojo') {
+                const usuarioProduccion = grupo.split('_')[1];
+                notificarRechazo(usuarioProduccion);
+            }
+            modal.remove();
+        });
+    });
+}
+
+
 function actualizarResumen() {
     resumenRef.once('value').then(snapshot => {
         const resumenActual = snapshot.val() || {
@@ -681,6 +781,8 @@ function activarPantalla(id){
 
 function volverAPantalla1(){
     usuarioSeleccionado = null;
+    db.ref('estadoLEDs').off(); 
+    historialRef.off();
     activarPantalla('pantalla1');
 }
 
@@ -700,6 +802,7 @@ function seleccionarUsuario(usuario) {
         document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
         activarPantalla('pantalla2');
         inyectaLEDs();
+        pintarEstado();
         alert(`¡Bienvenido, ${usuario}!`);
     } else if (usuario === 'CALIDAD') {
         const password = prompt('Introduce la contraseña para CALIDAD:');
@@ -718,6 +821,7 @@ function seleccionarUsuario(usuario) {
             document.getElementById('tituloFijo').textContent = `CALIDAD - ${subusuario.split('_')[1]}`;
             activarPantalla('pantalla2');
             inyectaLEDs();
+            pintarEstado();
             alert(`¡Bienvenido, ${subusuario.replace('_', ' ')}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -733,6 +837,7 @@ function seleccionarUsuario(usuario) {
             }
             activarPantalla('pantalla2');
             inyectaLEDs();
+            pintarEstado();
             alert(`¡Bienvenido, ${usuario}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -752,8 +857,7 @@ window.addEventListener('load', ()=>{
     
     firebase.auth().onAuthStateChanged(user => {
         if (user) {
-            pintarEstado(); 
-            iniciarListenersFirebase(); // Nuevo llamado
+            iniciarListenersFirebase(); 
             activarPantalla('pantalla1');
         } else {
             // Manejar el caso de no autenticación si es necesario
