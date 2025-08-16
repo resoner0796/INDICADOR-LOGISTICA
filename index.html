@@ -861,6 +861,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 // ================= CONFIG Y ESTADO =================
 const CONFIG = {
     USUARIOS: ['MULTIPORT', 'BEDROCK', 'DROPS', 'LOGÍSTICA', 'SUPERVISOR', 'CALIDAD'],
+    PRODUCCION_GRUPOS: ['MULTIPORT', 'BEDROCK', 'DROPS'],
     PASSWORDS: {
         'LOGÍSTICA': 'logistica123',
         'MULTIPORT': 'multiport123',
@@ -1106,7 +1107,7 @@ function iniciarListenersFirebase() {
 
 // ================= PERMISOS Y LÓGICA =================
 function esUsuarioProduccion() {
-    return ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado);
+    return CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado);
 }
 
 function puedeControlar(grupo){
@@ -1134,6 +1135,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     if (grupo.startsWith('CALIDAD_')) {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
+            const grupoBaseCalidad = grupo.replace('CALIDAD_', '');
 
             if (usuarioSeleccionado.startsWith('CALIDAD_')) {
                 // Lógica para Calidad
@@ -1141,9 +1143,9 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
                 }
                 mostrarOpcionesCalidad(grupo, idx, linea); 
-            } else if (esUsuarioProduccion()) {
+            } else if (esUsuarioProduccion() && usuarioSeleccionado === grupoBaseCalidad) {
                 // Lógica para Producción: APAGAR LEDs de CALIDAD
-                if (estadoActual.color) {
+                if (estadoActual.color === 'verde') {
                     if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
                     }
@@ -1156,8 +1158,10 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                         timestamp: new Date().toISOString(),
                     };
                     historialRef.push(log);
+                } else if (estadoActual.color === 'rojo' || estadoActual.color === 'naranja') {
+                    alert('Solo puedes apagar LEDs liberados (verdes).');
                 } else {
-                    alert('Producción solo puede apagar LEDs de Calidad que ya tienen un estado (verde, rojo, naranja).');
+                    alert('Este LED no ha sido inspeccionado por Calidad.');
                 }
             } else {
                 alert('No tienes permiso para controlar estos LEDs.');
@@ -1210,7 +1214,6 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                         led: `${linea}-${idx+1}`,
                         accion: 'encendido',
                         timestamp: new Date().toISOString(),
-                        tiempoRecoleccion: null,
                         horaEncendido: new Date().toISOString(),
                         horaApagado: null
                     };
@@ -1527,25 +1530,26 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
     }
 
     if (tipo === 'leds') {
-        const pendientesPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0, CALIDAD_MULTIPORT: 0, CALIDAD_DROPS: 0, CALIDAD_BEDROCK: 0 };
-        for (const grupo in estadoLEDs) {
-            if (pendientesPorArea.hasOwnProperty(grupo)) {
+        const pendientesPorArea = {};
+        
+        CONFIG.PRODUCCION_GRUPOS.forEach(grupo => {
+            pendientesPorArea[grupo] = 0;
+            if (estadoLEDs.hasOwnProperty(grupo)) {
                 for (const linea in estadoLEDs[grupo]) {
                     for (const led in estadoLEDs[grupo][linea]) {
-                        const estado = estadoLEDs[grupo][linea][led];
-                        if (estado && estado.encendido || (estado && estado.color)) {
+                        if (estadoLEDs[grupo][linea][led].encendido) {
                             pendientesPorArea[grupo]++;
                         }
                     }
                 }
             }
-        }
+        });
+        
         const tablaPendientesBody = document.querySelector('#tablaPendientes tbody');
         tablaPendientesBody.innerHTML = '';
         for (const area in pendientesPorArea) {
             const tr = document.createElement('tr');
-            const areaDisplay = area.startsWith('CALIDAD_') ? `Calidad ${area.replace('CALIDAD_', '')}` : area;
-            tr.innerHTML = `<td>${areaDisplay}</td><td>${pendientesPorArea[area]}</td>`;
+            tr.innerHTML = `<td>${area}</td><td>${pendientesPorArea[area]}</td>`;
             tablaPendientesBody.appendChild(tr);
         }
     }
