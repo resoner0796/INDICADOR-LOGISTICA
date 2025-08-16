@@ -596,6 +596,7 @@ body{ overflow-y: auto; }
             <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
             <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
             <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
+            <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
         </div>
         <div id="contenedorReporte" class="contenedor-reportes">
             <h2>Selecciona un reporte</h2>
@@ -1162,18 +1163,40 @@ function mostrarReporte(tipo) {
         </select>
     `;
 
+    let fechaFiltroHtml = '';
+    if (tipo === 'calidad' || tipo === 'produccion' || tipo === 'logistica') {
+        fechaFiltroHtml = `
+            <label for="fechaReporte">Fecha Inicio:</label>
+            <input type="date" id="fechaInicioReporte" value="${fechaActual}">
+            <label for="fechaReporte">Fecha Fin:</label>
+            <input type="date" id="fechaFinReporte" value="${fechaActual}">
+        `;
+    } else {
+        fechaFiltroHtml = `
+            <label for="fechaReporte">Fecha:</label>
+            <input type="date" id="fechaReporte" value="${fechaActual}">
+        `;
+    }
+
+    let turnoFiltroHtml = '';
+    if (tipo !== 'resumen') {
+        turnoFiltroHtml = `
+            <label for="turnoFiltro">Turno:</label>
+            <select id="turnoFiltro">
+                <option value="todos">Todos</option>
+                <option value="Turno 1">Turno 1</option>
+                <option value="Turno 2">Turno 2</option>
+            </select>
+        `;
+    }
+
     contenedor.innerHTML = `
         <div class="header-reporte">
             <button onclick="regresarASelectores()" class="usuario-btn">Regresar</button>
             <div class="filtros">
-                <label for="fechaReporte">Fecha:</label>
-                <input type="date" id="fechaReporte" value="${fechaActual}">
-                <label for="turnoFiltro">Turno:</label>
-                <select id="turnoFiltro">
-                    <option value="Turno 1">Turno 1</option>
-                    <option value="Turno 2">Turno 2</option>
-                </select>
-                ${areaFiltroHtml}
+                ${fechaFiltroHtml}
+                ${turnoFiltroHtml}
+                ${tipo !== 'resumen' ? areaFiltroHtml : ''}
                 <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>
             </div>
         </div>
@@ -1184,181 +1207,341 @@ function mostrarReporte(tipo) {
         </div>
     `;
 
-    document.getElementById('turnoFiltro').value = turnoActual;
-    document.getElementById('areaFiltro').value = 'TODAS';
+    if (document.getElementById('turnoFiltro')) {
+        document.getElementById('turnoFiltro').value = turnoActual;
+    }
+    if (document.getElementById('areaFiltro')) {
+        document.getElementById('areaFiltro').value = 'TODAS';
+    }
     
-    cargarDatosReporte(tipo, fechaActual, turnoActual);
+    const fechaInicio = document.getElementById('fechaInicioReporte') ? document.getElementById('fechaInicioReporte').value : fechaActual;
+    const fechaFin = document.getElementById('fechaFinReporte') ? document.getElementById('fechaFinReporte').value : fechaActual;
+    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
+    const turno = document.getElementById('turnoFiltro') ? document.getElementById('turnoFiltro').value : null;
+    
+    cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area);
 }
+
 
 function regresarASelectores() {
     document.getElementById('tituloReportes').textContent = 'REPORTES';
     document.getElementById('selectoresReportes').style.display = 'flex';
     document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
 }
 
 function buscarReporte() {
-    const fecha = document.getElementById('fechaReporte').value;
-    const turno = document.getElementById('turnoFiltro').value;
+    const tipo = reporteActual;
+    const fechaInicio = document.getElementById('fechaInicioReporte') ? document.getElementById('fechaInicioReporte').value : document.getElementById('fechaReporte').value;
+    const fechaFin = document.getElementById('fechaFinReporte') ? document.getElementById('fechaFinReporte').value : document.getElementById('fechaReporte').value;
+    const turno = document.getElementById('turnoFiltro') ? document.getElementById('turnoFiltro').value : 'todos';
     const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
-    cargarDatosReporte(reporteActual, fecha, turno, area);
+
+    cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area);
 }
 
 
-function cargarDatosReporte(tipo, fecha, turno, area = null) {
+function cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area = null) {
     const contenedor = document.getElementById('contenidoReporte');
     const tituloReporte = document.getElementById('tituloReporteDinamico');
     contenedor.innerHTML = '<p>Cargando datos...</p>';
     
-    // Si ya existe un gráfico, destrúyelo para evitar errores
     if (miGrafico) {
         miGrafico.destroy();
     }
     
-    if (tipo === 'calidad') {
-        tituloReporte.textContent = `Reporte de Calidad (${turno} - ${fecha})`;
-        db.ref(`rechazosDetallados/${fecha}/${turno}`).once('value', snapshot => {
-            const rechazos = snapshot.val() || {};
-            let html = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
-            const conteoCausas = {};
-            
-            Object.values(rechazos).forEach(rechazo => {
+    const fechas = obtenerRangoFechas(fechaInicio, fechaFin);
+    const promesas = fechas.map(fecha => {
+        const refHistorial = db.ref(`historialLogs/${fecha}`);
+        const refCalidad = db.ref(`contadoresCalidad/${fecha}`);
+        const refRechazos = db.ref(`rechazosDetallados/${fecha}`);
+        return Promise.all([
+            refHistorial.once('value').then(s => s.val()),
+            refCalidad.once('value').then(s => s.val()),
+            refRechazos.once('value').then(s => s.val())
+        ]).then(([historial, calidad, rechazos]) => ({ fecha, historial, calidad, rechazos }));
+    });
+    
+    Promise.all(promesas).then(resultados => {
+        let datosCombinados = { historial: {}, calidad: {}, rechazos: {} };
+        resultados.forEach(res => {
+            Object.assign(datosCombinados.historial, res.historial);
+            Object.assign(datosCombinados.calidad, res.calidad);
+            Object.assign(datosCombinados.rechazos, res.rechazos);
+        });
+
+        if (tipo === 'calidad') {
+            tituloReporte.textContent = `Reporte de Calidad (${fechaInicio} a ${fechaFin})`;
+            procesarReporteCalidad(datosCombinados.rechazos, contenedor, area);
+        } else if (tipo === 'produccion') {
+            tituloReporte.textContent = `Reporte de Producción (${fechaInicio} a ${fechaFin})`;
+            procesarReporteProduccion(datosCombinados.historial, contenedor, area);
+        } else if (tipo === 'logistica') {
+            tituloReporte.textContent = `Reporte de Logística (${fechaInicio} a ${fechaFin})`;
+            procesarReporteLogistica(datosCombinados.historial, contenedor, area);
+        } else if (tipo === 'resumen') {
+            tituloReporte.textContent = `Resumen Ejecutivo (${fechaInicio} a ${fechaFin})`;
+            procesarReporteResumen(datosCombinados, contenedor);
+        }
+    }).catch(error => {
+        console.error("Error al cargar los datos:", error);
+        contenedor.innerHTML = `<p>Error al cargar los datos. Intenta de nuevo.</p>`;
+    });
+}
+
+function procesarReporteCalidad(datos, contenedor, area) {
+    let rechazosFiltrados = [];
+    for (const turnoKey in datos) {
+        if (turno === 'todos' || turnoKey === turno) {
+            for (const rechazoKey in datos[turnoKey]) {
+                const rechazo = datos[turnoKey][rechazoKey];
                 const areaDeRechazo = rechazo.linea.split(' ')[0].toUpperCase();
-                
-                // Aplicar el filtro de área
                 if (area === 'TODAS' || areaDeRechazo === area) {
-                    html += `
-                        <tr>
-                            <td>${rechazo.fecha}</td>
-                            <td>${rechazo.hora}</td>
-                            <td>${rechazo.linea || 'N/A'}</td>
-                            <td>${rechazo.empleado || 'N/A'}</td>
-                            <td>${rechazo.parte || 'N/A'}</td>
-                            <td>${rechazo.problema || 'N/A'}</td>
-                            <td>${rechazo.causa || 'N/A'}</td>
-                            <td>${rechazo.accion || 'N/A'}</td>
-                        </tr>
-                    `;
-                    // Contar las causas
-                    const causa = rechazo.causa || 'Desconocida';
-                    conteoCausas[causa] = (conteoCausas[causa] || 0) + 1;
+                    rechazosFiltrados.push(rechazo);
                 }
-            });
-            
-            html += `</tbody></table>`;
-            contenedor.innerHTML = html;
-            
-            // Generar el gráfico si hay datos
-            if (Object.keys(conteoCausas).length > 0) {
-                const graficoDiv = document.createElement('div');
-                graficoDiv.className = 'grafico-contenedor';
-                graficoDiv.innerHTML = '<canvas id="graficoRechazos"></canvas>';
-                contenedor.appendChild(graficoDiv);
-                generarGraficoRechazos(conteoCausas);
             }
-        });
-    } else if (tipo === 'produccion') {
-        tituloReporte.textContent = `Reporte de Producción (${turno} - ${fecha})`;
-        db.ref(`historialLogs/${fecha}/${turno}`).once('value', snapshot => {
-            const logs = snapshot.val() || {};
-            const conteo = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
-            
-            Object.values(logs).forEach(log => {
-                if (log.accion === 'encendido' && conteo.hasOwnProperty(log.grupo) && (area === 'TODAS' || log.grupo === area)) {
-                    conteo[log.grupo]++;
-                }
-            });
-
-            let html = `<div class="resumen-datos">`;
-            Object.entries(conteo).forEach(([grupo, total]) => {
-                if (area === 'TODAS' || grupo === area) {
-                    html += `
-                        <div class="dato">
-                            <div class="valor">${total}</div>
-                            <div class="etiqueta">${grupo}</div>
-                        </div>
-                    `;
-                }
-            });
-            html += `</div>`;
-
-            html += `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Línea</th>
-                            <th>Tarimas Confirmadas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            if (area === 'TODAS') {
-                html += `
-                    <tr><td>MULTIPORT</td><td>${conteo.MULTIPORT}</td></tr>
-                    <tr><td>DROPS</td><td>${conteo.DROPS}</td></tr>
-                    <tr><td>BEDROCK</td><td>${conteo.BEDROCK}</td></tr>
-                `;
-            } else {
-                html += `
-                    <tr><td>${area}</td><td>${conteo[area]}</td></tr>
-                `;
-            }
-            html += `</tbody></table>`;
-            contenedor.innerHTML = html;
-        });
-    } else if (tipo === 'logistica') {
-        tituloReporte.textContent = `Reporte de Logística (${turno} - ${fecha})`;
-        db.ref(`historialLogs/${fecha}/${turno}`).once('value', snapshot => {
-            const logs = snapshot.val() || {};
-            const tiemposRecoleccion = [];
-            let tarimasTotales = 0;
-            let tiempoTotal = 0;
-            
-            Object.values(logs).forEach(log => {
-                if (log.accion === 'apagado' && log.tiempoRecoleccion && (area === 'TODAS' || log.grupo === area)) {
-                    tiemposRecoleccion.push(log);
-                    tarimasTotales++;
-                    tiempoTotal += log.tiempoRecoleccion;
-                }
-            });
-            
-            const tiempoPromedio = tarimasTotales > 0 ? (tiempoTotal / tarimasTotales).toFixed(1) : 0;
-            
-            let html = `
-                <div class="resumen-datos">
-                    <div class="dato">
-                        <div class="valor">${tarimasTotales}</div>
-                        <div class="etiqueta">Tarimas Recolectadas</div>
-                    </div>
-                    <div class="dato">
-                        <div class="valor">${tiempoPromedio} min</div>
-                        <div class="etiqueta">Tiempo Promedio</div>
-                    </div>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Tarima</th>
-                            <th>Tiempo de Recolección (min)</th>
-                            <th>Hora de Encendido</th>
-                            <th>Hora de Apagado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            tiemposRecoleccion.forEach((log, index) => {
-                html += `
-                    <tr>
-                        <td>${log.grupo} - ${log.led}</td>
-                        <td>${log.tiempoRecoleccion}</td>
-                        <td>${formatoHora(log.horaEncendido)}</td>
-                        <td>${formatoHora(log.horaApagado)}</td>
-                    </tr>
-                `;
-            });
-            html += `</tbody></table>`;
-            contenedor.innerHTML = html;
-        });
+        }
     }
+    
+    const conteoCausas = {};
+    rechazosFiltrados.forEach(rechazo => {
+        const causa = rechazo.causa || 'Desconocida';
+        conteoCausas[causa] = (conteoCausas[causa] || 0) + 1;
+    });
+    
+    let html = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
+    rechazosFiltrados.forEach(r => {
+        html += `
+            <tr>
+                <td>${r.fecha}</td>
+                <td>${r.hora}</td>
+                <td>${r.linea || 'N/A'}</td>
+                <td>${r.empleado || 'N/A'}</td>
+                <td>${r.parte || 'N/A'}</td>
+                <td>${r.problema || 'N/A'}</td>
+                <td>${r.causa || 'N/A'}</td>
+                <td>${r.accion || 'N/A'}</td>
+            </tr>
+        `;
+    });
+    html += `</tbody></table>`;
+    contenedor.innerHTML = html;
+    
+    if (Object.keys(conteoCausas).length > 0) {
+        const graficoDiv = document.createElement('div');
+        graficoDiv.className = 'grafico-contenedor';
+        graficoDiv.innerHTML = '<canvas id="graficoRechazos"></canvas>';
+        contenedor.appendChild(graficoDiv);
+        generarGraficoRechazos(conteoCausas);
+    }
+}
+
+
+function procesarReporteProduccion(datos, contenedor, area) {
+    let logsProduccion = [];
+    const conteo = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+    
+    for (const turnoKey in datos) {
+        if (turno === 'todos' || turnoKey === turno) {
+            for (const logKey in datos[turnoKey]) {
+                const log = datos[turnoKey][logKey];
+                if (log.accion === 'encendido' && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
+                    if (area === 'TODAS' || log.grupo === area) {
+                        logsProduccion.push(log);
+                        conteo[log.grupo]++;
+                    }
+                }
+            }
+        }
+    }
+    
+    let html = `
+        <div class="resumen-datos">
+            <div class="dato">
+                <div class="valor">${logsProduccion.length}</div>
+                <div class="etiqueta">Tarimas Confirmadas</div>
+            </div>
+        </div>
+    `;
+    
+    html += `
+        <table>
+            <thead>
+                <tr>
+                    <th>Línea</th>
+                    <th>Tarima</th>
+                    <th>Hora de Confirmación</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    logsProduccion.forEach(log => {
+        html += `
+            <tr>
+                <td>${log.grupo}</td>
+                <td>${log.led}</td>
+                <td>${formatoHora(log.timestamp)}</td>
+                <td>${log.usuario}</td>
+            </tr>
+        `;
+    });
+    html += `</tbody></table>`;
+    contenedor.innerHTML = html;
+    
+    // Generar gráfico de barras de producción
+    const graficoDiv = document.createElement('div');
+    graficoDiv.className = 'grafico-contenedor';
+    graficoDiv.innerHTML = '<canvas id="graficoProduccion"></canvas>';
+    contenedor.appendChild(graficoDiv);
+    generarGraficoProduccion(conteo);
+}
+
+
+function procesarReporteLogistica(datos, contenedor, area) {
+    let logsRecoleccion = [];
+    let tiempoTotal = 0;
+    
+    for (const turnoKey in datos) {
+        if (turno === 'todos' || turnoKey === turno) {
+            for (const logKey in datos[turnoKey]) {
+                const log = datos[turnoKey][logKey];
+                if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
+                     if (area === 'TODAS' || log.grupo === area) {
+                        logsRecoleccion.push(log);
+                        tiempoTotal += log.tiempoRecoleccion;
+                    }
+                }
+            }
+        }
+    }
+    
+    const tiempoPromedio = logsRecoleccion.length > 0 ? (tiempoTotal / logsRecoleccion.length).toFixed(1) : 0;
+
+    let html = `
+        <div class="resumen-datos">
+            <div class="dato">
+                <div class="valor">${logsRecoleccion.length}</div>
+                <div class="etiqueta">Tarimas Recolectadas</div>
+            </div>
+            <div class="dato">
+                <div class="valor">${tiempoPromedio} min</div>
+                <div class="etiqueta">Tiempo Promedio</div>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Línea</th>
+                    <th>Tarima</th>
+                    <th>Tiempo de Recolección (min)</th>
+                    <th>Hora de Encendido</th>
+                    <th>Hora de Apagado</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    logsRecoleccion.forEach(log => {
+        html += `
+            <tr>
+                <td>${log.grupo}</td>
+                <td>${log.led}</td>
+                <td>${log.tiempoRecoleccion}</td>
+                <td>${formatoHora(log.horaEncendido)}</td>
+                <td>${formatoHora(log.horaApagado)}</td>
+            </tr>
+        `;
+    });
+    html += `</tbody></table>`;
+    contenedor.innerHTML = html;
+    
+    const graficoDiv = document.createElement('div');
+    graficoDiv.className = 'grafico-contenedor';
+    graficoDiv.innerHTML = '<canvas id="graficoLogistica"></canvas>';
+    contenedor.appendChild(graficoDiv);
+    generarGraficoLogistica(logsRecoleccion);
+}
+
+function procesarReporteResumen(datos, contenedor) {
+    const areas = ['MULTIPORT', 'DROPS', 'BEDROCK'];
+    const resumen = {};
+    
+    areas.forEach(area => {
+        resumen[area] = {
+            produccion: 0,
+            liberadas: 0,
+            rechazadas: 0,
+            tiempoLogistica: { total: 0, count: 0, promedio: 0 }
+        };
+    });
+
+    // Procesar producción y logística
+    for (const fechaKey in datos.historial) {
+        for (const turnoKey in datos.historial[fechaKey]) {
+            for (const logKey in datos.historial[fechaKey][turnoKey]) {
+                const log = datos.historial[fechaKey][turnoKey][logKey];
+                if (log.accion === 'encendido' && resumen.hasOwnProperty(log.grupo)) {
+                    resumen[log.grupo].produccion++;
+                } else if (log.accion === 'apagado' && log.tiempoRecoleccion && resumen.hasOwnProperty(log.grupo)) {
+                    resumen[log.grupo].tiempoLogistica.total += log.tiempoRecoleccion;
+                    resumen[log.grupo].tiempoLogistica.count++;
+                }
+            }
+        }
+    }
+
+    // Procesar calidad
+    for (const fechaKey in datos.calidad) {
+        for (const turnoKey in datos.calidad[fechaKey]) {
+            for (const grupoKey in datos.calidad[fechaKey][turnoKey]) {
+                const grupoBase = grupoKey.replace('CALIDAD_', '');
+                if (resumen.hasOwnProperty(grupoBase)) {
+                    const contadores = datos.calidad[fechaKey][turnoKey][grupoKey];
+                    resumen[grupoBase].liberadas += contadores.liberadas || 0;
+                    resumen[grupoBase].rechazadas += contadores.rechazadas || 0;
+                }
+            }
+        }
+    }
+
+    let html = ``;
+    areas.forEach(area => {
+        const prod = resumen[area].produccion;
+        const liberadas = resumen[area].liberadas;
+        const rechazadas = resumen[area].rechazadas;
+        const totalCalidad = liberadas + rechazadas;
+        const tasaRechazo = totalCalidad > 0 ? ((rechazadas / totalCalidad) * 100).toFixed(1) : 0;
+        const tiempoPromedio = resumen[area].tiempoLogistica.count > 0 ? (resumen[area].tiempoLogistica.total / resumen[area].tiempoLogistica.count).toFixed(1) : 0;
+
+        html += `
+            <h3>${area}</h3>
+            <div class="resumen-datos">
+                <div class="dato">
+                    <div class="valor">${prod}</div>
+                    <div class="etiqueta">Tarimas Producidas</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${liberadas}</div>
+                    <div class="etiqueta">Tarimas Liberadas</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${rechazadas}</div>
+                    <div class="etiqueta">Tarimas Rechazadas</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${tasaRechazo}%</div>
+                    <div class="etiqueta">Tasa de Rechazo</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${tiempoPromedio} min</div>
+                    <div class="etiqueta">Tiempo Recolección</div>
+                </div>
+            </div>
+        `;
+    });
+    contenedor.innerHTML = html;
 }
 
 function generarGraficoRechazos(datos) {
@@ -1366,13 +1549,7 @@ function generarGraficoRechazos(datos) {
     const labels = Object.keys(datos);
     const data = Object.values(datos);
     
-    // Paleta de colores más amigable
     const backgroundColors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
-        '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
-    ];
-    
-    const hoverBackgroundColors = [
         '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
         '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
     ];
@@ -1384,7 +1561,7 @@ function generarGraficoRechazos(datos) {
             datasets: [{
                 data: data,
                 backgroundColor: backgroundColors,
-                hoverBackgroundColor: hoverBackgroundColors
+                hoverBackgroundColor: backgroundColors
             }]
         },
         options: {
@@ -1393,21 +1570,17 @@ function generarGraficoRechazos(datos) {
                 legend: {
                     position: 'top',
                     labels: {
-                        font: {
-                            size: 14
-                        }
+                        font: { size: 14 }
                     }
                 },
                 title: {
                     display: true,
                     text: 'Causas de Rechazo',
-                    font: {
-                        size: 20
-                    }
+                    font: { size: 20 }
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: (context) => {
                             const label = context.label || '';
                             const value = context.raw;
                             const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
@@ -1420,6 +1593,121 @@ function generarGraficoRechazos(datos) {
         }
     });
 }
+
+function generarGraficoProduccion(datos) {
+    const ctx = document.getElementById('graficoProduccion').getContext('2d');
+    const labels = Object.keys(datos);
+    const data = Object.values(datos);
+
+    miGrafico = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tarimas Confirmadas',
+                data: data,
+                backgroundColor: [
+                    '#4BC0C0',
+                    '#36A2EB',
+                    '#FFCE56'
+                ],
+                borderColor: [
+                    '#4BC0C0',
+                    '#36A2EB',
+                    '#FFCE56'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Cantidad de Tarimas'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Producción por Área'
+                }
+            }
+        }
+    });
+}
+
+function generarGraficoLogistica(datos) {
+    const ctx = document.getElementById('graficoLogistica').getContext('2d');
+    
+    const logsOrdenados = datos.sort((a, b) => new Date(a.horaApagado) - new Date(b.horaApagado));
+    const labels = logsOrdenados.map((log, index) => formatoHora(log.horaApagado));
+    const data = logsOrdenados.map(log => log.tiempoRecoleccion);
+    
+    miGrafico = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tiempo de Recolección (min)',
+                data: data,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hora de Recolección'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Tiempo (min)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Evolución del Tiempo de Recolección'
+                }
+            }
+        }
+    });
+}
+
+function obtenerRangoFechas(fechaInicioStr, fechaFinStr) {
+    const fechas = [];
+    let fechaActual = new Date(fechaInicioStr + 'T00:00:00');
+    const fechaFin = new Date(fechaFinStr + 'T00:00:00');
+
+    while (fechaActual <= fechaFin) {
+        const year = fechaActual.getFullYear();
+        const month = String(fechaActual.getMonth() + 1).padStart(2, '0');
+        const day = String(fechaActual.getDate()).padStart(2, '0');
+        fechas.push(`${year}-${month}-${day}`);
+        fechaActual.setDate(fechaActual.getDate() + 1);
+    }
+    return fechas;
+}
+
 
 function exportarTablaACsv(nombreReporte) {
     const tabla = document.querySelector('#contenidoReporte table');
@@ -1445,7 +1733,7 @@ function exportarTablaACsv(nombreReporte) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `${nombreReporte}_${document.getElementById('fechaReporte').value}.csv`);
+    link.setAttribute('download', `${nombreReporte}_${document.getElementById('fechaInicioReporte').value}_a_${document.getElementById('fechaFinReporte').value}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
