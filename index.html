@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -261,17 +260,17 @@ body{ overflow-y: auto; }
 }
 
 /* Nuevos estilos de color para los LEDs de Calidad */
-.led[style*="background-color: naranja"] {
-    background: radial-gradient(circle at 48% 45%, orange 40%, darkorange 100%);
-    box-shadow: 0 0 22px orange, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+.led.naranja {
+    background: radial-gradient(circle at 48% 45%, #ff9800 40%, #c17500 100%);
+    box-shadow: 0 0 22px #ff9800, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
 }
-.led[style*="background-color: rojo"] {
-    background: radial-gradient(circle at 48% 45%, red 40%, darkred 100%);
-    box-shadow: 0 0 22px red, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+.led.rojo {
+    background: radial-gradient(circle at 48% 45%, #f44336 40%, #d32f2f 100%);
+    box-shadow: 0 0 22px #f44336, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
 }
-.led[style*="background-color: verde"] {
-    background: radial-gradient(circle at 48% 45%, green 40%, darkgreen 100%);
-    box-shadow: 0 0 22px green, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+.led.verde {
+    background: radial-gradient(circle at 48% 45%, #4caf50 40%, #388e3c 100%);
+    box-shadow: 0 0 22px #4caf50, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
 }
 </style>
 </head>
@@ -456,7 +455,7 @@ function inyectaLEDs(){
 
     document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
         const grupoLeds = contenedor.dataset.grupo;
-        const linea = contenedor.dataset.dinea;
+        const linea = contenedor.dataset.linea;
         
         const ledsPorLinea = 5;
         contenedor.innerHTML = '';
@@ -483,39 +482,26 @@ function pintarEstado() {
                 const ledsEstado = estados[grupoLeds][linea];
                 
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
+                    // Limpiar clases de color y 'on' antes de aplicar el estado
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde');
+
                     if (ledsEstado[index]) {
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
-                            if (ledsEstado[index].color === 'naranja') {
-                                led.style.backgroundColor = 'orange';
-                                led.classList.remove('on');
-                            } else if (ledsEstado[index].color === 'rojo') {
-                                led.style.backgroundColor = 'red';
-                                led.classList.remove('on');
-                            } else if (ledsEstado[index].color === 'verde') {
-                                led.style.backgroundColor = 'green';
-                                led.classList.remove('on');
-                            }
+                            led.classList.add(ledsEstado[index].color);
                         } else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
-                            led.style.backgroundColor = '';
-                        } else {
-                            led.classList.remove('on');
-                            led.style.backgroundColor = '';
                         }
-                    } else {
-                        led.classList.remove('on');
-                        led.style.backgroundColor = '';
-                    }
+                    } 
                 });
             } else {
                 contenedor.querySelectorAll('.led').forEach(led => {
-                    led.classList.remove('on');
-                    led.style.backgroundColor = '';
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde');
                 });
             }
         });
     });
 }
+
 
 function formatoHora(isoString) {
     if (!isoString) return 'N/A';
@@ -529,7 +515,7 @@ function formatoHora(isoString) {
 function iniciarListenersFirebase() {
     historialRef.on('value', (snapshot) => {
         const logs = snapshot.val();
-        const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
+        const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0, CALIDAD_MULTIPORT: 0, CALIDAD_BEDROCK: 0, CALIDAD_DROPS: 0 };
         const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
         let tarimasTotales = 0;
@@ -537,10 +523,10 @@ function iniciarListenersFirebase() {
 
         if (logs) {
             Object.values(logs).forEach(log => {
-                const grupoBase = log.grupo.includes('_') ? log.grupo.split('_')[1] : log.grupo;
-                if (log.accion === 'encendido' && contadores.hasOwnProperty(grupoBase)) {
-                    contadores[grupoBase]++;
+                if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+                    contadores[log.grupo]++;
                 } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+                    const grupoBase = log.grupo;
                     tiempos[grupoBase].push(log);
                     tarimasTotales++;
                     tiempoTotalRecoleccion += log.tiempoRecoleccion;
@@ -563,6 +549,10 @@ function iniciarListenersFirebase() {
         document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
         document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
         document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+        document.querySelector('.grupo[data-grupo="CALIDAD_MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_MULTIPORT}`;
+        document.querySelector('.grupo[data-grupo="CALIDAD_BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_BEDROCK}`;
+        document.querySelector('.grupo[data-grupo="CALIDAD_DROPS"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_DROPS}`;
+
 
         Object.keys(tiempos).forEach(grupo => {
             const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
