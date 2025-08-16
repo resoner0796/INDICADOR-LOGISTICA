@@ -484,8 +484,13 @@ function pintarEstado() {
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     if (ledsEstado[index]) {
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
-                            // Asignar el color dinámicamente usando una variable CSS
-                            led.style.backgroundColor = `var(--led-color-${ledsEstado[index].color})`;
+                            if (ledsEstado[index].color === 'naranja') {
+                                led.style.backgroundColor = '#ff9800';
+                            } else if (ledsEstado[index].color === 'rojo') {
+                                led.style.backgroundColor = '#f44336';
+                            } else if (ledsEstado[index].color === 'verde') {
+                                led.style.backgroundColor = '#4caf50';
+                            }
                             led.classList.remove('on');
                         } 
                         else if (ledsEstado[index].encendido) {
