@@ -1531,7 +1531,7 @@ function mostrarReporte(tipo) {
     document.getElementById('selectoresReportes').style.display = 'none';
     const contenedor = document.getElementById('contenedorReporte');
     const { fecha: fechaActual, turno: turnoActual } = obtenerTurnoActual();
-    
+
     let areaFiltroHtml = '';
     const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK'];
     areaFiltroHtml = `
@@ -1541,31 +1541,20 @@ function mostrarReporte(tipo) {
     `;
 
     let fechaFiltroHtml = '';
-    if (tipo === 'calidad' || tipo === 'produccion' || tipo === 'logistica') {
-        fechaFiltroHtml = `
-            <label for="fechaReporte">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioReporte" value="${fechaActual}">
-            <label for="fechaReporte">Fecha Fin:</label>
-            <input type="date" id="fechaFinReporte" value="${fechaActual}">
-        `;
-    } else {
-        fechaFiltroHtml = `
-            <label for="fechaReporte">Fecha:</label>
-            <input type="date" id="fechaReporte" value="${fechaActual}">
-        `;
-    }
+    fechaFiltroHtml = `
+        <label for="fechaReporte">Fecha:</label>
+        <input type="date" id="fechaReporte" value="${fechaActual}">
+    `;
 
     let turnoFiltroHtml = '';
-    if (tipo !== 'resumen') {
-        turnoFiltroHtml = `
-            <label for="turnoFiltro">Turno:</label>
-            <select id="turnoFiltro">
-                <option value="todos">Todos</option>
-                <option value="Turno 1">Turno 1</option>
-                <option value="Turno 2">Turno 2</option>
-            </select>
-        `;
-    }
+    turnoFiltroHtml = `
+        <label for="turnoFiltro">Turno:</label>
+        <select id="turnoFiltro">
+            <option value="todos">Todos</option>
+            <option value="Turno 1">Turno 1</option>
+            <option value="Turno 2">Turno 2</option>
+        </select>
+    `;
 
     contenedor.innerHTML = `
         <div class="header-reporte">
@@ -1573,7 +1562,7 @@ function mostrarReporte(tipo) {
             <div class="filtros">
                 ${fechaFiltroHtml}
                 ${turnoFiltroHtml}
-                ${tipo !== 'resumen' ? areaFiltroHtml : ''}
+                ${areaFiltroHtml}
                 <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>
             </div>
         </div>
@@ -1591,12 +1580,11 @@ function mostrarReporte(tipo) {
         document.getElementById('areaFiltro').value = 'TODAS';
     }
     
-    const fechaInicio = document.getElementById('fechaInicioReporte') ? document.getElementById('fechaInicioReporte').value : fechaActual;
-    const fechaFin = document.getElementById('fechaFinReporte') ? document.getElementById('fechaFinReporte').value : fechaActual;
-    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
-    const turno = document.getElementById('turnoFiltro') ? document.getElementById('turnoFiltro').value : null;
-    
-    cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area);
+    const fecha = document.getElementById('fechaReporte').value;
+    const turno = document.getElementById('turnoFiltro').value;
+    const area = document.getElementById('areaFiltro').value;
+
+    cargarDatosReporte(tipo, fecha, turno, area);
 }
 
 
@@ -1611,16 +1599,15 @@ function regresarASelectores() {
 
 function buscarReporte() {
     const tipo = reporteActual;
-    const fechaInicio = document.getElementById('fechaInicioReporte') ? document.getElementById('fechaInicioReporte').value : document.getElementById('fechaReporte').value;
-    const fechaFin = document.getElementById('fechaFinReporte') ? document.getElementById('fechaFinReporte').value : document.getElementById('fechaReporte').value;
-    const turno = document.getElementById('turnoFiltro') ? document.getElementById('turnoFiltro').value : 'todos';
-    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
+    const fecha = document.getElementById('fechaReporte').value;
+    const turno = document.getElementById('turnoFiltro').value;
+    const area = document.getElementById('areaFiltro').value;
 
-    cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area);
+    cargarDatosReporte(tipo, fecha, turno, area);
 }
 
 
-function cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area = null) {
+function cargarDatosReporte(tipo, fecha, turno, area) {
     const contenedor = document.getElementById('contenidoReporte');
     const tituloReporte = document.getElementById('tituloReporteDinamico');
     contenedor.innerHTML = '<p>Cargando datos...</p>';
@@ -1629,38 +1616,30 @@ function cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area = null) {
         miGrafico.destroy();
     }
     
-    const fechas = obtenerRangoFechas(fechaInicio, fechaFin);
-    const promesas = fechas.map(fecha => {
-        const refHistorial = db.ref(`historialLogs/${fecha}`);
-        const refCalidad = db.ref(`contadoresCalidad/${fecha}`);
-        const refRechazos = db.ref(`rechazosDetallados/${fecha}`);
-        return Promise.all([
-            refHistorial.once('value').then(s => s.val()),
-            refCalidad.once('value').then(s => s.val()),
-            refRechazos.once('value').then(s => s.val())
-        ]).then(([historial, calidad, rechazos]) => ({ fecha, historial, calidad, rechazos }));
-    });
-    
-    Promise.all(promesas).then(resultados => {
-        let datosCombinados = { historial: {}, calidad: {}, rechazos: {} };
-        resultados.forEach(res => {
-            Object.assign(datosCombinados.historial, res.historial);
-            Object.assign(datosCombinados.calidad, res.calidad);
-            Object.assign(datosCombinados.rechazos, res.rechazos);
-        });
+    // Ahora solo carga datos para una fecha y turno específico
+    const refHistorial = db.ref(`historialLogs/${fecha}`);
+    const refCalidad = db.ref(`contadoresCalidad/${fecha}`);
+    const refRechazos = db.ref(`rechazosDetallados/${fecha}`);
+
+    Promise.all([
+        refHistorial.once('value').then(s => s.val()),
+        refCalidad.once('value').then(s => s.val()),
+        refRechazos.once('value').then(s => s.val())
+    ]).then(([historial, calidad, rechazos]) => {
+        const datosDelDia = { historial, calidad, rechazos };
 
         if (tipo === 'calidad') {
-            tituloReporte.textContent = `Reporte de Calidad (${fechaInicio} a ${fechaFin})`;
-            procesarReporteCalidad(datosCombinados.rechazos, contenedor, area);
+            tituloReporte.textContent = `Reporte de Calidad - ${fecha}`;
+            procesarReporteCalidad(datosDelDia.rechazos, contenedor, turno, area);
         } else if (tipo === 'produccion') {
-            tituloReporte.textContent = `Reporte de Producción (${fechaInicio} a ${fechaFin})`;
-            procesarReporteProduccion(datosCombinados.historial, contenedor, area);
+            tituloReporte.textContent = `Reporte de Producción - ${fecha}`;
+            procesarReporteProduccion(datosDelDia.historial, contenedor, turno, area);
         } else if (tipo === 'logistica') {
-            tituloReporte.textContent = `Reporte de Logística (${fechaInicio} a ${fechaFin})`;
-            procesarReporteLogistica(datosCombinados.historial, contenedor, area);
+            tituloReporte.textContent = `Reporte de Logística - ${fecha}`;
+            procesarReporteLogistica(datosDelDia.historial, contenedor, turno, area);
         } else if (tipo === 'resumen') {
-            tituloReporte.textContent = `Resumen Ejecutivo (${fechaInicio} a ${fechaFin})`;
-            procesarReporteResumen(datosCombinados, contenedor);
+            tituloReporte.textContent = `Resumen Ejecutivo - ${fecha}`;
+            procesarReporteResumen(datosDelDia, contenedor);
         }
     }).catch(error => {
         console.error("Error al cargar los datos:", error);
@@ -1668,7 +1647,8 @@ function cargarDatosReporte(tipo, fechaInicio, fechaFin, turno, area = null) {
     });
 }
 
-function procesarReporteCalidad(datos, contenedor, area) {
+
+function procesarReporteCalidad(datos, contenedor, turno, area) {
     let rechazosFiltrados = [];
     for (const turnoKey in datos) {
         if (turno === 'todos' || turnoKey === turno) {
@@ -1717,7 +1697,7 @@ function procesarReporteCalidad(datos, contenedor, area) {
 }
 
 
-function procesarReporteProduccion(datos, contenedor, area) {
+function procesarReporteProduccion(datos, contenedor, turno, area) {
     let logsProduccion = [];
     const conteo = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
     
@@ -1778,7 +1758,7 @@ function procesarReporteProduccion(datos, contenedor, area) {
 }
 
 
-function procesarReporteLogistica(datos, contenedor, area) {
+function procesarReporteLogistica(datos, contenedor, turno, area) {
     let logsRecoleccion = [];
     let tiempoTotal = 0;
     
@@ -1932,6 +1912,10 @@ function generarGraficoRechazos(datos) {
         '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
     ];
     
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
+    
     miGrafico = new Chart(ctx, {
         type: 'pie',
         data: {
@@ -1976,6 +1960,10 @@ function generarGraficoProduccion(datos) {
     const ctx = document.getElementById('graficoProduccion').getContext('2d');
     const labels = Object.keys(datos);
     const data = Object.values(datos);
+
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
 
     miGrafico = new Chart(ctx, {
         type: 'bar',
@@ -2028,6 +2016,10 @@ function generarGraficoLogistica(datos) {
     const labels = logsOrdenados.map((log, index) => formatoHora(log.horaApagado));
     const data = logsOrdenados.map(log => log.tiempoRecoleccion);
     
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
+    
     miGrafico = new Chart(ctx, {
         type: 'line',
         data: {
@@ -2071,22 +2063,6 @@ function generarGraficoLogistica(datos) {
     });
 }
 
-function obtenerRangoFechas(fechaInicioStr, fechaFinStr) {
-    const fechas = [];
-    let fechaActual = new Date(fechaInicioStr + 'T00:00:00');
-    const fechaFin = new Date(fechaFinStr + 'T00:00:00');
-
-    while (fechaActual <= fechaFin) {
-        const year = fechaActual.getFullYear();
-        const month = String(fechaActual.getMonth() + 1).padStart(2, '0');
-        const day = String(fechaActual.getDate()).padStart(2, '0');
-        fechas.push(`${year}-${month}-${day}`);
-        fechaActual.setDate(fechaActual.getDate() + 1);
-    }
-    return fechas;
-}
-
-
 function exportarTablaACsv(nombreReporte) {
     const tabla = document.querySelector('#contenidoReporte table');
     if (!tabla) {
@@ -2111,7 +2087,7 @@ function exportarTablaACsv(nombreReporte) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `${nombreReporte}_${document.getElementById('fechaInicioReporte').value}_a_${document.getElementById('fechaFinReporte').value}.csv`);
+    link.setAttribute('download', `${nombreReporte}_${document.getElementById('fechaReporte').value}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
