@@ -176,6 +176,25 @@ body{ overflow-y: auto; }
     padding: 10px 20px;
     font-size: 16px;
 }
+.contadores-calidad {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 10px;
+}
+.contador-calidad {
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+.contador-calidad .valor {
+    font-size: 20px;
+    font-weight: bold;
+}
+.contador-calidad .etiqueta {
+    font-size: 12px;
+    opacity: 0.8;
+}
 
 @media(max-width:720px){ 
   .grupo-contenedor{ 
@@ -333,6 +352,16 @@ body{ overflow-y: auto; }
         <div class="nombre">CALIDAD MULTIPORT</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
+        <div class="contadores-calidad">
+            <div class="contador-calidad">
+                <span class="valor" id="liberadas_CALIDAD_MULTIPORT">0</span>
+                <div class="etiqueta">Liberadas</div>
+            </div>
+            <div class="contador-calidad">
+                <span class="valor" id="rechazadas_CALIDAD_MULTIPORT">0</span>
+                <div class="etiqueta">Rechazadas</div>
+            </div>
+        </div>
         <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
 
@@ -340,6 +369,16 @@ body{ overflow-y: auto; }
         <div class="nombre">CALIDAD DROPS</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
+        <div class="contadores-calidad">
+            <div class="contador-calidad">
+                <span class="valor" id="liberadas_CALIDAD_DROPS">0</span>
+                <div class="etiqueta">Liberadas</div>
+            </div>
+            <div class="contador-calidad">
+                <span class="valor" id="rechazadas_CALIDAD_DROPS">0</span>
+                <div class="etiqueta">Rechazadas</div>
+            </div>
+        </div>
         <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
     </div>
 
@@ -347,6 +386,16 @@ body{ overflow-y: auto; }
         <div class="nombre">CALIDAD BEDROCK</div>
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
+        <div class="contadores-calidad">
+            <div class="contador-calidad">
+                <span class="valor" id="liberadas_CALIDAD_BEDROCK">0</span>
+                <div class="etiqueta">Liberadas</div>
+            </div>
+            <div class="contador-calidad">
+                <span class="valor" id="rechazadas_CALIDAD_BEDROCK">0</span>
+                <div class="etiqueta">Rechazadas</div>
+            </div>
+        </div>
         <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
     </div>
 </div>
@@ -430,7 +479,7 @@ const database = firebase.database();
 const db = database; 
 const ledRef = database.ref('estadoLEDs');
 let historialRef;
-let resumenRef;
+let contadoresCalidadRef;
 
 // ================= FUNCIONES DE RENDER =================
 function inyectaLEDs(){
@@ -502,7 +551,6 @@ function pintarEstado() {
     });
 }
 
-
 function formatoHora(isoString) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -511,7 +559,6 @@ function formatoHora(isoString) {
     return `${hours}:${minutes}`;
 }
 
-// Lógica de actualización del resumen movida a su propio listener para evitar duplicados
 function iniciarListenersFirebase() {
     historialRef.on('value', (snapshot) => {
         const logs = snapshot.val();
@@ -533,7 +580,7 @@ function iniciarListenersFirebase() {
                 }
             });
         }
-
+        
         const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
         
         document.getElementById('tarimasTotales').textContent = tarimasTotales;
@@ -567,6 +614,22 @@ function iniciarListenersFirebase() {
                 contenedorTiempos.appendChild(p);
             });
             contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
+        });
+    });
+
+    contadoresCalidadRef.on('value', (snapshot) => {
+        const contadores = snapshot.val() || {};
+        const gruposCalidad = ['CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
+        
+        gruposCalidad.forEach(grupo => {
+            const liberadas = contadores[grupo] ? contadores[grupo].liberadas || 0 : 0;
+            const rechazadas = contadores[grupo] ? contadores[grupo].rechazadas || 0 : 0;
+            
+            const liberadasSpan = document.getElementById(`liberadas_${grupo}`);
+            const rechazadasSpan = document.getElementById(`rechazadas_${grupo}`);
+            
+            if (liberadasSpan) liberadasSpan.textContent = liberadas;
+            if (rechazadasSpan) rechazadasSpan.textContent = rechazadas;
         });
     });
 }
@@ -724,49 +787,19 @@ function mostrarOpcionesCalidad(ledRef, grupo, idx, linea) {
                 usuario: usuarioSeleccionado
             });
 
+            if (nuevoColor === 'rojo' || nuevoColor === 'verde') {
+                const contadorRef = contadoresCalidadRef.child(grupo);
+                let contadorTipo = nuevoColor === 'rojo' ? 'rechazadas' : 'liberadas';
+                contadorRef.child(contadorTipo).transaction(currentCount => {
+                    return (currentCount || 0) + 1;
+                });
+            }
+
             if (nuevoColor === 'rojo') {
                 const usuarioProduccion = grupo.split('_')[1];
                 notificarRechazo(usuarioProduccion);
             }
             modal.remove();
-        });
-    });
-}
-
-
-function actualizarResumen() {
-    resumenRef.once('value').then(snapshot => {
-        const resumenActual = snapshot.val() || {
-            tarimasConfirmadas: 0,
-            tarimasRecibidas: 0,
-            tiemposRecoleccion: [],
-            totalPorArea: { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 }
-        };
-        historialRef.once('value').then(historialSnapshot => {
-            const logs = historialSnapshot.val();
-            let tarimasConfirmadas = 0;
-            let tarimasRecibidas = 0;
-            const tiemposRecoleccion = [];
-            const totalPorArea = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
-            if (logs) {
-                Object.values(logs).forEach(log => {
-                    if (log.accion === 'encendido' && totalPorArea.hasOwnProperty(log.grupo)) {
-                        tarimasConfirmadas++;
-                    } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-                        tarimasRecibidas++;
-                        tiemposRecoleccion.push(log.tiempoRecoleccion);
-                        if (totalPorArea.hasOwnProperty(log.grupo)) {
-                            totalPorArea[log.grupo]++;
-                        }
-                    }
-                });
-            }
-            resumenRef.set({
-                tarimasConfirmadas: tarimasConfirmadas,
-                tarimasRecibidas: tarimasRecibidas,
-                tiemposRecoleccion: tiemposRecoleccion,
-                totalPorArea: totalPorArea
-            }).catch(e => console.warn('Error guardando resumen en Firebase:', e));
         });
     });
 }
@@ -847,7 +880,7 @@ function seleccionarUsuario(usuario) {
 window.addEventListener('load', ()=>{
     const { fecha, turno } = obtenerTurnoActual();
     historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
-    resumenRef = database.ref(`resumenDiario/${fecha}/${turno}`);
+    contadoresCalidadRef = database.ref(`contadoresCalidad/${fecha}/${turno}`);
 
     firebase.auth().signInAnonymously().catch(err => {
         console.error('Auth error:', err);
