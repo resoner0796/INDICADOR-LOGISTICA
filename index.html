@@ -291,16 +291,27 @@ body{ overflow-y: auto; }
 // ================= CONFIG Y ESTADO =================
 // CÓDIGO MODIFICADO
 const CONFIG = {
-    // ...
+    // Lista completa de usuarios, incluyendo el nuevo usuario CALIDAD
+    USUARIOS: ['MULTIPORT', 'BEDROCK', 'DROPS', 'LOGÍSTICA', 'SUPERVISOR', 'CALIDAD'],
+    // Contraseñas para cada usuario y subusuario
     PASSWORDS: {
         'LOGÍSTICA': 'logistica123',
         'MULTIPORT': 'multiport123',
         'BEDROCK': 'bedrock123',
         'DROPS': 'drops123',
         'SUPERVISOR': 'supervisor123',
-        'CALIDAD_MULTIPORT': 'calidadmp123', // Nueva contraseña
-        'CALIDAD_DROPS': 'calidaddp123',   // Nueva contraseña
-        'CALIDAD_BEDROCK': 'calidadbr123'  // Nueva contraseña
+        'CALIDAD_MULTIPORT': 'calidadmp123',
+        'CALIDAD_DROPS': 'calidaddp123',
+        'CALIDAD_BEDROCK': 'calidadbr123'
+    },
+    // Parámetros de los LEDs
+    LEDS_POR_GRUPO: {
+        'MULTIPORT': 5,
+        'BEDROCK': 5,
+        'DROPS': 5,
+        'CALIDAD_MULTIPORT': 5,
+        'CALIDAD_BEDROCK': 5,
+        'CALIDAD_DROPS': 5
     }
 };
 
@@ -656,8 +667,7 @@ function volverAPantalla1(){
 }
 
 function seleccionarUsuario(usuario) {
-    // Si el usuario no está en la lista y no es CALIDAD, la función termina.
-    if (!CONFIG.USUARIOS.includes(usuario) && usuario !== 'CALIDAD') {
+    if (!CONFIG.USUARIOS.includes(usuario)) {
         return;
     }
 
