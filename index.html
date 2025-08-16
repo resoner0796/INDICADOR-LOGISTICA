@@ -232,46 +232,43 @@ body{ overflow-y: auto; }
     <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
         <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
-        <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
+        <div class="leds" data-grupo="MULTIPORT_LINEA1" data-linea="linea1"></div>
+        <div class="leds" data-grupo="MULTIPORT_LINEA2" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="MULTIPORT"></div>
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="tarimas">Tarimas: 0</div>
+            <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
+            <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
+        </div>
     </div>
 
     <div class="grupo" data-grupo="DROPS">
         <div class="nombre">DROPS</div>
         <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
-        <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
+        <div class="leds" data-grupo="DROPS_LINEA1" data-linea="linea1"></div>
+        <div class="leds" data-grupo="DROPS_LINEA2" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="DROPS"></div>
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="tarimas">Tarimas: 0</div>
+            <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
+            <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
+        </div>
     </div>
 
     <div class="grupo" data-grupo="BEDROCK">
         <div class="nombre">BEDROCK</div>
         <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
-        <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
+        <div class="leds" data-grupo="BEDROCK_LINEA1" data-linea="linea1"></div>
+        <div class="leds" data-grupo="BEDROCK_LINEA2" data-linea="linea2"></div>
         <div class="tiempos" data-grupo="BEDROCK"></div>
-    </div>
-    
-    <div class="grupo" data-grupo="CALIDAD_MULTIPORT">
-        <div class="nombre">CALIDAD MULTIPORT</div>
-        <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
-        <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
-    </div>
-
-    <div class="grupo" data-grupo="CALIDAD_DROPS">
-        <div class="nombre">CALIDAD DROPS</div>
-        <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
-        <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
-    </div>
-
-    <div class="grupo" data-grupo="CALIDAD_BEDROCK">
-        <div class="nombre">CALIDAD BEDROCK</div>
-        <div class="tarimas">Tarimas: 0</div>
-        <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
-        <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
+        <div class="grupo-calidad-anidado">
+            <div class="nombre">CALIDAD</div>
+            <div class="tarimas">Tarimas: 0</div>
+            <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
+            <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
+        </div>
     </div>
 </div>
   </div>
@@ -387,8 +384,6 @@ function inyectaLEDs(){
             mostrarGrupo = true;
         } else if (usuarioSeleccionado === grupo) {
             mostrarGrupo = true;
-        } else if (['MULTIPORT', 'BEDROCK', 'DROPS'].includes(usuarioSeleccionado) && grupo === `CALIDAD_${usuarioSeleccionado}`) {
-            mostrarGrupo = true;
         }
         
         if (mostrarGrupo) {
@@ -396,31 +391,25 @@ function inyectaLEDs(){
         } else {
             grupoDiv.classList.add('oculto');
         }
+    });
 
-        // Inyecta los LEDs en los contenedores visibles
-        grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
-            if (!grupoDiv.classList.contains('oculto')) {
-                const grupoLeds = contenedor.dataset.grupo;
-                const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
-                contenedor.innerHTML = '';
-                
-                // Si el grupo es de producción y tiene 10 LEDs, ajusta la cantidad por línea
-                let ledsEnLinea = 5;
-                if (numLeds === 10) {
-                    ledsEnLinea = 5; // Asumimos que hay dos líneas de 5
-                } else {
-                    ledsEnLinea = numLeds;
-                }
-                
-                for(let i = 0; i < ledsEnLinea; i++){
-                    const led = document.createElement('div');
-                    led.className = 'led';
-                    led.title = `${grupoLeds} • LED ${i+1}`;
-                    led.addEventListener('click', () => togglearLED(grupoLeds, i, 'linea1'));
-                    contenedor.appendChild(led);
-                }
-            }
-        });
+    // Muestra los grupos de Calidad anidados para los usuarios de producción
+    if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado)) {
+        document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"] .grupo-calidad-anidado`).classList.remove('oculto');
+    }
+
+    // Inyecta los LEDs en los contenedores visibles
+    document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
+        const grupoLeds = contenedor.dataset.grupo;
+        const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
+        contenedor.innerHTML = '';
+        for(let i = 0; i < numLeds; i++){
+            const led = document.createElement('div');
+            led.className = 'led';
+            led.title = `${grupoLeds} • LED ${i+1}`;
+            led.addEventListener('click', () => togglearLED(grupoLeds, i, 'linea1'));
+            contenedor.appendChild(led);
+        }
     });
 }
 
