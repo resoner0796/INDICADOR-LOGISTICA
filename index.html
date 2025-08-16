@@ -371,12 +371,11 @@ firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err)
 // ================= FUNCIONES DE RENDER =================
 // CÓDIGO MODIFICADO
 function inyectaLEDs(){
-    // Oculta todos los grupos al inicio para una pantalla limpia
+    // La lógica de visibilidad de la interfaz se mantiene intacta
     document.querySelectorAll('.grupo').forEach(grupoDiv => {
         grupoDiv.classList.add('oculto');
     });
 
-    // Muestra los grupos según el usuario seleccionado
     if (usuarioSeleccionado === 'SUPERVISOR') {
         document.querySelectorAll('.grupo').forEach(grupoDiv => {
             grupoDiv.classList.remove('oculto');
@@ -387,21 +386,25 @@ function inyectaLEDs(){
         });
     } else if (usuarioSeleccionado.startsWith('CALIDAD_')) {
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
-    } else { // Usuarios de producción
+    } else {
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
         document.querySelector(`.grupo[data-grupo="CALIDAD_${usuarioSeleccionado}"]`).classList.remove('oculto');
     }
 
-    // Finalmente, inyecta los LEDs en cada contenedor visible
+    // Esta sección SÍ se modifica para solucionar el problema de los 10 LEDs
     document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
         const grupoLeds = contenedor.dataset.grupo;
-        const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
+        const linea = contenedor.dataset.linea;
+        
+        // Define el número de LEDs por línea
+        const ledsPorLinea = 5;
         contenedor.innerHTML = '';
-        for(let i = 0; i < numLeds; i++){
+        
+        for(let i = 0; i < ledsPorLinea; i++){
             const led = document.createElement('div');
             led.className = 'led';
-            led.title = `${grupoLeds} • LED ${i+1}`;
-            led.addEventListener('click', () => togglearLED(grupoLeds, i, 'linea1'));
+            led.title = `${grupoLeds} • ${linea} • LED ${i+1}`;
+            led.addEventListener('click', () => togglearLED(grupoLeds, i, linea));
             contenedor.appendChild(led);
         }
     });
