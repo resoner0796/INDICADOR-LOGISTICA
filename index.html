@@ -59,7 +59,7 @@ body{ overflow-y: auto; }
   font-size:18px;
   cursor:pointer;
   transition: background .25s ease;
-  outline-color: #000; /* Puedes usar 'transparent' si no quieres que se vea */
+  outline-color: #000;
 }
 .usuario-btn:hover{ background: var(--btn-bg-hover); }
 
@@ -85,18 +85,16 @@ body{ overflow-y: auto; }
   align-items:center;
   justify-content:center;
   padding:10px 24px 28px;
-  flex-direction: column; /* <-- Agrega esta línea */
+  flex-direction: column;
 }
-/* Código CSS modificado */
 .grupo-contenedor{
-  display: flex; /* <-- CAMBIO */
-  flex-wrap: wrap; /* <-- Agrega esta línea */
+  display: flex;
+  flex-wrap: wrap;
   gap: clamp(24px, 4vw, 64px);
   width: min(1200px, 96vw);
-  justify-content: center; /* <-- Centra los grupos si hay menos de 3 */
+  justify-content: center;
 }
 
-/* Nuevo estilo para ocultar grupos no autorizados */
 .grupo.oculto {
   display: none;
 }
@@ -151,7 +149,8 @@ body{ overflow-y: auto; }
   font-size: 32px;
   font-weight: bold;
   letter-spacing: 1px;
-}.tiempos{
+}
+.tiempos{
     margin-top: 10px;
     font-size: 14px;
     opacity: 0.8;
@@ -160,15 +159,13 @@ body{ overflow-y: auto; }
     max-height: 200px;
     overflow-y: auto;
 }
-/* Agrega este nuevo bloque de CSS */
 .btn-rojo{
-    background: #cc0000; /* Rojo principal */
+    background: #cc0000;
     outline-color: #000;
 }
 .btn-rojo:hover{
-    background: #990000; /* Rojo más oscuro para el hover */
+    background: #990000;
 }
-    /* Nuevo estilo para el botón de cambio de usuario en pantalla2 */
 .footer{
     width: 100%;
     display: flex;
@@ -188,7 +185,7 @@ body{ overflow-y: auto; }
     width: 100%;
   }
 }
-    @keyframes blink {
+@keyframes blink {
     0%, 100% {
         box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
     }
@@ -306,9 +303,9 @@ const CONFIG = {
 
 let usuarioSeleccionado = null;
 let estadoLEDs = {
-  MULTIPORT: { linea1:Array(5).fill(false), linea2:Array(5).fill(false) },
-  BEDROCK:  { linea1:Array(5).fill(false), linea2:Array(5).fill(false) },
-  DROPS:    { linea1:Array(5).fill(false), linea2:Array(5).fill(false) }
+  MULTIPORT: { linea1:Array(5).fill(null), linea2:Array(5).fill(null) },
+  BEDROCK:  { linea1:Array(5).fill(null), linea2:Array(5).fill(null) },
+  DROPS:    { linea1:Array(5).fill(null), linea2:Array(5).fill(null) }
 };
 
 // ================= FUNCION PARA OBTENER FECHA Y TURNO =================
@@ -355,9 +352,6 @@ const db = database;
 const ledRef = database.ref('estadoLEDs');
 let historialRef;
 let resumenRef;
-
-// ================= AUTENTICACIÓN ANÓNIMA =================
-firebase.auth().signInAnonymously().catch(err=>console.error('Auth error:', err));
 
 // ================= FUNCIONES DE RENDER =================
 function inyectaLEDs(){
@@ -412,9 +406,11 @@ function pintarEstado() {
                     if (ledsEstado[index]) {
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.style.backgroundColor = ledsEstado[index].color;
+                            led.classList.remove('on');
                         } 
                         else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
+                            led.style.backgroundColor = '';
                         } else {
                             led.classList.remove('on');
                             led.style.backgroundColor = '';
@@ -442,57 +438,62 @@ function formatoHora(isoString) {
     return `${hours}:${minutes}`;
 }
 
-historialRef.on('value', (snapshot) => {
-    const logs = snapshot.val();
-    const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
-    const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+// Lógica de actualización del resumen movida a su propio listener para evitar duplicados
+function iniciarListenersFirebase() {
+    historialRef.on('value', (snapshot) => {
+        const logs = snapshot.val();
+        const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0 };
+        const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
-    let tarimasTotales = 0;
-    let tiempoTotalRecoleccion = 0;
+        let tarimasTotales = 0;
+        let tiempoTotalRecoleccion = 0;
 
-    if (logs) {
-      Object.values(logs).forEach(log => {
-        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-          contadores[log.grupo]++;
-        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-          tiempos[log.grupo].push(log);
-          tarimasTotales++;
-          tiempoTotalRecoleccion += log.tiempoRecoleccion;
+        if (logs) {
+            Object.values(logs).forEach(log => {
+                if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+                    contadores[log.grupo]++;
+                } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+                    tiempos[log.grupo].push(log);
+                    tarimasTotales++;
+                    tiempoTotalRecoleccion += log.tiempoRecoleccion;
+                }
+            });
         }
-      });
-    }
 
-    const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
-    
-    document.getElementById('tarimasTotales').textContent = tarimasTotales;
-    document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
+        const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
+        
+        document.getElementById('tarimasTotales').textContent = tarimasTotales;
+        document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
 
-    const resumenTurnoDiv = document.getElementById('resumenTurno');
-    if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
-      resumenTurnoDiv.classList.remove('oculto');
-    } else {
-      resumenTurnoDiv.classList.add('oculto');
-    }
-    
-    document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
-    document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
-    document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+        const resumenTurnoDiv = document.getElementById('resumenTurno');
+        if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
+            resumenTurnoDiv.classList.remove('oculto');
+        } else {
+            resumenTurnoDiv.classList.add('oculto');
+        }
+        
+        document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
+        document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
+        document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
 
-    Object.keys(tiempos).forEach(grupo => {
-        const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-        if (!contenedorTiempos) return;
-        contenedorTiempos.innerHTML = '';
-        tiempos[grupo].forEach((logEntry, index) => {
-            const p = document.createElement('p');
-            const horaInicio = formatoHora(logEntry.horaEncendido);
-            const horaFin = formatoHora(logEntry.horaApagado);
-            
-            p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
-            contenedorTiempos.appendChild(p);
-      });
-      contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
+        Object.keys(tiempos).forEach(grupo => {
+            const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+            if (!contenedorTiempos) return;
+            contenedorTiempos.innerHTML = '';
+            tiempos[grupo].forEach((logEntry, index) => {
+                const p = document.createElement('p');
+                const horaInicio = formatoHora(logEntry.horaEncendido);
+                const horaFin = formatoHora(logEntry.horaApagado);
+                
+                p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
+                contenedorTiempos.appendChild(p);
+            });
+            contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
+        });
     });
-});
+}
+
+
 // ================= PERMISOS Y LÓGICA =================
 function puedeControlar(grupo){
     if(!usuarioSeleccionado) {
@@ -744,10 +745,15 @@ window.addEventListener('load', ()=>{
     const { fecha, turno } = obtenerTurnoActual();
     historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
     resumenRef = database.ref(`resumenDiario/${fecha}/${turno}`);
+
+    firebase.auth().signInAnonymously().catch(err => {
+        console.error('Auth error:', err);
+    });
     
     firebase.auth().onAuthStateChanged(user => {
         if (user) {
             pintarEstado(); 
+            iniciarListenersFirebase(); // Nuevo llamado
             activarPantalla('pantalla1');
         } else {
             // Manejar el caso de no autenticación si es necesario
