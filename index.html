@@ -224,6 +224,13 @@ body{ overflow-y: auto; }
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    visibility: hidden; /* Oculto por defecto */
+    opacity: 0; /* Oculto por defecto */
+    transition: opacity 0.3s ease;
+}
+.modal-calidad.visible {
+    visibility: visible;
+    opacity: 1;
 }
 .modal-content {
     background-color: #222;
@@ -440,7 +447,7 @@ body{ overflow-y: auto; }
   </div>
 </section>
 
-<div id="modalCalidad" class="modal-calidad" style="display: none;">
+<div id="modalCalidad" class="modal-calidad">
     <div class="modal-content">
         <h3>Selecciona el estado de la tarima:</h3>
         <div class="opciones">
@@ -452,7 +459,7 @@ body{ overflow-y: auto; }
     </div>
 </div>
 
-<div id="modalRechazo" class="modal-calidad" style="display: none;">
+<div id="modalRechazo" class="modal-calidad">
     <div class="modal-content">
         <h3>Detalles del Rechazo</h3>
         <form id="formularioRechazo">
@@ -765,7 +772,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             });
         } 
         else {
-            mostrarOpcionesCalidad(ledRef, grupo, idx, linea); 
+            mostrarOpcionesCalidad(grupo, idx, linea); 
         }
     }
     else {
@@ -827,34 +834,15 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 }
 
 // ================= LÓGICA DE CALIDAD MODAL =================
-function mostrarOpcionesCalidad(ledRef, grupo, idx, linea) {
-    if (document.getElementById('modalCalidad')) {
-        return;
-    }
-
+function mostrarOpcionesCalidad(grupo, idx, linea) {
     ledActivoParaFormulario = { grupo, idx, linea };
-    
-    const modalCalidad = document.getElementById('modalCalidad');
-    modalCalidad.style.display = 'flex';
-
-    modalCalidad.querySelector('.cerrar-btn').addEventListener('click', () => {
-        modalCalidad.style.display = 'none';
-    });
-
-    modalCalidad.querySelectorAll('.opcion-btn').forEach(btn => {
-        btn.onclick = () => {
-            const nuevoColor = btn.dataset.color;
-            if (nuevoColor === 'rojo') {
-                mostrarFormularioRechazo();
-            } else {
-                aplicarEstadoCalidad(ledRef, nuevoColor);
-                modalCalidad.style.display = 'none';
-            }
-        };
-    });
+    document.getElementById('modalCalidad').classList.add('visible');
 }
 
-function aplicarEstadoCalidad(ledRef, nuevoColor) {
+function aplicarEstadoCalidad(nuevoColor) {
+    const { grupo, idx, linea } = ledActivoParaFormulario;
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+
     ledRef.set({
         color: nuevoColor,
         timestamp: new Date().toISOString(),
@@ -862,57 +850,31 @@ function aplicarEstadoCalidad(ledRef, nuevoColor) {
     });
 
     if (nuevoColor === 'verde') {
-        const contadorRef = contadoresCalidadRef.child(ledActivoParaFormulario.grupo);
+        const contadorRef = contadoresCalidadRef.child(grupo);
         contadorRef.child('liberadas').transaction(currentCount => (currentCount || 0) + 1);
+    } else if (nuevoColor === 'rojo') {
+        const contadorRef = contadoresCalidadRef.child(grupo);
+        contadorRef.child('rechazadas').transaction(currentCount => (currentCount || 0) + 1);
     }
 }
 
 function mostrarFormularioRechazo() {
-    const modalCalidad = document.getElementById('modalCalidad');
-    modalCalidad.style.display = 'none';
-    
-    const modalRechazo = document.getElementById('modalRechazo');
-    modalRechazo.style.display = 'flex';
-    
-    const formulario = document.getElementById('formularioRechazo');
-    formulario.onsubmit = (e) => {
-        e.preventDefault();
-        
-        const datos = {
-            empleado: formulario.empleado.value,
-            linea: formulario.linea.value,
-            parte: formulario.parte.value,
-            descripcionParte: formulario.descripcionParte.value,
-            problema: formulario.problema.value,
-            causa: formulario.causa.value,
-            accion: formulario.accion.value,
-            timestamp: new Date().toISOString(),
-            usuario: usuarioSeleccionado,
-            grupo: ledActivoParaFormulario.grupo,
-            led: `${ledActivoParaFormulario.linea}-${ledActivoParaFormulario.idx + 1}`
-        };
-        
-        guardarRechazo(datos);
-        
-        // Limpiar formulario y cerrar modal
-        formulario.reset();
-        modalRechazo.style.display = 'none';
-    };
+    document.getElementById('modalCalidad').classList.remove('visible');
+    document.getElementById('modalRechazo').classList.add('visible');
 }
 
 function guardarRechazo(datos) {
     rechazosDetalladosRef.push(datos)
         .then(() => {
             console.log("Rechazo guardado exitosamente:", datos);
-            // Actualizar el estado del LED y el contador después de guardar los datos
-            const ledRef = db.ref('estadoLEDs/' + ledActivoParaFormulario.grupo + '/' + ledActivoParaFormulario.linea + '/' + ledActivoParaFormulario.idx);
-            aplicarEstadoCalidad(ledRef, 'rojo');
-            const contadorRef = contadoresCalidadRef.child(ledActivoParaFormulario.grupo);
-            contadorRef.child('rechazadas').transaction(currentCount => (currentCount || 0) + 1);
+            aplicarEstadoCalidad('rojo');
         })
         .catch(error => {
             console.error("Error guardando rechazo:", error);
             alert("Hubo un error al guardar el rechazo.");
+        })
+        .finally(() => {
+            document.getElementById('modalRechazo').classList.remove('visible');
         });
 }
 
@@ -926,6 +888,7 @@ function volverAPantalla1(){
     usuarioSeleccionado = null;
     db.ref('estadoLEDs').off(); 
     historialRef.off();
+    contadoresCalidadRef.off();
     activarPantalla('pantalla1');
 }
 
@@ -988,7 +951,7 @@ function seleccionarUsuario(usuario) {
     }
 }
 
-// ================= ARRANQUE Y PWA: Service Worker =================
+// ================= ARRANQUE Y MANEJO DE MODALES =================
 window.addEventListener('load', ()=>{
     const { fecha, turno } = obtenerTurnoActual();
     historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
@@ -1007,7 +970,49 @@ window.addEventListener('load', ()=>{
             // Manejar el caso de no autenticación si es necesario
         }
     });
+    
+    // Configurar listeners de los modales una sola vez
+    const modalCalidad = document.getElementById('modalCalidad');
+    modalCalidad.querySelector('.cerrar-btn').addEventListener('click', () => {
+        modalCalidad.classList.remove('visible');
+    });
 
+    modalCalidad.querySelectorAll('.opcion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const nuevoColor = btn.dataset.color;
+            if (nuevoColor === 'rojo') {
+                mostrarFormularioRechazo();
+            } else {
+                aplicarEstadoCalidad(nuevoColor);
+                modalCalidad.classList.remove('visible');
+            }
+        });
+    });
+
+    const modalRechazo = document.getElementById('modalRechazo');
+    modalRechazo.querySelector('#formularioRechazo').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const formulario = e.target;
+        const datos = {
+            empleado: formulario.empleado.value,
+            linea: formulario.linea.value,
+            parte: formulario.parte.value,
+            descripcionParte: formulario.descripcionParte.value,
+            problema: formulario.problema.value,
+            causa: formulario.causa.value,
+            accion: formulario.accion.value,
+            timestamp: new Date().toISOString(),
+            usuario: usuarioSeleccionado,
+            grupo: ledActivoParaFormulario.grupo,
+            led: `${ledActivoParaFormulario.linea}-${ledActivoParaFormulario.idx + 1}`
+        };
+        
+        guardarRechazo(datos);
+        formulario.reset();
+    });
+
+    // PWA: Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(reg => {
