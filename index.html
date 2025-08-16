@@ -376,15 +376,15 @@ function inyectaLEDs(){
         let mostrarGrupo = false;
 
         // Reglas de visibilidad
-        // SUPERVISOR: Ve todos los grupos (Producción y Calidad)
+        // SUPERVISOR: Ve todos los grupos principales
         if (usuarioSeleccionado === 'SUPERVISOR') {
             mostrarGrupo = true;
         } 
-        // LOGÍSTICA: Solo ve los grupos de Producción (MULTIPORT, DROPS, BEDROCK)
+        // LOGÍSTICA: Solo ve los grupos de Producción principales
         else if (usuarioSeleccionado === 'LOGÍSTICA' && !grupo.startsWith('CALIDAD_')) {
             mostrarGrupo = true;
         } 
-        // USUARIOS DE PRODUCCIÓN: Solo ven su grupo principal
+        // USUARIOS DE PRODUCCIÓN (MULTIPORT, DROPS, BEDROCK): Solo ven su grupo principal
         else if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && usuarioSeleccionado === grupo) {
             mostrarGrupo = true;
         }
@@ -393,26 +393,35 @@ function inyectaLEDs(){
             mostrarGrupo = true;
         }
         
-        // Aplica la clase para mostrar u ocultar
+        // Aplica la clase para mostrar u ocultar el grupo principal
         if (mostrarGrupo) {
             grupoDiv.classList.remove('oculto');
-            grupoDiv.querySelectorAll('.leds').forEach(contenedor => {
-                const linea = contenedor.dataset.linea || 'linea1';
-                const grupoLeds = contenedor.dataset.grupo;
-                contenedor.innerHTML = '';
-                
-                const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
-
-                for(let i = 0; i < numLeds; i++){
-                    const led = document.createElement('div');
-                    led.className = 'led';
-                    led.title = `${grupoLeds} • ${linea} • LED ${i+1}`;
-                    led.addEventListener('click', () => togglearLED(grupoLeds, i, linea));
-                    contenedor.appendChild(led);
-                }
-            });
         } else {
             grupoDiv.classList.add('oculto');
+        }
+    });
+
+    // Esta es la nueva sección que se encarga de mostrar los grupos anidados
+    document.querySelectorAll('.grupo-calidad-anidado').forEach(grupoAnidadoDiv => {
+        const grupoPadre = grupoAnidadoDiv.closest('.grupo').dataset.grupo;
+        if (['MULTIPORT', 'DROPS', 'BEDROCK'].includes(usuarioSeleccionado) && usuarioSeleccionado === grupoPadre) {
+            grupoAnidadoDiv.classList.remove('oculto');
+        } else {
+            grupoAnidadoDiv.classList.add('oculto');
+        }
+    });
+
+    // Inyecta los LEDs en cada contenedor visible
+    document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
+        const grupoLeds = contenedor.dataset.grupo;
+        const numLeds = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 0;
+        contenedor.innerHTML = '';
+        for(let i = 0; i < numLeds; i++){
+            const led = document.createElement('div');
+            led.className = 'led';
+            led.title = `${grupoLeds} • LED ${i+1}`;
+            led.addEventListener('click', () => togglearLED(grupoLeds, i, 'linea1'));
+            contenedor.appendChild(led);
         }
     });
 }
