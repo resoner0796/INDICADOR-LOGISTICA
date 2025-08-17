@@ -863,16 +863,16 @@ const CONFIG = {
     USUARIOS: ['MULTIPORT', 'BEDROCK', 'DROPS', 'LOGÍSTICA', 'SUPERVISOR', 'CALIDAD'],
     PRODUCCION_GRUPOS: ['MULTIPORT', 'BEDROCK', 'DROPS'],
     PASSWORDS: {
-        'LOGÍSTICA': 'logistica123',
-        'MULTIPORT': 'multiport123',
-        'BEDROCK': 'bedrock123',
-        'DROPS': 'drops123',
-        'SUPERVISOR': 'supervisor123',
-        'CALIDAD_MULTIPORT': 'calidadmp123',
-        'CALIDAD_DROPS': 'calidaddp123',
-        'CALIDAD_BEDROCK': 'calidadbr123',
-        'REPORTES': 'reportes123',
-        'DASHBOARD': 'dashboard123'
+        'LOGÍSTICA': 'LOGRAM',
+        'MULTIPORT': 'MPRAM',
+        'BEDROCK': 'BEDRAM',
+        'DROPS': 'DROPS25',
+        'SUPERVISOR': 'SUPRAM',
+        'CALIDAD_MULTIPORT': 'AQLMP',
+        'CALIDAD_DROPS': 'AQLDP',
+        'CALIDAD_BEDROCK': 'AQLDB',
+        'REPORTES': 'REPO',
+        'DASHBOARD': 'DASH'
     },
     LEDS_POR_GRUPO: {
         'MULTIPORT': 5,
@@ -1199,7 +1199,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 }
             } else if (esUsuarioProduccion()) { // Es usuario de Producción
                 if (!estadoActual.encendido) {
-                    if (!confirm('¿Está realmente confirmada la tarima?')) {
+                    if (!confirm('¿Está realmente liberada la tarima?')) {
                         return;
                     }
                     ledRef.set({
