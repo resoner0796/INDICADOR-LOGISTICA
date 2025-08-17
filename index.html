@@ -406,6 +406,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 }
 #pantalla3 .header-reporte .filtros {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
 }
@@ -423,6 +424,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  display: table;
 }
 #pantalla3 th, #pantalla3 td {
   border: 1px solid #ccc;
@@ -468,12 +470,73 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   display: flex;
   gap: 15px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 .grafico-contenedor {
   width: 100%;
   max-width: 600px;
   margin: 20px auto;
 }
+.opciones-grafico {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+.opciones-grafico .usuario-btn {
+    padding: 8px 15px;
+    font-size: 14px;
+}
+.reporte-calidad-mobile .tabla-calidad-movil .fila-dato {
+    background-color: #f2f2f2;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+.reporte-calidad-mobile .tabla-calidad-movil .etiqueta {
+    font-weight: bold;
+    color: #666;
+    display: block;
+    font-size: 12px;
+}
+.reporte-calidad-mobile .tabla-calidad-movil .valor {
+    color: #333;
+    font-size: 16px;
+}
+@media (max-width: 768px) {
+    #pantalla3 .header-reporte {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    #pantalla3 .header-reporte .filtros {
+        width: 100%;
+        flex-direction: column;
+    }
+    #pantalla3 .header-reporte .filtros input,
+    #pantalla3 .header-reporte .filtros select {
+        width: 100%;
+    }
+    #pantalla3 .resumen-datos {
+        flex-direction: column;
+        gap: 15px;
+    }
+    #pantalla3 .dato {
+        width: 100%;
+    }
+    #pantalla3 table {
+        display: none; /* Oculta la tabla normal en móviles */
+    }
+    .reporte-calidad-mobile {
+        display: block; /* Muestra la tabla móvil */
+    }
+}
+@media (min-width: 769px) {
+    .reporte-calidad-mobile {
+        display: none; /* Oculta la tabla móvil en desktop */
+    }
+}
+
 /* ================= CSS PARA PANTALLA 4 (DASHBOARD) ================= */
 #pantalla4 {
   background-color: #000;
@@ -890,6 +953,7 @@ const CONFIG = {
 let usuarioSeleccionado = null;
 let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
 let reporteActual = null;
+let datosFiltradosReporte = null;
 let miGrafico;
 let graficosDashboard = {};
 let dashboardUpdateInterval;
@@ -1683,6 +1747,14 @@ function mostrarReporte(tipo) {
         </select>
     `;
 
+    let empleadoFiltroHtml = '';
+    if (tipo === 'calidad') {
+        empleadoFiltroHtml = `
+            <label for="empleadoFiltro">Empleado:</label>
+            <input type="text" id="empleadoFiltro" placeholder="Nombre de Empleado">
+        `;
+    }
+
     let fechaFiltroHtml = '';
     fechaFiltroHtml = `
         <label for="fechaReporte">Fecha:</label>
@@ -1700,10 +1772,23 @@ function mostrarReporte(tipo) {
     `;
 
     let exportButtons = `
-        <button class="usuario-btn" onclick="exportarTablaACsv('${tipo}')">Exportar a CSV</button>
         <button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button>
         <button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button>
     `;
+
+    let graficoSelector = '';
+    if (tipo !== 'resumen') {
+        graficoSelector = `
+            <div class="opciones-grafico">
+                <label>Tipo de Gráfico:</label>
+                <select id="tipoGrafico">
+                    <option value="bar">Barras</option>
+                    <option value="pie">Pastel</option>
+                    <option value="line">Línea</option>
+                </select>
+            </div>
+        `;
+    }
 
 
     contenedor.innerHTML = `
@@ -1713,10 +1798,12 @@ function mostrarReporte(tipo) {
                 ${fechaFiltroHtml}
                 ${turnoFiltroHtml}
                 ${tipo === 'resumen' ? '' : areaFiltroHtml}
+                ${empleadoFiltroHtml}
                 <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>
             </div>
         </div>
         <h2 id="tituloReporteDinamico">Cargando...</h2>
+        ${graficoSelector}
         <div id="contenidoReporte"></div>
         <div class="botones-reporte">
             ${exportButtons}
@@ -1730,11 +1817,105 @@ function mostrarReporte(tipo) {
         document.getElementById('areaFiltro').value = 'TODAS';
     }
     
+    // Listener para el cambio de tipo de gráfico
+    if (document.getElementById('tipoGrafico')) {
+        document.getElementById('tipoGrafico').addEventListener('change', actualizarGraficoReporte);
+    }
+
     const fecha = document.getElementById('fechaReporte').value;
     const turno = document.getElementById('turnoFiltro').value;
     const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
+    const empleado = document.getElementById('empleadoFiltro') ? document.getElementById('empleadoFiltro').value : null;
 
-    cargarDatosReporte(tipo, fecha, turno, area);
+    cargarDatosReporte(tipo, fecha, turno, area, empleado);
+}
+
+function actualizarGraficoReporte() {
+    const tipoGraficoSeleccionado = document.getElementById('tipoGrafico').value;
+    const contenedorGrafico = document.querySelector('#grafico-contenedor');
+    
+    if (contenedorGrafico) {
+        contenedorGrafico.innerHTML = '<canvas id="graficoDinamico"></canvas>';
+    }
+
+    if (datosFiltradosReporte) {
+        let labels, data, chartTitle;
+        if (reporteActual === 'produccion') {
+            const conteo = {};
+            datosFiltradosReporte.forEach(log => {
+                const area = log.grupo;
+                conteo[area] = (conteo[area] || 0) + 1;
+            });
+            labels = Object.keys(conteo);
+            data = Object.values(conteo);
+            chartTitle = 'Tarimas Producidas por Área';
+        } else if (reporteActual === 'logistica') {
+            const tiemposPorArea = {};
+            datosFiltradosReporte.forEach(log => {
+                const area = log.grupo;
+                tiemposPorArea[area] = tiemposPorArea[area] || { total: 0, count: 0 };
+                tiemposPorArea[area].total += log.tiempoRecoleccion;
+                tiemposPorArea[area].count++;
+            });
+            labels = Object.keys(tiemposPorArea);
+            data = labels.map(label => (tiemposPorArea[label].total / tiemposPorArea[label].count).toFixed(1));
+            chartTitle = 'Tiempo Promedio de Recolección por Área';
+        } else if (reporteActual === 'calidad') {
+            const conteo = {};
+            datosFiltradosReporte.forEach(rechazo => {
+                const problema = rechazo.problema;
+                conteo[problema] = (conteo[problema] || 0) + 1;
+            });
+            labels = Object.keys(conteo);
+            data = Object.values(conteo);
+            chartTitle = 'Causas de Rechazo';
+        }
+
+        if (miGrafico) {
+            miGrafico.destroy();
+        }
+
+        const ctx = document.getElementById('graficoDinamico').getContext('2d');
+        const backgroundColors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
+            '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
+        ];
+
+        miGrafico = new Chart(ctx, {
+            type: tipoGraficoSeleccionado,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: chartTitle,
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors,
+                    borderWidth: 1,
+                    fill: tipoGraficoSeleccionado === 'line',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { font: { size: 14 } }
+                    },
+                    title: {
+                        display: true,
+                        text: chartTitle,
+                        font: { size: 20 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
 }
 
 
@@ -1745,6 +1926,7 @@ function regresarASelectores() {
     if (miGrafico) {
         miGrafico.destroy();
     }
+    datosFiltradosReporte = null;
 }
 
 function buscarReporte() {
@@ -1752,12 +1934,13 @@ function buscarReporte() {
     const fecha = document.getElementById('fechaReporte').value;
     const turno = document.getElementById('turnoFiltro').value;
     const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
+    const empleado = document.getElementById('empleadoFiltro') ? document.getElementById('empleadoFiltro').value : null;
 
-    cargarDatosReporte(tipo, fecha, turno, area);
+    cargarDatosReporte(tipo, fecha, turno, area, empleado);
 }
 
 
-function cargarDatosReporte(tipo, fecha, turno, area) {
+function cargarDatosReporte(tipo, fecha, turno, area, empleado) {
     const contenedor = document.getElementById('contenidoReporte');
     const tituloReporte = document.getElementById('tituloReporteDinamico');
     contenedor.innerHTML = '<p>Cargando datos...</p>';
@@ -1779,7 +1962,7 @@ function cargarDatosReporte(tipo, fecha, turno, area) {
         
         if (tipo === 'calidad') {
             tituloReporte.textContent = `Reporte de Calidad - ${fecha}`;
-            procesarReporteCalidad(datosCompletos, contenedor, fecha, turno, area);
+            procesarReporteCalidad(datosCompletos, contenedor, fecha, turno, area, empleado);
         } else if (tipo === 'produccion') {
             tituloReporte.textContent = `Reporte de Producción - ${fecha}`;
             procesarReporteProduccion(datosCompletos, contenedor, fecha, turno, area);
@@ -1797,7 +1980,7 @@ function cargarDatosReporte(tipo, fecha, turno, area) {
 }
 
 
-function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
+function procesarReporteCalidad(datos, contenedor, fecha, turno, area, empleado) {
     let rechazosFiltrados = [];
     
     for (const fechaKey in datos.rechazos) {
@@ -1809,24 +1992,42 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
             for (const rechazoKey in datos.rechazos[fechaKey][turnoKey]) {
                 const rechazo = datos.rechazos[fechaKey][turnoKey][rechazoKey];
                 
-                // Ahora usamos el nuevo campo areaRechazo para el filtro
-                if (area === 'TODAS' || rechazo.areaRechazo === area) {
+                if (
+                    (area === 'TODAS' || rechazo.areaRechazo === area) &&
+                    (!empleado || (rechazo.empleado && rechazo.empleado.toLowerCase().includes(empleado.toLowerCase())))
+                ) {
                     rechazosFiltrados.push(rechazo);
                 }
             }
         }
     }
     
+    datosFiltradosReporte = rechazosFiltrados;
+
     const conteoProblemas = {};
     rechazosFiltrados.forEach(rechazo => {
         const problema = rechazo.problema || 'Desconocido';
         conteoProblemas[problema] = (conteoProblemas[problema] || 0) + 1;
     });
+
+    // KPIs
+    const kpisHtml = `
+        <div class="resumen-datos">
+            <div class="dato">
+                <div class="valor">${rechazosFiltrados.length}</div>
+                <div class="etiqueta">Tarimas Rechazadas</div>
+            </div>
+            <div class="dato">
+                <div class="valor">${Object.keys(conteoProblemas).length}</div>
+                <div class="etiqueta">Problemas Identificados</div>
+            </div>
+        </div>
+    `;
     
-    let html = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Área</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción de la Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
+    let tablaHtml = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Área</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción de la Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
     rechazosFiltrados.forEach(r => {
         const areaRechazoFormateada = r.areaRechazo ? r.areaRechazo.replace('CALIDAD_', '') : 'N/A';
-        html += `
+        tablaHtml += `
             <tr>
                 <td>${r.fecha}</td>
                 <td>${r.hora}</td>
@@ -1841,15 +2042,34 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
             </tr>
         `;
     });
-    html += `</tbody></table>`;
-    contenedor.innerHTML = html;
-    
+    tablaHtml += `</tbody></table>`;
+
+    // Versión para móvil
+    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
+    rechazosFiltrados.forEach(r => {
+        const areaRechazoFormateada = r.areaRechazo ? r.areaRechazo.replace('CALIDAD_', '') : 'N/A';
+        tablaMovilHtml += `
+            <div class="fila-dato">
+                <span class="etiqueta">Fecha:</span> <span class="valor">${r.fecha}</span><br>
+                <span class="etiqueta">Hora:</span> <span class="valor">${r.hora}</span><br>
+                <span class="etiqueta">Área:</span> <span class="valor">${areaRechazoFormateada}</span><br>
+                <span class="etiqueta">Línea:</span> <span class="valor">${r.linea || 'N/A'}</span><br>
+                <span class="etiqueta">Empleado:</span> <span class="valor">${r.empleado || 'N/A'}</span><br>
+                <span class="etiqueta">Problema:</span> <span class="valor">${r.problema || 'N/A'}</span>
+            </div>
+        `;
+    });
+    tablaMovilHtml += `</div></div>`;
+
+    let graficoHtml = '';
     if (Object.keys(conteoProblemas).length > 0) {
-        const graficoDiv = document.createElement('div');
-        graficoDiv.className = 'grafico-contenedor';
-        graficoDiv.innerHTML = '<canvas id="graficoRechazos"></canvas>';
-        contenedor.appendChild(graficoDiv);
-        generarGraficoRechazos(conteoProblemas);
+        graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
+    }
+    
+    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+
+    if (Object.keys(conteoProblemas).length > 0) {
+        actualizarGraficoReporte();
     }
 }
 
@@ -1876,7 +2096,9 @@ function procesarReporteProduccion(datos, contenedor, fecha, turno, area) {
         }
     }
     
-    let html = `
+    datosFiltradosReporte = logsProduccion;
+
+    const kpisHtml = `
         <div class="resumen-datos">
             <div class="dato">
                 <div class="valor">${logsProduccion.length}</div>
@@ -1884,8 +2106,10 @@ function procesarReporteProduccion(datos, contenedor, fecha, turno, area) {
             </div>
         </div>
     `;
-    
-    html += `
+
+    const graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
+
+    let tablaHtml = `
         <table>
             <thead>
                 <tr>
@@ -1898,7 +2122,7 @@ function procesarReporteProduccion(datos, contenedor, fecha, turno, area) {
             <tbody>
     `;
     logsProduccion.forEach(log => {
-        html += `
+        tablaHtml += `
             <tr>
                 <td>${log.grupo}</td>
                 <td>${log.led}</td>
@@ -1907,14 +2131,23 @@ function procesarReporteProduccion(datos, contenedor, fecha, turno, area) {
             </tr>
         `;
     });
-    html += `</tbody></table>`;
-    contenedor.innerHTML = html;
+    tablaHtml += `</tbody></table>`;
     
-    const graficoDiv = document.createElement('div');
-    graficoDiv.className = 'grafico-contenedor';
-    graficoDiv.innerHTML = '<canvas id="graficoProduccion"></canvas>';
-    contenedor.appendChild(graficoDiv);
-    generarGraficoProduccion(conteo);
+    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
+    logsProduccion.forEach(log => {
+        tablaMovilHtml += `
+            <div class="fila-dato">
+                <span class="etiqueta">Línea:</span> <span class="valor">${log.grupo}</span><br>
+                <span class="etiqueta">Tarima:</span> <span class="valor">${log.led}</span><br>
+                <span class="etiqueta">Hora:</span> <span class="valor">${formatoHora(log.timestamp)}</span><br>
+                <span class="etiqueta">Usuario:</span> <span class="valor">${log.usuario}</span>
+            </div>
+        `;
+    });
+    tablaMovilHtml += `</div></div>`;
+
+    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+    actualizarGraficoReporte();
 }
 
 
@@ -1939,10 +2172,12 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
             }
         }
     }
+
+    datosFiltradosReporte = logsRecoleccion;
     
     const tiempoPromedio = logsRecoleccion.length > 0 ? (tiempoTotal / logsRecoleccion.length).toFixed(1) : 0;
 
-    let html = `
+    const kpisHtml = `
         <div class="resumen-datos">
             <div class="dato">
                 <div class="valor">${logsRecoleccion.length}</div>
@@ -1953,6 +2188,11 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
                 <div class="etiqueta">Tiempo Promedio</div>
             </div>
         </div>
+    `;
+
+    const graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
+
+    let tablaHtml = `
         <table>
             <thead>
                 <tr>
@@ -1966,7 +2206,7 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
             <tbody>
     `;
     logsRecoleccion.forEach(log => {
-        html += `
+        tablaHtml += `
             <tr>
                 <td>${log.grupo}</td>
                 <td>${log.led}</td>
@@ -1976,8 +2216,22 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
             </tr>
         `;
     });
-    html += `</tbody></table>`;
-    contenedor.innerHTML = html;
+    tablaHtml += `</tbody></table>`;
+    
+    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
+    logsRecoleccion.forEach(log => {
+        tablaMovilHtml += `
+            <div class="fila-dato">
+                <span class="etiqueta">Línea:</span> <span class="valor">${log.grupo}</span><br>
+                <span class="etiqueta">Tarima:</span> <span class="valor">${log.led}</span><br>
+                <span class="etiqueta">Tiempo:</span> <span class="valor">${log.tiempoRecoleccion} min</span>
+            </div>
+        `;
+    });
+    tablaMovilHtml += `</div></div>`;
+
+    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+    actualizarGraficoReporte();
 }
 
 function procesarReporteResumen(datos, contenedor, fecha, turno) {
