@@ -414,7 +414,8 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   font-size: 14px;
 }
 #pantalla3 .header-reporte .filtros input[type="date"],
-#pantalla3 .header-reporte .filtros select {
+#pantalla3 .header-reporte .filtros select,
+#pantalla3 .header-reporte .filtros input[type="text"] {
   padding: 8px;
   border-radius: 5px;
   border: 1px solid #ccc;
@@ -1774,6 +1775,7 @@ function mostrarReporte(tipo) {
     let exportButtons = `
         <button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button>
         <button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button>
+        <button class="usuario-btn" onclick="exportarReporte('csv')">Exportar a CSV</button>
     `;
 
     let graficoSelector = '';
@@ -1850,16 +1852,14 @@ function actualizarGraficoReporte() {
             data = Object.values(conteo);
             chartTitle = 'Tarimas Producidas por Área';
         } else if (reporteActual === 'logistica') {
-            const tiemposPorArea = {};
+            const conteo = {};
             datosFiltradosReporte.forEach(log => {
                 const area = log.grupo;
-                tiemposPorArea[area] = tiemposPorArea[area] || { total: 0, count: 0 };
-                tiemposPorArea[area].total += log.tiempoRecoleccion;
-                tiemposPorArea[area].count++;
+                conteo[area] = (conteo[area] || 0) + 1;
             });
-            labels = Object.keys(tiemposPorArea);
-            data = labels.map(label => (tiemposPorArea[label].total / tiemposPorArea[label].count).toFixed(1));
-            chartTitle = 'Tiempo Promedio de Recolección por Área';
+            labels = Object.keys(conteo);
+            data = Object.values(conteo);
+            chartTitle = 'Total de Tarimas Recolectadas por Área';
         } else if (reporteActual === 'calidad') {
             const conteo = {};
             datosFiltradosReporte.forEach(rechazo => {
@@ -2176,6 +2176,12 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
     datosFiltradosReporte = logsRecoleccion;
     
     const tiempoPromedio = logsRecoleccion.length > 0 ? (tiempoTotal / logsRecoleccion.length).toFixed(1) : 0;
+    
+    const conteoTarimasPorArea = {};
+    logsRecoleccion.forEach(log => {
+        const area = log.grupo;
+        conteoTarimasPorArea[area] = (conteoTarimasPorArea[area] || 0) + 1;
+    });
 
     const kpisHtml = `
         <div class="resumen-datos">
@@ -2231,6 +2237,7 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
     tablaMovilHtml += `</div></div>`;
 
     contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+    document.getElementById('tipoGrafico').value = 'bar'; // Establecer por defecto a barras
     actualizarGraficoReporte();
 }
 
@@ -2425,13 +2432,32 @@ function generarGraficoProduccion(datos) {
     });
 }
 
-function exportarTablaACsv(nombreReporte) {
+
+function exportarReporte(formato) {
     const tabla = document.querySelector('#contenidoReporte table');
+    const chart = miGrafico;
+    const tipo = reporteActual;
+
     if (!tabla) {
-        alert('No hay una tabla para exportar.');
+        alert('No hay datos para exportar. Por favor, genera un reporte primero.');
         return;
     }
 
+    const nombreArchivo = `${tipo}_${document.getElementById('fechaReporte').value}`;
+
+    if (formato === 'excel') {
+        const data = XLSX.utils.table_to_sheet(tabla);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, data, 'Reporte');
+        XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+    } else if (formato === 'pdf') {
+        exportarAPdf(tabla, chart, nombreArchivo);
+    } else if (formato === 'csv') {
+        exportarACsv(tabla, nombreArchivo);
+    }
+}
+
+function exportarACsv(tabla, nombreReporte) {
     let csv = [];
     const filas = tabla.querySelectorAll('tr');
 
@@ -2449,33 +2475,11 @@ function exportarTablaACsv(nombreReporte) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `${nombreReporte}_${document.getElementById('fechaReporte').value}.csv`);
+    link.setAttribute('download', `${nombreReporte}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-}
-
-function exportarReporte(formato) {
-    const tabla = document.querySelector('#contenidoReporte table');
-    const chart = miGrafico;
-    const tipo = reporteActual;
-
-    if (!tabla) {
-        alert('No hay datos para exportar. Por favor, genera un reporte primero.');
-        return;
-    }
-
-    const nombreArchivo = `${tipo}_${document.getElementById('fechaReporte').value}`;
-    const data = XLSX.utils.table_to_sheet(tabla);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, data, 'Reporte');
-
-    if (formato === 'excel') {
-        XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
-    } else if (formato === 'pdf') {
-        exportarAPdf(tabla, chart, nombreArchivo);
-    }
 }
 
 function exportarAPdf(tabla, chart, nombreArchivo) {
