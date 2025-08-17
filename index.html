@@ -1146,7 +1146,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             } else if (esUsuarioProduccion() && usuarioSeleccionado === grupoBaseCalidad) {
                 // Lógica para Producción: APAGAR LEDs de CALIDAD
                 if (estadoActual.color === 'verde') {
-                    if (!confirm('¿Está realmente confirmada la tarima?')) {
+                    if (!confirm('¿Está realmente liberada la tarima?')) {
                         return;
                     }
                     ledRef.set(null);
