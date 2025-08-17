@@ -859,6 +859,30 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 
 <script>
 // ================= CONFIG Y ESTADO =================
+const CONFIG = {
+    USUARIOS: ['MULTIPORT', 'BEDROCK', 'DROPS', 'LOGÍSTICA', 'SUPERVISOR', 'CALIDAD'],
+    PRODUCCION_GRUPOS: ['MULTIPORT', 'BEDROCK', 'DROPS'],
+    PASSWORDS: {
+        'LOGÍSTICA': 'logistica123',
+        'MULTIPORT': 'multiport123',
+        'BEDROCK': 'bedrock123',
+        'DROPS': 'drops123',
+        'SUPERVISOR': 'supervisor123',
+        'CALIDAD_MULTIPORT': 'calidadmp123',
+        'CALIDAD_DROPS': 'calidaddp123',
+        'CALIDAD_BEDROCK': 'calidadbr123',
+        'REPORTES': 'reportes123',
+        'DASHBOARD': 'dashboard123'
+    },
+    LEDS_POR_GRUPO: {
+        'MULTIPORT': 5,
+        'BEDROCK': 5,
+        'DROPS': 5,
+        'CALIDAD_MULTIPORT': 5,
+        'CALIDAD_BEDROCK': 5,
+        'CALIDAD_DROPS': 5
+    }
+};
 
 let usuarioSeleccionado = null;
 let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
@@ -1122,7 +1146,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             } else if (esUsuarioProduccion() && usuarioSeleccionado === grupoBaseCalidad) {
                 // Lógica para Producción: APAGAR LEDs de CALIDAD
                 if (estadoActual.color === 'verde') {
-                    if (!confirm('¿Está realmente liberada la tarima?')) {
+                    if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
                     }
                     ledRef.set(null);
@@ -1291,111 +1315,86 @@ function volverAPantalla1(){
 }
 
 function seleccionarUsuario(usuario) {
-    // Caso especial para el usuario de Calidad
-    if (usuario === 'CALIDAD') {
-        const password = prompt('Introduce la contraseña de Calidad:');
-        if (!password) {
-            return;
+    if (!CONFIG.USUARIOS.includes(usuario)) {
+        return;
+    }
+
+    if (usuario === 'SUPERVISOR') {
+        const password = prompt('Introduce la contraseña para SUPERVISOR:');
+        if (password === CONFIG.PASSWORDS['SUPERVISOR']) {
+             usuarioSeleccionado = usuario;
+            document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            pintarEstado();
+            iniciarListenersFirebase(); 
+            alert(`¡Bienvenido, ${usuario}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
+    } else if (usuario === 'CALIDAD') {
+        const password = prompt('Introduce la contraseña para CALIDAD:');
+        let subusuario = null;
+        
+        if (password === CONFIG.PASSWORDS['CALIDAD_MULTIPORT']) {
+            subusuario = 'CALIDAD_MULTIPORT';
+        } else if (password === CONFIG.PASSWORDS['CALIDAD_DROPS']) {
+            subusuario = 'CALIDAD_DROPS';
+        } else if (password === CONFIG.PASSWORDS['CALIDAD_BEDROCK']) {
+            subusuario = 'CALIDAD_BEDROCK';
         }
 
-        const credencialesRef = database.ref('credencialesUsuarios');
-        
-        credencialesRef.once('value').then(snapshot => {
-            const credenciales = snapshot = snapshot.val();
-            let usuarioValidado = false;
-
-            for (const key in credenciales) {
-                if (key.startsWith('CALIDAD_') && credenciales[key].password === password) {
-                    usuarioSeleccionado = key;
-                    document.getElementById('tituloFijo').textContent = `CALIDAD - ${key.split('_')[1]}`;
-                    activarPantalla('pantalla2');
-                    inyectaLEDs();
-                    pintarEstado();
-                    iniciarListenersFirebase();
-                    alert(`¡Bienvenido, ${usuarioSeleccionado.replace('_', ' ')}!`);
-                    usuarioValidado = true;
-                    break;
-                }
-            }
-
-            if (!usuarioValidado) {
-                alert('Contraseña incorrecta. Inténtalo de nuevo.');
-            }
-        }).catch(error => {
-            console.error("Error al leer las credenciales:", error);
-            alert("Hubo un error al verificar el usuario. Inténtalo de nuevo.");
-        });
-
+        if (subusuario) {
+            usuarioSeleccionado = subusuario;
+            document.getElementById('tituloFijo').textContent = `CALIDAD - ${subusuario.split('_')[1]}`;
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            pintarEstado();
+            iniciarListenersFirebase();
+            alert(`¡Bienvenido, ${subusuario.replace('_', ' ')}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
     } else {
         const password = prompt(`Introduce la contraseña para ${usuario}:`);
-        if (!password) {
-            return;
-        }
-        
-        const credencialesRef = database.ref(`credencialesUsuarios/${usuario}/password`);
-        
-        credencialesRef.once('value').then(snapshot => {
-            const passwordCorrecta = snapshot.val();
-            if (password === passwordCorrecta) {
-                usuarioSeleccionado = usuario;
-                document.getElementById('tituloFijo').textContent = usuario.replace('_', ' ');
-                activarPantalla('pantalla2');
-                inyectaLEDs();
-                pintarEstado();
-                iniciarListenersFirebase();
-                alert(`¡Bienvenido, ${usuario}!`);
+        if (password === CONFIG.PASSWORDS[usuario]) {
+            usuarioSeleccionado = usuario;
+            if (usuario === 'LOGÍSTICA') {
+                document.getElementById('tituloFijo').textContent = 'LOGÍSTICA';
             } else {
-                alert('Contraseña incorrecta. Inténtalo de nuevo.');
+                document.getElementById('tituloFijo').textContent = usuario;
             }
-        }).catch(error => {
-            console.error("Error al leer las credenciales:", error);
-            alert("Hubo un error al verificar el usuario. Inténtalo de nuevo.");
-        });
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            pintarEstado();
+            iniciarListenersFirebase();
+            alert(`¡Bienvenido, ${usuario}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
     }
 }
 
 function seleccionarReporte() {
     const password = prompt('Introduce la contraseña para REPORTES:');
-    if (!password) {
-        return;
+    if (password === CONFIG.PASSWORDS['REPORTES']) {
+        activarPantalla('pantalla3');
+        document.getElementById('tituloReportes').textContent = 'REPORTES';
+        document.getElementById('selectoresReportes').style.display = 'flex';
+        document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
+    } else {
+        alert('Contraseña incorrecta. Acceso denegado.');
     }
-
-    database.ref('credencialesUsuarios/REPORTES/password').once('value').then(snapshot => {
-        const passwordCorrecta = snapshot.val();
-        if (password === passwordCorrecta) {
-            activarPantalla('pantalla3');
-            document.getElementById('tituloReportes').textContent = 'REPORTES';
-            document.getElementById('selectoresReportes').style.display = 'flex';
-            document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
-        } else {
-            alert('Contraseña incorrecta. Acceso denegado.');
-        }
-    }).catch(error => {
-        console.error("Error al leer las credenciales:", error);
-        alert("Hubo un error al verificar el acceso. Inténtalo de nuevo.");
-    });
 }
 
 function seleccionarDashboard() {
     const password = prompt('Introduce la contraseña para DASHBOARD:');
-    if (!password) {
-        return;
+    if (password === CONFIG.PASSWORDS['DASHBOARD']) {
+        activarPantalla('pantalla4');
+        iniciarDashboard();
+    } else {
+        alert('Contraseña incorrecta. Acceso denegado.');
     }
-
-    database.ref('credencialesUsuarios/DASHBOARD/password').once('value').then(snapshot => {
-        const passwordCorrecta = snapshot.val();
-        if (password === passwordCorrecta) {
-            activarPantalla('pantalla4');
-            document.getElementById('tituloDashboard').textContent = 'DASHBOARD';
-            mostrarContadoresKPIs();
-            mostrarMetricasTiempoReal();
-        } else {
-            alert('Contraseña incorrecta. Acceso denegado.');
-        }
-    }).catch(error => {
-        console.error("Error al leer las credenciales:", error);
-        alert("Hubo un error al verificar el acceso. Inténtalo de nuevo.");
-    });
 }
 
 function limpiarDashboardListeners() {
