@@ -11,6 +11,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
 <style>
 :root{
@@ -863,16 +866,16 @@ const CONFIG = {
     USUARIOS: ['MULTIPORT', 'BEDROCK', 'DROPS', 'LOGÍSTICA', 'SUPERVISOR', 'CALIDAD'],
     PRODUCCION_GRUPOS: ['MULTIPORT', 'BEDROCK', 'DROPS'],
     PASSWORDS: {
-        'LOGÍSTICA': 'LOGRAM',
-        'MULTIPORT': 'MPRAM',
-        'BEDROCK': 'BEDRAM',
-        'DROPS': 'DROPS25',
-        'SUPERVISOR': 'SUPRAM',
-        'CALIDAD_MULTIPORT': 'AQLMP',
-        'CALIDAD_DROPS': 'AQLDP',
-        'CALIDAD_BEDROCK': 'AQLDB',
-        'REPORTES': 'REPO',
-        'DASHBOARD': 'DASH'
+        'LOGÍSTICA': 'logistica123',
+        'MULTIPORT': 'multiport123',
+        'BEDROCK': 'bedrock123',
+        'DROPS': 'drops123',
+        'SUPERVISOR': 'supervisor123',
+        'CALIDAD_MULTIPORT': 'calidadmp123',
+        'CALIDAD_DROPS': 'calidaddp123',
+        'CALIDAD_BEDROCK': 'calidadbr123',
+        'REPORTES': 'reportes123',
+        'DASHBOARD': 'dashboard123'
     },
     LEDS_POR_GRUPO: {
         'MULTIPORT': 5,
@@ -1146,7 +1149,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             } else if (esUsuarioProduccion() && usuarioSeleccionado === grupoBaseCalidad) {
                 // Lógica para Producción: APAGAR LEDs de CALIDAD
                 if (estadoActual.color === 'verde') {
-                    if (!confirm('¿Está realmente liberada la tarima?')) {
+                    if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
                     }
                     ledRef.set(null);
@@ -1674,6 +1677,7 @@ function mostrarReporte(tipo) {
     let areaFiltroHtml = '';
     const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK', 'CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
     areaFiltroHtml = `
+        <label for="areaFiltro">Área:</label>
         <select id="areaFiltro">
             ${areas.map(area => `<option value="${area}">${area.replace('CALIDAD_', 'Calidad ')}</option>`).join('')}
         </select>
@@ -1695,6 +1699,13 @@ function mostrarReporte(tipo) {
         </select>
     `;
 
+    let exportButtons = `
+        <button class="usuario-btn" onclick="exportarTablaACsv('${tipo}')">Exportar a CSV</button>
+        <button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button>
+        <button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button>
+    `;
+
+
     contenedor.innerHTML = `
         <div class="header-reporte">
             <button onclick="regresarASelectores()" class="usuario-btn">Regresar</button>
@@ -1708,7 +1719,7 @@ function mostrarReporte(tipo) {
         <h2 id="tituloReporteDinamico">Cargando...</h2>
         <div id="contenidoReporte"></div>
         <div class="botones-reporte">
-            <button class="usuario-btn" onclick="exportarTablaACsv('${tipo}')">Exportar a CSV</button>
+            ${exportButtons}
         </div>
     `;
 
@@ -1806,10 +1817,10 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
         }
     }
     
-    const conteoCausas = {};
+    const conteoProblemas = {};
     rechazosFiltrados.forEach(rechazo => {
-        const causa = rechazo.causa || 'Desconocida';
-        conteoCausas[causa] = (conteoCausas[causa] || 0) + 1;
+        const problema = rechazo.problema || 'Desconocido';
+        conteoProblemas[problema] = (conteoProblemas[problema] || 0) + 1;
     });
     
     let html = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Área</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción de la Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
@@ -1833,12 +1844,12 @@ function procesarReporteCalidad(datos, contenedor, fecha, turno, area) {
     html += `</tbody></table>`;
     contenedor.innerHTML = html;
     
-    if (Object.keys(conteoCausas).length > 0) {
+    if (Object.keys(conteoProblemas).length > 0) {
         const graficoDiv = document.createElement('div');
         graficoDiv.className = 'grafico-contenedor';
         graficoDiv.innerHTML = '<canvas id="graficoRechazos"></canvas>';
         contenedor.appendChild(graficoDiv);
-        generarGraficoRechazos(conteoCausas);
+        generarGraficoRechazos(conteoProblemas);
     }
 }
 
@@ -2189,6 +2200,105 @@ function exportarTablaACsv(nombreReporte) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+function exportarReporte(formato) {
+    const tabla = document.querySelector('#contenidoReporte table');
+    const chart = miGrafico;
+    const tipo = reporteActual;
+
+    if (!tabla) {
+        alert('No hay datos para exportar. Por favor, genera un reporte primero.');
+        return;
+    }
+
+    const nombreArchivo = `${tipo}_${document.getElementById('fechaReporte').value}`;
+    const data = XLSX.utils.table_to_sheet(tabla);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, data, 'Reporte');
+
+    if (formato === 'excel') {
+        XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+    } else if (formato === 'pdf') {
+        exportarAPdf(tabla, chart, nombreArchivo);
+    }
+}
+
+function exportarAPdf(tabla, chart, nombreArchivo) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'letter');
+    const margin = 20;
+    let y = margin;
+    let pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+    let pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+
+    // Título del reporte
+    doc.setFontSize(22);
+    doc.text(`Reporte de ${reporteActual.toUpperCase()}`, pageWidth / 2, y, { align: 'center' });
+    y += 30;
+
+    // Agregar la fecha
+    doc.setFontSize(12);
+    doc.text(`Fecha: ${document.getElementById('fechaReporte').value}`, margin, y);
+    y += 20;
+
+    // Agregar resumen si existe
+    const resumenDiv = document.querySelector('#contenidoReporte .resumen-datos');
+    if (resumenDiv) {
+        const resumenText = Array.from(resumenDiv.children).map(dato => {
+            const etiqueta = dato.querySelector('.etiqueta').textContent;
+            const valor = dato.querySelector('.valor').textContent;
+            return `${etiqueta}: ${valor}`;
+        }).join('  |  ');
+        doc.text(resumenText, margin, y);
+        y += 30;
+    }
+
+    // Agregar gráfica como imagen
+    if (chart) {
+        const chartDataURL = chart.toBase64Image();
+        const imgWidth = 500;
+        const imgHeight = 250;
+        const imgX = (pageWidth - imgWidth) / 2;
+
+        if (y + imgHeight + 30 > pageHeight) {
+            doc.addPage();
+            y = margin;
+        }
+
+        doc.addImage(chartDataURL, 'PNG', imgX, y, imgWidth, imgHeight);
+        y += imgHeight + 30;
+    }
+
+    // Agregar tabla
+    const tableHeaders = Array.from(tabla.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    const tableData = Array.from(tabla.querySelectorAll('tbody tr')).map(tr =>
+        Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
+    );
+
+    const startY = y;
+    doc.autoTable({
+        startY: startY,
+        head: [tableHeaders],
+        body: tableData,
+        theme: 'striped',
+        styles: { fontSize: 8, cellPadding: 5 },
+        columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 50 },
+            3: { cellWidth: 60 },
+            4: { cellWidth: 60 },
+            5: { cellWidth: 70 },
+            6: { cellWidth: 70 },
+            7: { cellWidth: 70 },
+            8: { cellWidth: 70 },
+            9: { cellWidth: 70 },
+        },
+        margin: { top: y, left: margin, right: margin, bottom: margin }
+    });
+
+    doc.save(`${nombreArchivo}.pdf`);
 }
 
 // ================= ARRANQUE Y MANEJO DE MODALES =================
