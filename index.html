@@ -1146,7 +1146,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             } else if (esUsuarioProduccion() && usuarioSeleccionado === grupoBaseCalidad) {
                 // Lógica para Producción: APAGAR LEDs de CALIDAD
                 if (estadoActual.color === 'verde') {
-                    if (!confirm('¿Está realmente confirmada la tarima?')) {
+                    if (!confirm('¿Está realmente liberada la tarima?')) {
                         return;
                     }
                     ledRef.set(null);
@@ -1199,7 +1199,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 }
             } else if (esUsuarioProduccion()) { // Es usuario de Producción
                 if (!estadoActual.encendido) {
-                    if (!confirm('¿Está realmente liberada la tarima?')) {
+                    if (!confirm('¿Está realmente confirmada la tarima?')) {
                         return;
                     }
                     ledRef.set({
