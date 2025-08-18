@@ -1038,7 +1038,8 @@ function pintarEstado() {
                 
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
-
+                    led.innerHTML = ''; // Limpiamos el contenido anterior
+                    
                     if (ledsEstado[index]) {
                         // Lógica para el estado de Calidad
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
@@ -1046,26 +1047,33 @@ function pintarEstado() {
                         } 
                         // Lógica para LEDs de Producción
                         else if (ledsEstado[index].encendido) {
-                            led.classList.add('on');
-                            // ======================== CÓDIGO CORREGIDO ========================
-                            const horaEncendido = new Date(ledsEstado[index].horaEncendido);
-                            const tiempoTranscurrido = (new Date() - horaEncendido) / 1000; // En segundos
+                            led.classList.add('on', 'verde');
                             
+                            // Creamos un span para mostrar el tiempo
+                            const spanTiempo = document.createElement('span');
+                            spanTiempo.className = 'tiempo-led';
+                            
+                            // Agregamos la hora de encendido como un atributo para su uso futuro
+                            spanTiempo.dataset.horaEncendido = ledsEstado[index].timestamp;
+                            
+                            // Calculamos el tiempo transcurrido y lo mostramos
+                            const horaEncendido = new Date(ledsEstado[index].timestamp);
+                            const tiempoTranscurrido = (new Date() - horaEncendido) / 1000; // en segundos
                             const minutos = Math.floor(tiempoTranscurrido / 60);
                             const segundos = Math.floor(tiempoTranscurrido % 60);
 
-                            led.title = `Tiempo Encendido: ${minutos}m ${segundos}s`;
-                            // =============================================================
+                            spanTiempo.textContent = `${minutos}m ${segundos}s`;
+                            led.appendChild(spanTiempo);
                         }
                     } else {
-                        // Si el LED no tiene estado, limpiamos el tooltip
-                        led.title = '';
+                        // Si el LED no tiene estado, limpiamos el contenido
+                        led.innerHTML = '';
                     }
                 });
             } else {
                 contenedor.querySelectorAll('.led').forEach(led => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
-                    led.title = ''; // Limpiar el tooltip al apagar
+                    led.innerHTML = ''; // Limpiamos el contenido
                 });
             }
         });
