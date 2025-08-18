@@ -1538,24 +1538,21 @@ function setupDashboardListeners(fecha, turno) {
 function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs) {
     if (tipo === 'historial') {
         const produccionPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
-        const tiemposRecoleccion = { MULTIPORT: [], DROPS: [], BEDROCK: [] };
+        const tarimasPorHora = {};
         let tarimasRecolectadas = 0;
         let tiempoTotalRecoleccion = 0;
-        const tiemposPorHora = {};
         
         for (const logKey in historialLogs) {
             const log = historialLogs[logKey];
             if (log.accion === 'encendido' && produccionPorArea.hasOwnProperty(log.grupo)) {
                 produccionPorArea[log.grupo]++;
-            } else if (log.accion === 'apagado' && log.tiempoRecoleccion && tiemposRecoleccion.hasOwnProperty(log.grupo)) {
+            } else if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(log.grupo)) {
                 tarimasRecolectadas++;
                 tiempoTotalRecoleccion += log.tiempoRecoleccion;
                 
                 const horaApagado = new Date(log.horaApagado);
                 const horaRedondeada = horaApagado.getHours();
-                tiemposPorHora[horaRedondeada] = tiemposPorHora[horaRedondeada] || { total: 0, count: 0 };
-                tiemposPorHora[horaRedondeada].total += log.tiempoRecoleccion;
-                tiemposPorHora[horaRedondeada].count++;
+                tarimasPorHora[horaRedondeada] = (tarimasPorHora[horaRedondeada] || 0) + 1;
             }
         }
         
@@ -1573,7 +1570,7 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         }
         
         generarGraficoProduccionDash(produccionPorArea);
-        generarGraficoLogisticaDash(tiemposPorHora);
+        generarGraficoLogisticaDash(tarimasPorHora);
     }
 
     if (tipo === 'calidad') {
@@ -1681,30 +1678,26 @@ function generarGraficoCalidadDash(datos) {
     });
 }
 
-function generarGraficoLogisticaDash(tiemposPorHora) {
+function generarGraficoLogisticaDash(tarimasPorHora) {
     if (graficosDashboard.logistica) {
         graficosDashboard.logistica.destroy();
     }
     const ctx = document.getElementById('graficoLogisticaDash').getContext('2d');
     
-    const horasOrdenadas = Object.keys(tiemposPorHora).sort((a, b) => a - b);
+    const horasOrdenadas = Object.keys(tarimasPorHora).sort((a, b) => a - b);
     const labels = horasOrdenadas.map(hora => `${hora}:00 - ${parseInt(hora) + 1}:00`);
-    const data = horasOrdenadas.map(hora => {
-        const { total, count } = tiemposPorHora[hora];
-        return count > 0 ? (total / count).toFixed(1) : 0;
-    });
+    const data = horasOrdenadas.map(hora => tarimasPorHora[hora] || 0);
 
     graficosDashboard.logistica = new Chart(ctx, {
-        type: 'line',
+        type: 'bar', // Cambiado a gráfico de barras para mejor visualización de conteos
         data: {
             labels: labels, 
             datasets: [{
-                label: 'Tiempo Promedio por Hora',
+                label: 'Tarimas Recolectadas por Hora',
                 data: data,
-                borderColor: '#4BC0C0',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.4,
-                fill: true
+                backgroundColor: '#36A2EB',
+                borderColor: '#36A2EB',
+                borderWidth: 1
             }]
         },
         options: {
@@ -1715,7 +1708,10 @@ function generarGraficoLogisticaDash(tiemposPorHora) {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Tiempo de Recolección (minutos)'
+                        text: 'Tarimas Recolectadas' // Nueva etiqueta del eje Y
+                    },
+                    ticks: {
+                        stepSize: 1 // Asegura que las etiquetas sean números enteros
                     }
                 },
                 x: {
