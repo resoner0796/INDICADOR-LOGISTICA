@@ -2164,7 +2164,7 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
             for (const logKey in datos.historial[fechaKey][turnoKey]) {
                 const log = datos.historial[fechaKey][turnoKey][logKey];
                 if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
-                     if (area === 'TODAS' || log.grupo === area) {
+                    if (area === 'TODAS' || log.grupo === area) {
                         logsRecoleccion.push(log);
                         tiempoTotal += log.tiempoRecoleccion;
                     }
@@ -2230,7 +2230,8 @@ function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
             <div class="fila-dato">
                 <span class="etiqueta">Línea:</span> <span class="valor">${log.grupo}</span><br>
                 <span class="etiqueta">Tarima:</span> <span class="valor">${log.led}</span><br>
-                <span class="etiqueta">Tiempo:</span> <span class="valor">${log.tiempoRecoleccion} min</span>
+                <span class="etiqueta">Tiempo:</span> <span class="valor">${log.tiempoRecoleccion} min</span><br>
+                <span class="etiqueta">Hora de Recolección:</span> <span class="valor">${formatoHora(log.horaApagado)}</span>
             </div>
         `;
     });
