@@ -1025,61 +1025,58 @@ function inyectaLEDs(){
     });
 }
 
-function pintarEstado() {
-    db.ref('estadoLEDS').on('value', snapshot => {
-        const estados = snapshot.val() || {};
-        
-        document.querySelectorAll('.leds').forEach(contenedor => {
-            const grupoLeds = contenedor.dataset.grupo;
-            const linea = contenedor.dataset.linea;
-            
-            if (estados[grupoLeds] && estados[grupoLeds][linea]) {
-                const ledsEstado = estados[grupoLeds][linea];
-                
-                contenedor.querySelectorAll('.led').forEach((led, index) => {
-                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
-                    led.innerHTML = ''; // Limpiamos el contenido anterior
-                    
-                    if (ledsEstado[index]) {
-                        // Lógica para el estado de Calidad
-                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
-                            led.classList.add(ledsEstado[index].color);
-                        } 
-                        // Lógica para LEDs de Producción
-                        else if (ledsEstado[index].encendido) {
-                            led.classList.add('on', 'verde');
-                            
-                            // Creamos un span para mostrar el tiempo
-                            const spanTiempo = document.createElement('span');
-                            spanTiempo.className = 'tiempo-led';
-                            
-                            // Agregamos la hora de encendido como un atributo para su uso futuro
-                            spanTiempo.dataset.horaEncendido = ledsEstado[index].timestamp;
-                            
-                            // Calculamos el tiempo transcurrido y lo mostramos
-                            const horaEncendido = new Date(ledsEstado[index].timestamp);
-                            const tiempoTranscurrido = (new Date() - horaEncendido) / 1000; // en segundos
-                            const minutos = Math.floor(tiempoTranscurrido / 60);
-                            const segundos = Math.floor(tiempoTranscurrido % 60);
+function pintarEstado(estadoLEDS) {
+    const contenedor = document.getElementById('contenedorLEDS');
+    if (!contenedor) return;
+    contenedor.innerHTML = '';
+    
+    CONFIG.PRODUCCION_GRUPOS.forEach(grupo => {
+        const grupoContenedor = document.createElement('div');
+        grupoContenedor.className = 'led-grupo';
+        grupoContenedor.innerHTML = `<h3>${grupo}</h3>`;
 
-                            spanTiempo.textContent = `${minutos}m ${segundos}s`;
-                            led.appendChild(spanTiempo);
-                        }
-                    } else {
-                        // Si el LED no tiene estado, limpiamos el contenido
-                        led.innerHTML = '';
+        if (estadoLEDS.hasOwnProperty(grupo)) {
+            for (const linea in estadoLEDS[grupo]) {
+                const lineaContenedor = document.createElement('div');
+                lineaContenedor.className = 'led-linea';
+                
+                const ledsDeLinea = estadoLEDS[grupo][linea];
+                for (const led in ledsDeLinea) {
+                    const ledEstado = ledsDeLinea[led];
+                    const div = document.createElement('div');
+                    div.className = `led`;
+                    div.dataset.grupo = grupo;
+                    div.dataset.led = led;
+                    div.dataset.linea = linea;
+                    
+                    if (ledEstado.encendido) {
+                        div.classList.add('on', 'verde');
+                        const spanTiempo = document.createElement('span');
+                        spanTiempo.className = 'tiempo-led';
+                        div.appendChild(spanTiempo);
+                        div.dataset.horaEncendido = ledEstado.horaEncendido;
                     }
-                });
-            } else {
-                contenedor.querySelectorAll('.led').forEach(led => {
-                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
-                    led.innerHTML = ''; // Limpiamos el contenido
-                });
+                    lineaContenedor.appendChild(div);
+                }
+                grupoContenedor.appendChild(lineaContenedor);
             }
-        });
+        }
+        contenedor.appendChild(grupoContenedor);
     });
 }
-
+  
+function actualizarTiemposLEDs() {
+    document.querySelectorAll('.led-linea .led.on').forEach(led => {
+        const horaEncendido = led.dataset.horaEncendido;
+        if (horaEncendido) {
+            const tiempoTranscurrido = (new Date() - new Date(horaEncendido)) / 1000; // En segundos
+            const minutos = Math.floor(tiempoTranscurrido / 60);
+            const segundos = Math.floor(tiempoTranscurrido % 60);
+            led.querySelector('.tiempo-led').textContent = `${minutos}m ${segundos}s`;
+        }
+    });
+}
+  
 function formatoHora(isoString) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -1118,117 +1115,124 @@ function obtenerTurnoActual() {
 
 
 function iniciarListenersFirebase() {
-    const { fecha, turno } = obtenerTurnoActual();
-    document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
+    // Función para cargar y actualizar el dashboard con los filtros seleccionados
+    const cargarDashboard = () => {
+        const { fecha, turno } = obtenerTurnoActual(); // Asegura que los valores sean correctos
+        document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
 
-    // Desconectar los listeners existentes antes de reasignarlos
-    if (historialRef) historialRef.off();
-    if (contadoresCalidadRef) contadoresCalidadRef.off();
-    if (rechazosDetalladosRef) rechazosDetalladosRef.off();
-
-    // Asignar las nuevas referencias a la base de datos
-    historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
-    contadoresCalidadRef = database.ref(`contadoresCalidad/${fecha}/${turno}`);
-    rechazosDetalladosRef = database.ref(`rechazosDetallados/${fecha}/${turno}`);
-
-    // Listener para los datos del dashboard y reportes (historial de logs)
-    historialRef.on('value', (snapshot) => {
-        const logs = snapshot.val() || {};
         const filtroArea = document.getElementById('filtro-area').value;
-        const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0, CALIDAD_MULTIPORT: 0, CALIDAD_BEDROCK: 0, CALIDAD_DROPS: 0 };
-        const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+        const fechaDashboard = document.getElementById('fechaDashboard').value || fecha;
+        const turnoDashboard = document.getElementById('turnoDashboardSelect').value || turno;
 
-        let tarimasTotales = 0;
-        let tiempoTotalRecoleccion = 0;
+        // Desconectar los listeners existentes antes de reasignarlos
+        if (historialRef) historialRef.off();
+        if (contadoresCalidadRef) contadoresCalidadRef.off();
+        if (rechazosDetalladosRef) rechazosDetalladosRef.off();
 
-        if (logs) {
-            Object.values(logs).forEach(log => {
-                // Lógica de filtrado por área
-                if (filtroArea === 'TODAS' || log.grupo === filtroArea) {
-                    if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-                        contadores[log.grupo]++;
-                    } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-                        const grupoBase = log.grupo;
-                        if (tiempos.hasOwnProperty(grupoBase)) {
-                            tiempos[grupoBase].push(log);
+        // Asignar las nuevas referencias a la base de datos según los filtros
+        historialRef = database.ref(`historialLogs/${fechaDashboard}/${turnoDashboard}`);
+        contadoresCalidadRef = database.ref(`contadoresCalidad/${fechaDashboard}/${turnoDashboard}`);
+        rechazosDetalladosRef = database.ref(`rechazosDetallados/${fechaDashboard}/${turnoDashboard}`);
+
+        // Listener para los datos del dashboard y reportes (historial de logs)
+        historialRef.on('value', (snapshot) => {
+            const logs = snapshot.val() || {};
+            const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0, CALIDAD_MULTIPORT: 0, CALIDAD_BEDROCK: 0, CALIDAD_DROPS: 0 };
+            const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+
+            let tarimasTotales = 0;
+            let tiempoTotalRecoleccion = 0;
+
+            if (logs) {
+                Object.values(logs).forEach(log => {
+                    // Lógica de filtrado por área
+                    if (filtroArea === 'TODAS' || log.grupo === filtroArea) {
+                        if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+                            contadores[log.grupo]++;
+                        } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+                            const grupoBase = log.grupo;
+                            if (tiempos.hasOwnProperty(grupoBase)) {
+                                tiempos[grupoBase].push(log);
+                            }
+                            tarimasTotales++;
+                            tiempoTotalRecoleccion += log.tiempoRecoleccion;
                         }
-                        tarimasTotales++;
-                        tiempoTotalRecoleccion += log.tiempoRecoleccion;
                     }
-                }
-            });
-        }
-        
-        const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
-        
-        document.getElementById('tarimasTotales').textContent = tarimasTotales;
-        document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
+                });
+            }
+            
+            const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
+            
+            document.getElementById('tarimasTotales').textContent = tarimasTotales;
+            document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
 
-        const resumenTurnoDiv = document.getElementById('resumenTurno');
-        if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
-            resumenTurnoDiv.classList.remove('oculto');
-        } else {
-            resumenTurnoDiv.classList.add('oculto');
-        }
-        
-        document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
-        document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
-        document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
-        document.querySelector('.grupo[data-grupo="CALIDAD_MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_MULTIPORT}`;
-        document.querySelector('.grupo[data-grupo="CALIDAD_BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_BEDROCK}`;
-        document.querySelector('.grupo[data-grupo="CALIDAD_DROPS"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_DROPS}`;
+            const resumenTurnoDiv = document.getElementById('resumenTurno');
+            if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
+                resumenTurnoDiv.classList.remove('oculto');
+            } else {
+                resumenTurnoDiv.classList.add('oculto');
+            }
+            
+            document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
+            document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
+            document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+            document.querySelector('.grupo[data-grupo="CALIDAD_MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_MULTIPORT}`;
+            document.querySelector('.grupo[data-grupo="CALIDAD_BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_BEDROCK}`;
+            document.querySelector('.grupo[data-grupo="CALIDAD_DROPS"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_DROPS}`;
 
-        Object.keys(tiempos).forEach(grupo => {
-            const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-            if (!contenedorTiempos) return;
-            contenedorTiempos.innerHTML = '';
-            tiempos[grupo].forEach((logEntry, index) => {
-                const p = document.createElement('p');
-                const horaInicio = formatoHora(logEntry.horaEncendido);
-                const horaFin = formatoHora(logEntry.horaApagado);
-                
-                p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
-                contenedorTiempos.appendChild(p);
+            Object.keys(tiempos).forEach(grupo => {
+                const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+                if (!contenedorTiempos) return;
+                contenedorTiempos.innerHTML = '';
+                tiempos[grupo].forEach((logEntry, index) => {
+                    const p = document.createElement('p');
+                    const horaInicio = formatoHora(logEntry.horaEncendido);
+                    const horaFin = formatoHora(logEntry.horaApagado);
+                    
+                    p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
+                    contenedorTiempos.appendChild(p);
+                });
+                contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
             });
-            contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
+
+            // Llamada a la función del dashboard para actualizar los gráficos y KPIs
+            actualizarDashboard(logs, 'historial', null, null, filtroArea);
         });
 
-        // Llamada a la función del dashboard para actualizar los gráficos y KPIs
-        actualizarDashboard(logs, 'historial', null, null, filtroArea);
-    });
-
-    // Listener para los contadores de calidad
-    contadoresCalidadRef.on('value', (snapshot) => {
-        const contadores = snapshot.val() || {};
-        const gruposCalidad = ['CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
-        
-        gruposCalidad.forEach(grupo => {
-            const liberadas = contadores[grupo] ? contadores[grupo].liberadas || 0 : 0;
-            const rechazadas = contadores[grupo] ? contadores[grupo].rechazadas || 0 : 0;
-            
-            const liberadasSpan = document.getElementById(`liberadas_${grupo}`);
-            const rechazadasSpan = document.getElementById(`rechazadas_${grupo}`);
-            
-            if (liberadasSpan) liberadasSpan.textContent = liberadas;
-            if (rechazadasSpan) rechazadasSpan.textContent = rechazadas;
+        // Listener para los contadores de calidad
+        contadoresCalidadRef.on('value', (snapshot) => {
+            const contadores = snapshot.val() || {};
+            actualizarDashboard(null, 'calidad', contadores);
         });
-    });
+    };
+
+    // Agregar listeners para los filtros del dashboard que llaman a la función principal
+    document.getElementById('fechaDashboard').addEventListener('change', cargarDashboard);
+    document.getElementById('turnoDashboardSelect').addEventListener('change', cargarDashboard);
+    document.getElementById('filtro-area').addEventListener('change', cargarDashboard);
     
-    // Listener para el estado de los LEDs y la actualización de los tooltips
+    // Llamada inicial para cargar el dashboard
+    cargarDashboard();
+
+    // Listener para el estado de los LEDs y el tiempo transcurrido
     database.ref('estadoLEDS').on('value', (snapshot) => {
         const estadoLEDS = snapshot.val() || {};
         pintarEstado(estadoLEDS);
     });
-    
-    // Nuevo listener para el cambio de filtro de área en el dashboard
-    document.getElementById('filtro-area').addEventListener('change', () => {
-        // Al cambiar el filtro, volvemos a cargar el dashboard con los nuevos datos
-        historialRef.once('value').then(snapshot => {
-            const logs = snapshot.val() || {};
-            const filtroArea = document.getElementById('filtro-area').value;
-            actualizarDashboard(logs, 'historial', null, null, filtroArea);
+
+    // Iniciar el temporizador para actualizar el tiempo en los LEDs cada minuto
+    setInterval(() => {
+        document.querySelectorAll('.led.on').forEach(led => {
+            const spanTiempo = led.querySelector('.tiempo-led');
+            if (spanTiempo) {
+                const horaEncendido = new Date(spanTiempo.dataset.horaEncendido);
+                const tiempoTranscurrido = (new Date() - horaEncendido) / 1000; // en segundos
+                const minutos = Math.floor(tiempoTranscurrido / 60);
+                const segundos = Math.floor(tiempoTranscurrido % 60);
+                spanTiempo.textContent = `${minutos}m ${segundos}s`;
+            }
         });
-    });
+    }, 60000);
 }
 // ================= PERMISOS Y LÓGICA =================
 function esUsuarioProduccion() {
