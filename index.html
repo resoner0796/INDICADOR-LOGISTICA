@@ -1026,7 +1026,7 @@ function inyectaLEDs(){
 }
 
 function pintarEstado() {
-    db.ref('estadoLEDs').on('value', snapshot => {
+    db.ref('estadoLEDS').on('value', snapshot => {
         const estados = snapshot.val() || {};
         
         document.querySelectorAll('.leds').forEach(contenedor => {
@@ -1047,8 +1047,8 @@ function pintarEstado() {
                         // Lógica para LEDs de Producción
                         else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
-                            // ======================== NUEVO CÓDIGO ========================
-                            const horaEncendido = new Date(ledsEstado[index].timestamp);
+                            // ======================== CÓDIGO CORREGIDO ========================
+                            const horaEncendido = new Date(ledsEstado[index].horaEncendido);
                             const tiempoTranscurrido = (new Date() - horaEncendido) / 1000; // En segundos
                             
                             const minutos = Math.floor(tiempoTranscurrido / 60);
@@ -1123,6 +1123,7 @@ function iniciarListenersFirebase() {
     contadoresCalidadRef = database.ref(`contadoresCalidad/${fecha}/${turno}`);
     rechazosDetalladosRef = database.ref(`rechazosDetallados/${fecha}/${turno}`);
 
+    // Listener para los datos del dashboard y reportes (historial de logs)
     historialRef.on('value', (snapshot) => {
         const logs = snapshot.val() || {};
         const filtroArea = document.getElementById('filtro-area').value;
@@ -1140,7 +1141,9 @@ function iniciarListenersFirebase() {
                         contadores[log.grupo]++;
                     } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
                         const grupoBase = log.grupo;
-                        tiempos[grupoBase].push(log);
+                        if (tiempos.hasOwnProperty(grupoBase)) {
+                            tiempos[grupoBase].push(log);
+                        }
                         tarimasTotales++;
                         tiempoTotalRecoleccion += log.tiempoRecoleccion;
                     }
@@ -1181,8 +1184,12 @@ function iniciarListenersFirebase() {
             });
             contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
         });
+
+        // Llamada a la función del dashboard para actualizar los gráficos y KPIs
+        actualizarDashboard(logs, 'historial', null, null, filtroArea);
     });
 
+    // Listener para los contadores de calidad
     contadoresCalidadRef.on('value', (snapshot) => {
         const contadores = snapshot.val() || {};
         const gruposCalidad = ['CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
@@ -1198,8 +1205,23 @@ function iniciarListenersFirebase() {
             if (rechazadasSpan) rechazadasSpan.textContent = rechazadas;
         });
     });
+    
+    // Listener para el estado de los LEDs y la actualización de los tooltips
+    database.ref('estadoLEDS').on('value', (snapshot) => {
+        const estadoLEDS = snapshot.val() || {};
+        pintarEstado(estadoLEDS);
+    });
+    
+    // Nuevo listener para el cambio de filtro de área en el dashboard
+    document.getElementById('filtro-area').addEventListener('change', () => {
+        // Al cambiar el filtro, volvemos a cargar el dashboard con los nuevos datos
+        historialRef.once('value').then(snapshot => {
+            const logs = snapshot.val() || {};
+            const filtroArea = document.getElementById('filtro-area').value;
+            actualizarDashboard(logs, 'historial', null, null, filtroArea);
+        });
+    });
 }
-
 // ================= PERMISOS Y LÓGICA =================
 function esUsuarioProduccion() {
     return CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado);
