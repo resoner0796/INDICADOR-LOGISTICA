@@ -832,7 +832,16 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <option value="Turno 2">Turno 2</option>
     </select>
 </div>
-<div class="kpis-grid">
+  <div class="filtros-dashboard">
+    <label for="filtro-area">Filtrar por Área:</label>
+    <select id="filtro-area">
+        <option value="TODAS">Todas las Áreas</option>
+        <option value="MULTIPORT">MULTIPORT</option>
+        <option value="DROPS">DROPS</option>
+        <option value="BEDROCK">BEDROCK</option>
+    </select>
+</div>
+  <div class="kpis-grid">
     <div class="kpi-card">
         <h3>Tarimas Confirmadas</h3>
         <div class="valor" id="dashTarimasConfirmadas">0</div>
@@ -1031,24 +1040,37 @@ function pintarEstado() {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
 
                     if (ledsEstado[index]) {
+                        // Lógica para el estado de Calidad
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.classList.add(ledsEstado[index].color);
-                            // La corrección está en la lógica de toggle, no aquí.
-                            // Aquí solo se pinta el estado
-                        } else if (ledsEstado[index].encendido) {
+                        } 
+                        // Lógica para LEDs de Producción
+                        else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
+                            // ======================== NUEVO CÓDIGO ========================
+                            const horaEncendido = new Date(ledsEstado[index].timestamp);
+                            const tiempoTranscurrido = (new Date() - horaEncendido) / 1000; // En segundos
+                            
+                            const minutos = Math.floor(tiempoTranscurrido / 60);
+                            const segundos = Math.floor(tiempoTranscurrido % 60);
+
+                            led.title = `Tiempo Encendido: ${minutos}m ${segundos}s`;
+                            // =============================================================
                         }
-                    } 
+                    } else {
+                        // Si el LED no tiene estado, limpiamos el tooltip
+                        led.title = '';
+                    }
                 });
             } else {
                 contenedor.querySelectorAll('.led').forEach(led => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
+                    led.title = ''; // Limpiar el tooltip al apagar
                 });
             }
         });
     });
 }
-
 
 function formatoHora(isoString) {
     if (!isoString) return 'N/A';
@@ -1091,16 +1113,19 @@ function iniciarListenersFirebase() {
     const { fecha, turno } = obtenerTurnoActual();
     document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
 
+    // Desconectar los listeners existentes antes de reasignarlos
     if (historialRef) historialRef.off();
     if (contadoresCalidadRef) contadoresCalidadRef.off();
     if (rechazosDetalladosRef) rechazosDetalladosRef.off();
 
+    // Asignar las nuevas referencias a la base de datos
     historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
     contadoresCalidadRef = database.ref(`contadoresCalidad/${fecha}/${turno}`);
     rechazosDetalladosRef = database.ref(`rechazosDetallados/${fecha}/${turno}`);
 
     historialRef.on('value', (snapshot) => {
         const logs = snapshot.val() || {};
+        const filtroArea = document.getElementById('filtro-area').value;
         const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0, CALIDAD_MULTIPORT: 0, CALIDAD_BEDROCK: 0, CALIDAD_DROPS: 0 };
         const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
@@ -1109,13 +1134,16 @@ function iniciarListenersFirebase() {
 
         if (logs) {
             Object.values(logs).forEach(log => {
-                if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
-                    contadores[log.grupo]++;
-                } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
-                    const grupoBase = log.grupo;
-                    tiempos[grupoBase].push(log);
-                    tarimasTotales++;
-                    tiempoTotalRecoleccion += log.tiempoRecoleccion;
+                // Lógica de filtrado por área
+                if (filtroArea === 'TODAS' || log.grupo === filtroArea) {
+                    if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+                        contadores[log.grupo]++;
+                    } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+                        const grupoBase = log.grupo;
+                        tiempos[grupoBase].push(log);
+                        tarimasTotales++;
+                        tiempoTotalRecoleccion += log.tiempoRecoleccion;
+                    }
                 }
             });
         }
@@ -1171,7 +1199,6 @@ function iniciarListenersFirebase() {
         });
     });
 }
-
 
 // ================= PERMISOS Y LÓGICA =================
 function esUsuarioProduccion() {
@@ -1535,7 +1562,7 @@ function setupDashboardListeners(fecha, turno) {
 }
 
 
-function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs) {
+function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs, filtroArea = 'TODAS') {
     if (tipo === 'historial') {
         const produccionPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
         const tarimasPorHora = {};
@@ -1544,15 +1571,19 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         
         for (const logKey in historialLogs) {
             const log = historialLogs[logKey];
-            if (log.accion === 'encendido' && produccionPorArea.hasOwnProperty(log.grupo)) {
-                produccionPorArea[log.grupo]++;
-            } else if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(log.grupo)) {
-                tarimasRecolectadas++;
-                tiempoTotalRecoleccion += log.tiempoRecoleccion;
-                
-                const horaApagado = new Date(log.horaApagado);
-                const horaRedondeada = horaApagado.getHours();
-                tarimasPorHora[horaRedondeada] = (tarimasPorHora[horaRedondeada] || 0) + 1;
+            
+            // Nuevo filtro de área
+            if (filtroArea === 'TODAS' || log.grupo === filtroArea) {
+                if (log.accion === 'encendido' && produccionPorArea.hasOwnProperty(log.grupo)) {
+                    produccionPorArea[log.grupo]++;
+                } else if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(log.grupo)) {
+                    tarimasRecolectadas++;
+                    tiempoTotalRecoleccion += log.tiempoRecoleccion;
+                    
+                    const horaApagado = new Date(log.horaApagado);
+                    const horaRedondeada = horaApagado.getHours();
+                    tarimasPorHora[horaRedondeada] = (tarimasPorHora[horaRedondeada] || 0) + 1;
+                }
             }
         }
         
@@ -1572,7 +1603,8 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         generarGraficoProduccionDash(produccionPorArea);
         generarGraficoLogisticaDash(tarimasPorHora);
     }
-
+    
+    // El resto de la función para 'calidad' y 'leds' se mantiene igual y funciona de manera independiente
     if (tipo === 'calidad') {
         let liberadas = 0;
         let rechazadas = 0;
@@ -1619,7 +1651,6 @@ function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs)
         }
     }
 }
-
 function generarGraficoProduccionDash(datos) {
     if (graficosDashboard.produccion) {
         graficosDashboard.produccion.destroy();
