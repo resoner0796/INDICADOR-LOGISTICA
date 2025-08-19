@@ -1070,7 +1070,6 @@ function pintarEstado() {
                                 clearInterval(temporizadores[led.id]);
                                 delete temporizadores[led.id];
                             }
-                            // Asegura que no haya un span de tiempo
                             const spanTiempo = led.querySelector('.tiempo-transcurrido');
                             if (spanTiempo) {
                                 spanTiempo.remove();
@@ -1084,17 +1083,11 @@ function pintarEstado() {
                             // Aseguramos que el span del tiempo exista.
                             let spanTiempo = led.querySelector('.tiempo-transcurrido');
                             if (!spanTiempo) {
-                                // Si no existe, lo creamos.
                                 spanTiempo = document.createElement('span');
                                 spanTiempo.classList.add('tiempo-transcurrido');
                                 led.appendChild(spanTiempo);
                             }
-                            
-                            // Calcula el tiempo inicial y actualiza el span
-                            const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
-                            const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
-                            spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
-                            
+
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
                                 iniciarContadorTiempo(led.id, horaInicio);
