@@ -1076,8 +1076,10 @@ function pintarEstado() {
                                 spanTiempo.remove();
                             }
                             led.innerHTML = '';
-                        } else if (ledsEstado[index].encendido) {
-                            // Lógica para LEDs de Producción
+                        }
+                        
+                        // Lógica para LEDs de Producción
+                        if (ledsEstado[index].encendido) {
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
@@ -1089,8 +1091,6 @@ function pintarEstado() {
                                 spanTiempo.classList.add('tiempo-transcurrido');
                                 led.appendChild(spanTiempo);
                             }
-                            
-                            // *** Cambio clave aquí: Eliminamos la línea que sobrescribía el contador.
                             
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
