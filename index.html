@@ -1042,48 +1042,51 @@ function iniciarContadorTiempo(idLed, horaEncendido) {
 }
 
 function pintarEstado() {
-    db.ref('estadoLEDs').on('value', snapshot => {
-        const estados = snapshot.val() || {};
-        document.querySelectorAll('.leds').forEach(contenedor => {
-            const grupoLeds = contenedor.dataset.grupo;
-            const linea = contenedor.dataset.linea;        
-          
-            if (estados[grupoLeds] && estados[grupoLeds][linea]) {
-                const ledsEstado = estados[grupoLeds][linea];
-                contenedor.querySelectorAll('.led').forEach((led, index) => {
-                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
-                    if (ledsEstado[index]) {
-                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
-                            led.classList.add(ledsEstado[index].color);
-                            // La corrección está en la lógica de toggle, no aquí.
-                            // Aquí solo se pinta el estado
-                        else if (ledsEstado[index].encendido) {
-    led.classList.add('on');
-    led.innerHTML = `<span class="tiempo-transcurrido"></span>`; // Agrega el span para el tiempo
-    iniciarContadorTiempo(led.id, ledsEstado[index].horaEncendido); // Inicia el contador
-} else {
-    // Si el led está apagado
-    if (temporizadores[led.id]) {
-        clearInterval(temporizadores[led.id]);
-        delete temporizadores[led.id];
-    }
-    led.innerHTML = ''; // Limpia el texto
-}
-                    } 
-                });
-              
-            } else {
-                contenedor.querySelectorAll('.led').forEach(led => {
-                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
+    db.ref('estadoLEDs').on('value', snapshot => {
+        const estados = snapshot.val() || {};
+        document.querySelectorAll('.leds').forEach(contenedor => {
+            const grupoLeds = contenedor.dataset.grupo;
+            const linea = contenedor.dataset.linea;
 
-                });
-
-            }
-
-        });
-
-    });
-
+            if (estados[grupoLeds] && estados[grupoLeds][linea]) {
+                const ledsEstado = estados[grupoLeds][linea];
+                contenedor.querySelectorAll('.led').forEach((led, index) => {
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
+                    if (ledsEstado[index]) {
+                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
+                            led.classList.add(ledsEstado[index].color);
+                        } else if (ledsEstado[index].encendido) {
+                            led.classList.add('on');
+                            led.innerHTML = `<span class="tiempo-transcurrido"></span>`;
+                            const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp; // Añade esta línea
+                            iniciarContadorTiempo(led.id, horaInicio); // Usa la nueva variable
+                        } else {
+                            if (temporizadores[led.id]) {
+                                clearInterval(temporizadores[led.id]);
+                                delete temporizadores[led.id];
+                            }
+                            led.innerHTML = '';
+                        }
+                    } else {
+                         if (temporizadores[led.id]) {
+                            clearInterval(temporizadores[led.id]);
+                            delete temporizadores[led.id];
+                        }
+                        led.innerHTML = '';
+                    }
+                });
+            } else {
+                contenedor.querySelectorAll('.led').forEach(led => {
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
+                    if (temporizadores[led.id]) {
+                        clearInterval(temporizadores[led.id]);
+                        delete temporizadores[led.id];
+                    }
+                    led.innerHTML = '';
+                });
+            }
+        });
+    });
 }
   
 function actualizarTiemposLEDs() {
