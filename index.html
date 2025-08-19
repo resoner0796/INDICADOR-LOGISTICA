@@ -1283,14 +1283,16 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     if (!confirm('¿Está realmente recolectada la tarima?')) {
                         return;
                     }
+                    
+                    const horaInicio = estadoActual.horaEncendido || estadoActual.timestamp; // Usa horaEncendido o, si no existe, el timestamp
+                    const tiempoRecoleccion = (new Date() - new Date(horaInicio)) / 60000;
 
                     ledRef.set({
                         encendido: false,
-                        horaEncendido: null, // Agregado para limpiar el estado de encendido
-                        usuario: usuarioSeleccionado, // Mantenemos el usuario de la última acción
+                        horaEncendido: null, // Limpiamos el estado de encendido
+                        usuario: usuarioSeleccionado,
                     });
                     
-                    const tiempoRecoleccion = (new Date() - new Date(estadoActual.horaEncendido)) / 60000;
                     const log = {
                         usuario: usuarioSeleccionado,
                         grupo: grupo,
@@ -1298,7 +1300,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                         accion: 'apagado',
                         timestamp: new Date().toISOString(),
                         tiempoRecoleccion: Math.round(tiempoRecoleccion),
-                        horaEncendido: estadoActual.horaEncendido,
+                        horaEncendido: horaInicio,
                         horaApagado: new Date().toISOString()
                     };
                     historialRef.push(log);
@@ -1314,7 +1316,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                         encendido: true,
                         timestamp: new Date().toISOString(),
                         usuario: usuarioSeleccionado,
-                        horaEncendido: firebase.database.ServerValue.TIMESTAMP, // Agregado para registrar la hora de encendido
+                        horaEncendido: firebase.database.ServerValue.TIMESTAMP,
                     });
                     
                     const log = {
