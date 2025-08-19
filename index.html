@@ -1029,15 +1029,23 @@ function iniciarContadorTiempo(idLed, horaEncendido) {
     const ledBoton = document.getElementById(idLed);
     const spanTiempo = ledBoton ? ledBoton.querySelector('.tiempo-transcurrido') : null;
 
-    if (!spanTiempo) return; // Si no encuentra el span, salimos.
+    if (!spanTiempo) return;
 
-    // Inicia el contador
-    const intervalo = setInterval(() => {
+    // *** CAMBIO CLAVE: CALCULA Y MUESTRA EL TIEMPO INICIAL INMEDIATAMENTE ***
+    const actualizarTiempo = () => {
         const ahora = new Date();
         const tiempoTranscurridoMs = ahora - new Date(horaEncendido);
         const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
-        spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
-    }, 60000); // Se actualiza cada 60 segundos (1 minuto)
+        // Evita mostrar valores negativos como "-1 min"
+        const minutosDisplay = Math.max(0, minutosTranscurridos); 
+        spanTiempo.innerHTML = `<b>${minutosDisplay} min</b>`;
+    };
+
+    // Llama a la función de actualización por primera vez
+    actualizarTiempo();
+
+    // Inicia el contador para que se actualice cada 60 segundos (1 minuto)
+    const intervalo = setInterval(actualizarTiempo, 60000);
 
     // Guarda la referencia al intervalo
     temporizadores[idLed] = intervalo;
@@ -1056,35 +1064,29 @@ function pintarEstado() {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                     
                     if (ledsEstado[index]) {
+                        // Lógica para LEDs de Calidad
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
-                            // Lógica para LEDs de Calidad
                             led.classList.add(ledsEstado[index].color);
+                            // Limpia el contador si existe y borra el texto del LED
                             if (temporizadores[led.id]) {
                                 clearInterval(temporizadores[led.id]);
                                 delete temporizadores[led.id];
                             }
-                            // Aseguramos que el led de calidad no tenga texto de tiempo
                             led.innerHTML = '';
                         } else if (ledsEstado[index].encendido) {
                             // Lógica para LEDs de Producción
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
-                            // *** CAMBIO CLAVE: AHORA CREAMOS EL CONTENIDO EN EL MISMO BLOQUE. ***
+                            // Aseguramos que el span del tiempo exista.
                             let spanTiempo = led.querySelector('.tiempo-transcurrido');
-                            
-                            // Si el span no existe, lo creamos y lo añadimos al LED.
                             if (!spanTiempo) {
+                                // Si no existe, lo creamos.
                                 spanTiempo = document.createElement('span');
                                 spanTiempo.classList.add('tiempo-transcurrido');
                                 led.appendChild(spanTiempo);
                             }
                             
-                            // Calcula el tiempo inicial y actualiza el span
-                            const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
-                            const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
-                            spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
-
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
                                 iniciarContadorTiempo(led.id, horaInicio);
