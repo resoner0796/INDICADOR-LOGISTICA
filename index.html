@@ -1090,10 +1090,7 @@ function pintarEstado() {
                                 led.appendChild(spanTiempo);
                             }
                             
-                            // Calcula el tiempo inicial y actualiza el span
-                            const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
-                            const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
-                            spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
+                            // *** Cambio clave aquí: Eliminamos la línea que sobrescribía el contador.
                             
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
