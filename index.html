@@ -959,6 +959,9 @@ let miGrafico;
 let graficosDashboard = {};
 let dashboardUpdateInterval;
 
+const temporizadores = {};
+
+
 // ================= FIREBASE =================
 const firebaseConfig = {
     apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
@@ -1016,6 +1019,28 @@ function inyectaLEDs(){
     });
 }
 
+function iniciarContadorTiempo(idLed, horaEncendido) {
+    // Detener el temporizador anterior si existe
+    if (temporizadores[idLed]) {
+        clearInterval(temporizadores[idLed]);
+    }
+
+    // Calcular y mostrar el tiempo transcurrido cada 60 segundos
+    const intervalo = setInterval(() => {
+        const ahora = new Date();
+        const tiempoTranscurridoMs = ahora - new Date(horaEncendido);
+        const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+
+        const ledBoton = document.getElementById(idLed);
+        if (ledBoton) {
+            ledBoton.innerHTML = `<span class="tiempo-transcurrido">${minutosTranscurridos} min</span>`;
+        }
+    }, 60000); // Actualizar cada minuto
+
+    // Guardar el ID del intervalo para poder detenerlo más tarde
+    temporizadores[idLed] = intervalo;
+}
+
 function pintarEstado() {
     db.ref('estadoLEDs').on('value', snapshot => {
         const estados = snapshot.val() || {};
@@ -1032,9 +1057,18 @@ function pintarEstado() {
                             led.classList.add(ledsEstado[index].color);
                             // La corrección está en la lógica de toggle, no aquí.
                             // Aquí solo se pinta el estado
-                        } else if (ledsEstado[index].encendido) {
-                            led.classList.add('on');
-                        }
+                        else if (ledsEstado[index].encendido) {
+    led.classList.add('on');
+    led.innerHTML = `<span class="tiempo-transcurrido"></span>`; // Agrega el span para el tiempo
+    iniciarContadorTiempo(led.id, ledsEstado[index].horaEncendido); // Inicia el contador
+} else {
+    // Si el led está apagado
+    if (temporizadores[led.id]) {
+        clearInterval(temporizadores[led.id]);
+        delete temporizadores[led.id];
+    }
+    led.innerHTML = ''; // Limpia el texto
+}
                     } 
                 });
               
@@ -1252,10 +1286,11 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 
                     ledRef.set({
                         encendido: false,
-                        timestamp: new Date().toISOString()
+                        horaEncendido: null, // Agregado para limpiar el estado de encendido
+                        usuario: usuarioSeleccionado, // Mantenemos el usuario de la última acción
                     });
                     
-                    const tiempoRecoleccion = (new Date() - new Date(estadoActual.timestamp)) / 60000;
+                    const tiempoRecoleccion = (new Date() - new Date(estadoActual.horaEncendido)) / 60000;
                     const log = {
                         usuario: usuarioSeleccionado,
                         grupo: grupo,
@@ -1263,7 +1298,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                         accion: 'apagado',
                         timestamp: new Date().toISOString(),
                         tiempoRecoleccion: Math.round(tiempoRecoleccion),
-                        horaEncendido: estadoActual.timestamp,
+                        horaEncendido: estadoActual.horaEncendido,
                         horaApagado: new Date().toISOString()
                     };
                     historialRef.push(log);
@@ -1278,7 +1313,8 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     ledRef.set({
                         encendido: true,
                         timestamp: new Date().toISOString(),
-                        usuario: usuarioSeleccionado
+                        usuario: usuarioSeleccionado,
+                        horaEncendido: firebase.database.ServerValue.TIMESTAMP, // Agregado para registrar la hora de encendido
                     });
                     
                     const log = {
