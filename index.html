@@ -1030,6 +1030,8 @@ function manejarContadorTiempo(idLed, horaEncendido) {
         spanTiempo.classList.add('tiempo-transcurrido');
         if (ledBoton) {
             ledBoton.appendChild(spanTiempo);
+        } else {
+            return; // Salimos si el ledBoton no se encuentra
         }
     }
 
