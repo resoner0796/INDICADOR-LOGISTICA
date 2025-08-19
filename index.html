@@ -1020,24 +1020,21 @@ function inyectaLEDs(){
 }
 
 function iniciarContadorTiempo(idLed, horaEncendido) {
-    // Detener el temporizador anterior si existe
     if (temporizadores[idLed]) {
         clearInterval(temporizadores[idLed]);
     }
+    const ledBoton = document.getElementById(idLed);
+    const spanTiempo = ledBoton ? ledBoton.querySelector('.tiempo-transcurrido') : null;
 
-    // Calcular y mostrar el tiempo transcurrido cada 60 segundos
+    if (!spanTiempo) return;
+
     const intervalo = setInterval(() => {
         const ahora = new Date();
         const tiempoTranscurridoMs = ahora - new Date(horaEncendido);
         const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+        spanTiempo.textContent = `${minutosTranscurridos} min`;
+    }, 60000);
 
-        const ledBoton = document.getElementById(idLed);
-        if (ledBoton) {
-            ledBoton.innerHTML = `<span class="tiempo-transcurrido">${minutosTranscurridos} min</span>`;
-        }
-    }, 60000); // Actualizar cada minuto
-
-    // Guardar el ID del intervalo para poder detenerlo más tarde
     temporizadores[idLed] = intervalo;
 }
 
@@ -1057,9 +1054,9 @@ function pintarEstado() {
                             led.classList.add(ledsEstado[index].color);
                         } else if (ledsEstado[index].encendido) {
                             led.classList.add('on');
-                            led.innerHTML = `<span class="tiempo-transcurrido"></span>`;
-                            const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp; // Añade esta línea
-                            iniciarContadorTiempo(led.id, horaInicio); // Usa la nueva variable
+                            led.innerHTML = `<i class="fas fa-toggle-on fa-lg"></i> ${ledsEstado[index].usuario} <br><span class="tiempo-transcurrido"></span>`;
+                            const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
+                            iniciarContadorTiempo(led.id, horaInicio);
                         } else {
                             if (temporizadores[led.id]) {
                                 clearInterval(temporizadores[led.id]);
