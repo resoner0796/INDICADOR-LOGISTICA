@@ -1043,7 +1043,7 @@ function iniciarContadorTiempo(idLed, horaEncendido) {
     actualizarTiempo();
 
     // Inicia el contador para que se actualice cada 60 segundos (1 minuto)
-    const intervalo = setInterval(actualizarTiempo, 60000);
+    const intervalo = setInterval(actualizarTiempo, 10000);
 
     // Guarda la referencia al intervalo
     temporizadores[idLed] = intervalo;
@@ -1076,10 +1076,8 @@ function pintarEstado() {
                                 spanTiempo.remove();
                             }
                             led.innerHTML = '';
-                        }
-                        
-                        // Lógica para LEDs de Producción
-                        if (ledsEstado[index].encendido) {
+                        } else if (ledsEstado[index].encendido) {
+                            // Lógica para LEDs de Producción
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
@@ -1091,6 +1089,11 @@ function pintarEstado() {
                                 spanTiempo.classList.add('tiempo-transcurrido');
                                 led.appendChild(spanTiempo);
                             }
+                            
+                            // Calcula el tiempo inicial y actualiza el span
+                            const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
+                            const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+                            spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
                             
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
