@@ -1066,25 +1066,22 @@ function pintarEstado() {
                         // Lógica para LEDs de Calidad
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.classList.add(ledsEstado[index].color);
+                            // Detiene y elimina el temporizador si existe
                             if (temporizadores[led.id]) {
                                 clearInterval(temporizadores[led.id]);
                                 delete temporizadores[led.id];
                             }
-                            led.innerHTML = '';
+                            // Elimina el span del tiempo para una limpieza completa
+                            const spanTiempo = led.querySelector('.tiempo-transcurrido');
+                            if (spanTiempo) {
+                                spanTiempo.remove();
+                            }
+                            led.innerHTML = ''; // Por si acaso hay otro contenido
                         } else if (ledsEstado[index].encendido) {
                             // Lógica para LEDs de Producción
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
-                            // Aseguramos que el span del tiempo exista.
-                            let spanTiempo = led.querySelector('.tiempo-transcurrido');
-                            if (!spanTiempo) {
-                                // Si no existe, lo creamos.
-                                spanTiempo = document.createElement('span');
-                                spanTiempo.classList.add('tiempo-transcurrido');
-                                led.appendChild(spanTiempo);
-                            }
-
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
                                 iniciarContadorTiempo(led.id, horaInicio);
@@ -1095,7 +1092,12 @@ function pintarEstado() {
                                 clearInterval(temporizadores[led.id]);
                                 delete temporizadores[led.id];
                             }
-                            led.innerHTML = '';
+                            // Elimina el span del tiempo para una limpieza completa
+                            const spanTiempo = led.querySelector('.tiempo-transcurrido');
+                            if (spanTiempo) {
+                                spanTiempo.remove();
+                            }
+                            led.innerHTML = ''; // Por si acaso hay otro contenido
                         }
                     } else {
                          // Si el estado no existe en la DB, también limpiamos
@@ -1103,17 +1105,28 @@ function pintarEstado() {
                             clearInterval(temporizadores[led.id]);
                             delete temporizadores[led.id];
                         }
-                        led.innerHTML = '';
+                        // Elimina el span del tiempo para una limpieza completa
+                        const spanTiempo = led.querySelector('.tiempo-transcurrido');
+                        if (spanTiempo) {
+                            spanTiempo.remove();
+                        }
+                        led.innerHTML = ''; // Por si acaso hay otro contenido
                     }
                 });
             } else {
                 contenedor.querySelectorAll('.led').forEach(led => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
+                    // Limpieza general para leds que no tienen estado
                     if (temporizadores[led.id]) {
                         clearInterval(temporizadores[led.id]);
                         delete temporizadores[led.id];
                     }
-                    led.innerHTML = '';
+                    // Elimina el span del tiempo para una limpieza completa
+                    const spanTiempo = led.querySelector('.tiempo-transcurrido');
+                    if (spanTiempo) {
+                        spanTiempo.remove();
+                    }
+                    led.innerHTML = ''; // Por si acaso hay otro contenido
                 });
             }
         });
