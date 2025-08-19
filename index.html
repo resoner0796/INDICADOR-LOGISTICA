@@ -1095,7 +1095,7 @@ function pintarEstado() {
                             // Limpieza cuando el LED está apagado
                             if (temporizadores[led.id]) {
                                 clearInterval(temporizadores[led.id]);
-                                delete temporizadores[led.id];
+                                delete temporizadores[idLed];
                             }
                             const spanTiempo = led.querySelector('.tiempo-transcurrido');
                             if (spanTiempo) {
@@ -1106,7 +1106,7 @@ function pintarEstado() {
                     } else {
                          if (temporizadores[led.id]) {
                             clearInterval(temporizadores[led.id]);
-                            delete temporizadores[led.id];
+                            delete temporizadores[idLed];
                         }
                         const spanTiempo = led.querySelector('.tiempo-transcurrido');
                         if (spanTiempo) {
@@ -1120,7 +1120,7 @@ function pintarEstado() {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                     if (temporizadores[led.id]) {
                         clearInterval(temporizadores[led.id]);
-                        delete temporizadores[led.id];
+                        delete temporizadores[idLed];
                     }
                     const spanTiempo = led.querySelector('.tiempo-transcurrido');
                     if (spanTiempo) {
@@ -1131,8 +1131,7 @@ function pintarEstado() {
             }
         });
     });
-} // <-- Aquí estaba el error. Faltaba esta llave.
-
+} 
   
 function actualizarTiemposLEDs() {
     document.querySelectorAll('.led-linea .led.on').forEach(led => {
