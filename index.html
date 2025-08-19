@@ -1019,6 +1019,7 @@ function inyectaLEDs(){
     });
 }
 
+// La función manejarContadorTiempo() ya la tienes y es funcional, no la toques
 function manejarContadorTiempo(idLed, horaEncendido) {
     // Busca el span del tiempo o lo crea si no existe
     const ledBoton = document.getElementById(idLed);
@@ -1059,6 +1060,7 @@ function manejarContadorTiempo(idLed, horaEncendido) {
     temporizadores[idLed] = intervalo;
 }
 
+// NUEVA VERSIÓN DE pintarEstado() - Simplificada
 function pintarEstado() {
     db.ref('estadoLEDs').on('value', snapshot => {
         const estados = snapshot.val() || {};
@@ -1071,42 +1073,19 @@ function pintarEstado() {
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                     
-                    if (ledsEstado[index]) {
-                        // Lógica para LEDs de Calidad
-                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
-                            led.classList.add(ledsEstado[index].color);
-                            if (temporizadores[led.id]) {
-                                clearInterval(temporizadores[led.id]);
-                                delete temporizadores[led.id];
-                            }
-                            const spanTiempo = led.querySelector('.tiempo-transcurrido');
-                            if (spanTiempo) {
-                                spanTiempo.remove();
-                            }
-                            led.innerHTML = '';
-                        } else if (ledsEstado[index].encendido) {
-                            // Lógica para LEDs de Producción
-                            led.classList.add('on');
-                            const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
-                            
-                            // Llama a la nueva función que se encarga de todo
+                    if (ledsEstado[index] && ledsEstado[index].encendido) {
+                        led.classList.add('on');
+                        const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
+
+                        // Si el contador no ha sido iniciado, lo iniciamos ahora.
+                        if (!temporizadores[led.id]) {
                             manejarContadorTiempo(led.id, horaInicio);
-                        } else {
-                            // Limpieza cuando el LED está apagado
-                            if (temporizadores[led.id]) {
-                                clearInterval(temporizadores[led.id]);
-                                delete temporizadores[idLed];
-                            }
-                            const spanTiempo = led.querySelector('.tiempo-transcurrido');
-                            if (spanTiempo) {
-                                spanTiempo.remove();
-                            }
-                            led.innerHTML = '';
                         }
                     } else {
-                         if (temporizadores[led.id]) {
+                        // Limpieza cuando el LED está apagado
+                        if (temporizadores[led.id]) {
                             clearInterval(temporizadores[led.id]);
-                            delete temporizadores[idLed];
+                            delete temporizadores[led.id];
                         }
                         const spanTiempo = led.querySelector('.tiempo-transcurrido');
                         if (spanTiempo) {
@@ -1120,7 +1099,7 @@ function pintarEstado() {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                     if (temporizadores[led.id]) {
                         clearInterval(temporizadores[led.id]);
-                        delete temporizadores[idLed];
+                        delete temporizadores[led.id];
                     }
                     const spanTiempo = led.querySelector('.tiempo-transcurrido');
                     if (spanTiempo) {
@@ -1131,7 +1110,7 @@ function pintarEstado() {
             }
         });
     });
-} 
+}
   
 function actualizarTiemposLEDs() {
     document.querySelectorAll('.led-linea .led.on').forEach(led => {
