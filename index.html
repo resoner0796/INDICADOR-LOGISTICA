@@ -1043,7 +1043,7 @@ function iniciarContadorTiempo(idLed, horaEncendido) {
     actualizarTiempo();
 
     // Inicia el contador para que se actualice cada 60 segundos (1 minuto)
-    const intervalo = setInterval(actualizarTiempo, 60000);
+    const intervalo = setInterval(actualizarTiempo, 10000);
 
     // Guarda la referencia al intervalo
     temporizadores[idLed] = intervalo;
