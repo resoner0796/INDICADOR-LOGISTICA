@@ -1059,27 +1059,27 @@ function pintarEstado() {
                         // Lógica para LEDs de Calidad
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.classList.add(ledsEstado[index].color);
-                            // Limpia el contador si existe
+                            // Limpia el contador si existe y borra el texto del LED
                             if (temporizadores[led.id]) {
                                 clearInterval(temporizadores[led.id]);
                                 delete temporizadores[led.id];
                             }
-                            led.innerHTML = ''; // Limpia cualquier contenido (incluyendo el span de tiempo)
+                            led.innerHTML = '';
                         } else if (ledsEstado[index].encendido) {
                             // Lógica para LEDs de Producción
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
-                            // *** CAMBIO CLAVE: CADA VEZ QUE SE ENCIENDE UN LED, REVISAMOS SI EL SPAN YA EXISTE. ***
+                            // Aseguramos que el span del tiempo exista.
                             let spanTiempo = led.querySelector('.tiempo-transcurrido');
                             if (!spanTiempo) {
-                                // Si no existe, lo creamos y lo agregamos.
+                                // Si no existe, lo creamos.
                                 spanTiempo = document.createElement('span');
                                 spanTiempo.classList.add('tiempo-transcurrido');
                                 led.appendChild(spanTiempo);
                             }
                             
-                            // Y solo si no hay un temporizador ya corriendo, lo iniciamos.
+                            // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
                                 iniciarContadorTiempo(led.id, horaInicio);
                             }
