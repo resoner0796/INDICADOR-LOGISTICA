@@ -1027,18 +1027,9 @@ function iniciarContadorTiempo(idLed, horaEncendido) {
     
     // Busca el span del tiempo dentro del LED
     const ledBoton = document.getElementById(idLed);
-    let spanTiempo = ledBoton ? ledBoton.querySelector('.tiempo-transcurrido') : null;
+    const spanTiempo = ledBoton ? ledBoton.querySelector('.tiempo-transcurrido') : null;
 
-    if (!spanTiempo) {
-        // Si no existe, lo creamos y lo agregamos
-        spanTiempo = document.createElement('span');
-        spanTiempo.classList.add('tiempo-transcurrido');
-        if (ledBoton) {
-            ledBoton.appendChild(spanTiempo);
-        } else {
-            return; // Salir si el ledBoton no se encuentra
-        }
-    }
+    if (!spanTiempo) return; // Si no encuentra el span, salimos.
 
     // Inicia el contador
     const intervalo = setInterval(() => {
@@ -1079,7 +1070,16 @@ function pintarEstado() {
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
-                            // Si el contador ya está corriendo, no hacemos nada. Si no, lo iniciamos.
+                            // *** CAMBIO CLAVE: CADA VEZ QUE SE ENCIENDE UN LED, REVISAMOS SI EL SPAN YA EXISTE. ***
+                            let spanTiempo = led.querySelector('.tiempo-transcurrido');
+                            if (!spanTiempo) {
+                                // Si no existe, lo creamos y lo agregamos.
+                                spanTiempo = document.createElement('span');
+                                spanTiempo.classList.add('tiempo-transcurrido');
+                                led.appendChild(spanTiempo);
+                            }
+                            
+                            // Y solo si no hay un temporizador ya corriendo, lo iniciamos.
                             if (!temporizadores[led.id]) {
                                 iniciarContadorTiempo(led.id, horaInicio);
                             }
