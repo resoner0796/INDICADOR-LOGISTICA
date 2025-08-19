@@ -1019,29 +1019,16 @@ function inyectaLEDs(){
     });
 }
 
-// La función manejarContadorTiempo() ya la tienes y es funcional, no la toques
-function manejarContadorTiempo(idLed, horaEncendido) {
-    // Busca el span del tiempo o lo crea si no existe
-    const ledBoton = document.getElementById(idLed);
-    let spanTiempo = ledBoton ? ledBoton.querySelector('.tiempo-transcurrido') : null;
-
-    if (!spanTiempo) {
-        // Si no existe, lo creamos
-        spanTiempo = document.createElement('span');
-        spanTiempo.classList.add('tiempo-transcurrido');
-        if (ledBoton) {
-            ledBoton.appendChild(spanTiempo);
-        } else {
-            return; // Salimos si el ledBoton no se encuentra
-        }
-    }
-
-    // Limpia el temporizador anterior si existe
+function iniciarContadorTiempo(idLed, horaEncendido) {
     if (temporizadores[idLed]) {
         clearInterval(temporizadores[idLed]);
     }
     
-    // Función que calcula y actualiza el tiempo
+    const ledBoton = document.getElementById(idLed);
+    const spanTiempo = ledBoton ? ledBoton.querySelector('.tiempo-transcurrido') : null;
+
+    if (!spanTiempo) return;
+
     const actualizarTiempo = () => {
         const ahora = new Date();
         const tiempoTranscurridoMs = ahora - new Date(horaEncendido);
@@ -1050,17 +1037,10 @@ function manejarContadorTiempo(idLed, horaEncendido) {
         spanTiempo.innerHTML = `<b>${minutosDisplay} min</b>`;
     };
 
-    // Actualiza el tiempo de forma instantánea
-    actualizarTiempo();
-
-    // Inicia el contador para que se actualice cada 60 segundos
     const intervalo = setInterval(actualizarTiempo, 60000);
-
-    // Guarda la referencia al intervalo
     temporizadores[idLed] = intervalo;
 }
 
-// NUEVA VERSIÓN DE pintarEstado() - Simplificada
 function pintarEstado() {
     db.ref('estadoLEDs').on('value', snapshot => {
         const estados = snapshot.val() || {};
@@ -1076,10 +1056,20 @@ function pintarEstado() {
                     if (ledsEstado[index] && ledsEstado[index].encendido) {
                         led.classList.add('on');
                         const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
+                        const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
+                        const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+                        
+                        let spanTiempo = led.querySelector('.tiempo-transcurrido');
+                        if (!spanTiempo) {
+                            spanTiempo = document.createElement('span');
+                            spanTiempo.classList.add('tiempo-transcurrido');
+                            led.appendChild(spanTiempo);
+                        }
+                        spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
 
-                        // Si el contador no ha sido iniciado, lo iniciamos ahora.
+                        // Iniciamos la actualización automática aquí
                         if (!temporizadores[led.id]) {
-                            manejarContadorTiempo(led.id, horaInicio);
+                            iniciarContadorTiempo(led.id, horaInicio);
                         }
                     } else {
                         // Limpieza cuando el LED está apagado
