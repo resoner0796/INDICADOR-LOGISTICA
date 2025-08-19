@@ -1054,20 +1054,37 @@ function pintarEstado() {
                 const ledsEstado = estados[grupoLeds][linea];
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
-                    if (ledsEstado[index] && ledsEstado[index].encendido) {
-                        led.classList.add('on');
-                        
-                        // Busca si el span del tiempo ya existe
-                        let spanTiempo = led.querySelector('.tiempo-transcurrido');
-                        if (!spanTiempo) {
-                            // Si no existe, lo creamos y lo agregamos
-                            led.innerHTML = `<span class="tiempo-transcurrido"><b>0 min</b></span>`;
-                            const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
-                            iniciarContadorTiempo(led.id, horaInicio);
+                    
+                    if (ledsEstado[index]) {
+                        // Lógica para LEDs de Calidad
+                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
+                            led.classList.add(ledsEstado[index].color);
+                            led.innerHTML = ''; // Limpia el contenido si es de Calidad
+                        } else if (ledsEstado[index].encendido) {
+                            // Lógica para LEDs de Producción
+                            led.classList.add('on');
+                            // Revisa si el contador ya existe para no reiniciarlo
+                            let spanTiempo = led.querySelector('.tiempo-transcurrido');
+                            if (!spanTiempo) {
+                                // Si no existe, lo creamos
+                                const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
+                                const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
+                                const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+                                
+                                led.innerHTML = `<span class="tiempo-transcurrido"><b>${minutosTranscurridos} min</b></span>`;
+                                iniciarContadorTiempo(led.id, horaInicio);
+                            }
+                        } else {
+                            // Limpieza cuando el LED está apagado
+                            if (temporizadores[led.id]) {
+                                clearInterval(temporizadores[led.id]);
+                                delete temporizadores[led.id];
+                            }
+                            led.innerHTML = '';
                         }
                     } else {
-                        // Limpieza cuando el LED está apagado
-                        if (temporizadores[led.id]) {
+                         // Si el estado no existe en la DB, también limpiamos
+                         if (temporizadores[led.id]) {
                             clearInterval(temporizadores[led.id]);
                             delete temporizadores[led.id];
                         }
