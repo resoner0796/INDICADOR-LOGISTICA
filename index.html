@@ -1054,7 +1054,7 @@ function pintarEstado() {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                     
                     if (ledsEstado[index]) {
-                        // Lógica para LEDs de Calidad
+                        // Lógica para LEDs de Calidad (No entra en conflicto con la lógica de Producción)
                         if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
                             led.classList.add(ledsEstado[index].color);
                             // Detiene y elimina el temporizador si existe
@@ -1068,8 +1068,10 @@ function pintarEstado() {
                                 spanTiempo.remove();
                             }
                             led.innerHTML = ''; // Limpia el contenido del LED
-                        } else if (ledsEstado[index].encendido) {
-                            // Lógica para LEDs de Producción
+                        } 
+                        
+                        // Lógica para LEDs de Producción (Separada para evitar conflictos)
+                        if (ledsEstado[index].encendido) {
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
@@ -1090,6 +1092,7 @@ function pintarEstado() {
                             led.innerHTML = '';
                         }
                     } else {
+                         // Si el estado no existe en la DB, también limpiamos
                          if (temporizadores[led.id]) {
                             clearInterval(temporizadores[led.id]);
                             delete temporizadores[led.id];
