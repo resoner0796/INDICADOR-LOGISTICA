@@ -1089,28 +1089,31 @@ function pintarEstado() {
                             led.classList.add('on');
                             const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                             
-                            // Llama a la nueva función que se encarga de todo
-                            manejarContadorTiempo(led.id, horaInicio);
+                            // Aseguramos que el span del tiempo exista.
+                            let spanTiempo = led.querySelector('.tiempo-transcurrido');
+                            if (!spanTiempo) {
+                                spanTiempo = document.createElement('span');
+                                spanTiempo.classList.add('tiempo-transcurrido');
+                                led.appendChild(spanTiempo);
+                            }
+
+                            // Si el contador no ha sido iniciado, lo iniciamos ahora.
+                            if (!temporizadores[led.id]) {
+                                iniciarContadorTiempo(led.id, horaInicio);
+                            }
                         } else {
                             // Limpieza cuando el LED está apagado
                             if (temporizadores[led.id]) {
                                 clearInterval(temporizadores[led.id]);
                                 delete temporizadores[led.id];
                             }
-                            const spanTiempo = led.querySelector('.tiempo-transcurrido');
-                            if (spanTiempo) {
-                                spanTiempo.remove();
-                            }
                             led.innerHTML = '';
                         }
                     } else {
+                         // Si el estado no existe en la DB, también limpiamos
                          if (temporizadores[led.id]) {
                             clearInterval(temporizadores[led.id]);
                             delete temporizadores[led.id];
-                        }
-                        const spanTiempo = led.querySelector('.tiempo-transcurrido');
-                        if (spanTiempo) {
-                            spanTiempo.remove();
                         }
                         led.innerHTML = '';
                     }
@@ -1121,10 +1124,6 @@ function pintarEstado() {
                     if (temporizadores[led.id]) {
                         clearInterval(temporizadores[led.id]);
                         delete temporizadores[led.id];
-                    }
-                    const spanTiempo = led.querySelector('.tiempo-transcurrido');
-                    if (spanTiempo) {
-                        spanTiempo.remove();
                     }
                     led.innerHTML = '';
                 });
