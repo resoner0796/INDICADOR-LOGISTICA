@@ -1053,27 +1053,44 @@ function pintarEstado() {
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                     
-                    if (ledsEstado[index] && ledsEstado[index].encendido) {
-                        led.classList.add('on');
-                        const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
-                        const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
-                        const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
-                        
-                        let spanTiempo = led.querySelector('.tiempo-transcurrido');
-                        if (!spanTiempo) {
-                            spanTiempo = document.createElement('span');
-                            spanTiempo.classList.add('tiempo-transcurrido');
-                            led.appendChild(spanTiempo);
-                        }
-                        spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
-
-                        // Iniciamos la actualización automática aquí
-                        if (!temporizadores[led.id]) {
-                            iniciarContadorTiempo(led.id, horaInicio);
+                    if (ledsEstado[index]) {
+                        // Lógica para LEDs de Calidad
+                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
+                            led.classList.add(ledsEstado[index].color);
+                            // Detiene y elimina el temporizador si existe
+                            if (temporizadores[led.id]) {
+                                clearInterval(temporizadores[led.id]);
+                                delete temporizadores[led.id];
+                            }
+                            // Elimina el span del tiempo para una limpieza completa
+                            const spanTiempo = led.querySelector('.tiempo-transcurrido');
+                            if (spanTiempo) {
+                                spanTiempo.remove();
+                            }
+                            led.innerHTML = ''; // Limpia el contenido del LED
+                        } else if (ledsEstado[index].encendido) {
+                            // Lógica para LEDs de Producción
+                            led.classList.add('on');
+                            const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
+                            
+                            // Iniciamos la actualización automática aquí
+                            if (!temporizadores[led.id]) {
+                                iniciarContadorTiempo(led.id, horaInicio);
+                            }
+                        } else {
+                            // Limpieza cuando el LED está apagado
+                            if (temporizadores[led.id]) {
+                                clearInterval(temporizadores[led.id]);
+                                delete temporizadores[led.id];
+                            }
+                            const spanTiempo = led.querySelector('.tiempo-transcurrido');
+                            if (spanTiempo) {
+                                spanTiempo.remove();
+                            }
+                            led.innerHTML = '';
                         }
                     } else {
-                        // Limpieza cuando el LED está apagado
-                        if (temporizadores[led.id]) {
+                         if (temporizadores[led.id]) {
                             clearInterval(temporizadores[led.id]);
                             delete temporizadores[led.id];
                         }
