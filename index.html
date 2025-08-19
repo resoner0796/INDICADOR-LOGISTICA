@@ -1056,8 +1056,8 @@ function pintarEstado() {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
                     if (ledsEstado[index] && ledsEstado[index].encendido) {
                         led.classList.add('on');
-                        // Aquí está la corrección final: solo agregamos el span para el tiempo.
-                        led.innerHTML = `<span class="tiempo-transcurrido"></span>`;
+                        // Aquí está la corrección final: creamos el span y le damos un valor inicial.
+                        led.innerHTML = `<span class="tiempo-transcurrido">0 min</span>`;
                         const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
                         iniciarContadorTiempo(led.id, horaInicio);
                     } else {
