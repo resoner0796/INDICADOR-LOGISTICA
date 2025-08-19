@@ -1031,12 +1031,11 @@ function iniciarContadorTiempo(idLed, horaEncendido) {
 
     if (!spanTiempo) return;
 
-    // *** CAMBIO CLAVE: CALCULA Y MUESTRA EL TIEMPO INICIAL INMEDIATAMENTE ***
+    // Lógica para actualizar el tiempo
     const actualizarTiempo = () => {
         const ahora = new Date();
         const tiempoTranscurridoMs = ahora - new Date(horaEncendido);
         const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
-        // Evita mostrar valores negativos como "-1 min"
         const minutosDisplay = Math.max(0, minutosTranscurridos); 
         spanTiempo.innerHTML = `<b>${minutosDisplay} min</b>`;
     };
@@ -1081,12 +1080,12 @@ function pintarEstado() {
                             // Aseguramos que el span del tiempo exista.
                             let spanTiempo = led.querySelector('.tiempo-transcurrido');
                             if (!spanTiempo) {
-                                // Si no existe, lo creamos.
+                                // Si no existe, lo creamos y lo añadimos.
                                 spanTiempo = document.createElement('span');
                                 spanTiempo.classList.add('tiempo-transcurrido');
                                 led.appendChild(spanTiempo);
                             }
-                            
+
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
                                 iniciarContadorTiempo(led.id, horaInicio);
@@ -1102,8 +1101,8 @@ function pintarEstado() {
                     } else {
                          // Si el estado no existe en la DB, también limpiamos
                          if (temporizadores[led.id]) {
-                                clearInterval(temporizadores[led.id]);
-                                delete temporizadores[led.id];
+                            clearInterval(temporizadores[led.id]);
+                            delete temporizadores[led.id];
                         }
                         led.innerHTML = '';
                     }
