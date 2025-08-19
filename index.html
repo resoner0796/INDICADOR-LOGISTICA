@@ -1054,17 +1054,33 @@ function pintarEstado() {
                 const ledsEstado = estados[grupoLeds][linea];
                 contenedor.querySelectorAll('.led').forEach((led, index) => {
                     led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
-                    if (ledsEstado[index] && ledsEstado[index].encendido) {
-                        led.classList.add('on');
-                        led.innerHTML = `<span class="tiempo-transcurrido">0 min</span>`;
-                        const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
-                        // Corrección: Solo inicia el contador si no está corriendo
-                        if (!temporizadores[led.id]) {
+                    if (ledsEstado[index]) {
+                        if (grupoLeds.startsWith('CALIDAD_') && ledsEstado[index].color) {
+                            // Lógica original para LEDs de Calidad
+                            led.classList.add(ledsEstado[index].color);
+                            led.innerHTML = '';
+                        } else if (ledsEstado[index].encendido) {
+                            // Lógica para LEDs de Producción
+                            led.classList.add('on');
+                            // Aquí está la corrección final: solo agregamos el span para el tiempo.
+                            const horaInicio = ledsEstado[index].horaEncendido || ledsEstado[index].timestamp;
+                            const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
+                            const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+                            
+                            led.innerHTML = `<span class="tiempo-transcurrido">${minutosTranscurridos} min</span>`;
+                            
                             iniciarContadorTiempo(led.id, horaInicio);
+                        } else {
+                            // Limpieza cuando el LED está apagado
+                            if (temporizadores[led.id]) {
+                                clearInterval(temporizadores[led.id]);
+                                delete temporizadores[led.id];
+                            }
+                            led.innerHTML = '';
                         }
                     } else {
-                        // Limpieza cuando el LED está apagado
-                        if (temporizadores[led.id]) {
+                         // Si el estado no existe en la DB, también limpiamos
+                         if (temporizadores[led.id]) {
                             clearInterval(temporizadores[led.id]);
                             delete temporizadores[led.id];
                         }
