@@ -1052,7 +1052,7 @@ function iniciarContadorTiempo(idLed, horaEncendido) {
 
 function pintarEstado() {
     db.ref('estadoLEDs').on('value', snapshot => {
-        const estados = snapshot.val() || {};
+        const estados = snapshot = snapshot.val() || {};
         document.querySelectorAll('.leds').forEach(contenedor => {
             const grupoLeds = contenedor.dataset.grupo;
             const linea = contenedor.dataset.linea;
@@ -1085,6 +1085,12 @@ function pintarEstado() {
                                 spanTiempo.classList.add('tiempo-transcurrido');
                                 led.appendChild(spanTiempo);
                             }
+
+                            // *** CAMBIO CRUCIAL AQUÍ: CALCULAMOS Y MOSTRAMOS EL VALOR INICIAL ***
+                            const tiempoTranscurridoMs = new Date() - new Date(horaInicio);
+                            const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+                            const minutosDisplay = Math.max(0, minutosTranscurridos);
+                            spanTiempo.innerHTML = `<b>${minutosDisplay} min</b>`;
 
                             // Si el contador no ha sido iniciado, lo iniciamos ahora.
                             if (!temporizadores[led.id]) {
