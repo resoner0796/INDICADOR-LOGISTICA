@@ -1131,7 +1131,8 @@ function pintarEstado() {
             }
         });
     });
-}
+} // <-- Aquí estaba el error. Faltaba esta llave.
+
   
 function actualizarTiemposLEDs() {
     document.querySelectorAll('.led-linea .led.on').forEach(led => {
