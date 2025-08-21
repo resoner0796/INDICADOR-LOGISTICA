@@ -1001,7 +1001,6 @@ function activarPantalla(id) {
 }
 
 function volverAPantalla1() {
-    // Lógica para cerrar sesión
     usuarioSeleccionado = null;
     tarimaEnProceso = null;
     document.getElementById('seccionBusquedaBX').classList.add('oculto');
@@ -1337,6 +1336,299 @@ document.getElementById('formularioRechazo').addEventListener('submit', (event) 
         alert("Error al guardar el rechazo. Inténtalo de nuevo.");
     });
 });
+
+// ================= FUNCIONES DE REPORTES =================
+function seleccionarReporte() {
+    const password = prompt('Introduce la contraseña para ver los reportes:');
+    if (password === CONFIG.PASSWORDS['REPORTES']) {
+        activarPantalla('pantalla3');
+        document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
+        const selectores = document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn');
+        selectores.forEach(btn => btn.addEventListener('click', () => {
+            const tipoReporte = btn.dataset.reporte;
+            mostrarReporte(tipoReporte);
+        }));
+    } else {
+        alert('Contraseña incorrecta.');
+    }
+}
+async function mostrarReporte(tipoReporte) {
+  reporteActual = tipoReporte;
+  const contenedor = document.getElementById('contenedorReporte');
+  contenedor.innerHTML = '';
+  document.getElementById('tituloReportes').textContent = 'Reporte de ' + tipoReporte.charAt(0).toUpperCase() + tipoReporte.slice(1);
+
+  const loadingDiv = document.createElement('div');
+  loadingDiv.textContent = 'Cargando datos...';
+  contenedor.appendChild(loadingDiv);
+
+  let datos = {};
+  try {
+    const snapshot = await db.ref('historial').once('value');
+    datos = snapshot.val() || {};
+  } catch (error) {
+    console.error("Error al obtener datos del historial:", error);
+    loadingDiv.textContent = 'Error al cargar los datos.';
+    return;
+  }
+  
+  datosFiltradosReporte = Object.values(datos).filter(d => {
+    if (tipoReporte === 'calidad') {
+        return d.tipo.startsWith('CALIDAD');
+    }
+    if (tipoReporte === 'logistica') {
+        return d.tipo === 'RECOLECCIÓN';
+    }
+    if (tipoReporte === 'produccion') {
+        return ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(d.tipo);
+    }
+    if (tipoReporte === 'resumen') {
+        return true;
+    }
+    return false;
+  });
+
+  if (datosFiltradosReporte.length === 0) {
+    loadingDiv.textContent = 'No hay datos para este reporte.';
+    return;
+  }
+  
+  loadingDiv.style.display = 'none';
+  renderizarReporte(tipoReporte);
+}
+function renderizarReporte(tipoReporte) {
+  const contenedor = document.getElementById('contenedorReporte');
+  contenedor.innerHTML = '';
+  
+  const headerReporte = document.createElement('div');
+  headerReporte.className = 'header-reporte';
+  headerReporte.innerHTML = `<h2>${tipoReporte.toUpperCase()}</h2>`;
+
+  const filtrosDiv = document.createElement('div');
+  filtrosDiv.className = 'filtros';
+  filtrosDiv.innerHTML = `
+      <label>Fecha: <input type="date" id="filtroFecha"></label>
+      <label>Turno: <select id="filtroTurno">
+          <option value="todos">Todos</option>
+          <option value="Turno 1">Turno 1</option>
+          <option value="Turno 2">Turno 2</option>
+      </select></label>
+      ${tipoReporte !== 'resumen' ? `<label>Área: <select id="filtroArea"></select></label>` : ''}
+  `;
+  headerReporte.appendChild(filtrosDiv);
+  contenedor.appendChild(headerReporte);
+  
+  const botoneraReporte = document.createElement('div');
+  botoneraReporte.className = 'botones-reporte';
+  botoneraReporte.innerHTML = `
+      <button class="usuario-btn" onclick="exportarExcel('${tipoReporte}')">Exportar a Excel</button>
+      <button class="usuario-btn" onclick="exportarPDF('${tipoReporte}')">Exportar a PDF</button>
+  `;
+  contenedor.appendChild(botoneraReporte);
+
+  const tablaHtml = `
+      <table>
+          <thead>
+              <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>ID Tarima</th>
+                  <th>Usuario</th>
+                  <th>Acción</th>
+                  <th>Tiempo</th>
+              </tr>
+          </thead>
+          <tbody></tbody>
+      </table>
+  `;
+  contenedor.insertAdjacentHTML('beforeend', tablaHtml);
+
+  // Inicializar select de área
+  const filtroArea = document.getElementById('filtroArea');
+  if (filtroArea) {
+    const areas = [...new Set(datosFiltradosReporte.map(d => d.area))];
+    areas.forEach(area => {
+      const option = document.createElement('option');
+      option.value = area;
+      option.textContent = area;
+      filtroArea.appendChild(option);
+    });
+  }
+  
+  // Event listeners para los filtros
+  document.getElementById('filtroFecha')?.addEventListener('change', () => aplicarFiltros(tipoReporte));
+  document.getElementById('filtroTurno')?.addEventListener('change', () => aplicarFiltros(tipoReporte));
+  document.getElementById('filtroArea')?.addEventListener('change', () => aplicarFiltros(tipoReporte));
+  
+  aplicarFiltros(tipoReporte);
+}
+function aplicarFiltros(tipoReporte) {
+  const fecha = document.getElementById('filtroFecha')?.value;
+  const turno = document.getElementById('filtroTurno')?.value;
+  const area = document.getElementById('filtroArea')?.value;
+
+  let datosFiltrados = datosFiltradosReporte.filter(d => {
+      let cumpleFecha = true;
+      if (fecha) {
+          const fechaEvento = new Date(d.timestamp).toISOString().split('T')[0];
+          cumpleFecha = fechaEvento === fecha;
+      }
+      let cumpleTurno = true;
+      if (turno !== 'todos') {
+          cumpleTurno = d.turno === turno;
+      }
+      let cumpleArea = true;
+      if (area && area !== 'todos') {
+          cumpleArea = d.area === area;
+      }
+      return cumpleFecha && cumpleTurno && cumpleArea;
+  });
+
+  const tbody = document.querySelector('#contenedorReporte tbody');
+  tbody.innerHTML = '';
+  datosFiltrados.forEach(dato => {
+      const fechaHora = new Date(dato.timestamp);
+      const fechaStr = fechaHora.toLocaleDateString();
+      const horaStr = fechaHora.toLocaleTimeString();
+      const fila = `
+          <tr>
+              <td>${fechaStr}</td>
+              <td>${horaStr}</td>
+              <td>${dato.tarima || 'N/A'}</td>
+              <td>${dato.usuario}</td>
+              <td>${dato.accion}</td>
+              <td>${dato.tiempo ? `${(dato.tiempo / 1000).toFixed(2)}s` : 'N/A'}</td>
+          </tr>
+      `;
+      tbody.insertAdjacentHTML('beforeend', fila);
+  });
+}
+
+// ================= FUNCIONES DE DASHBOARD =================
+function seleccionarDashboard() {
+  const password = prompt('Introduce la contraseña para el Dashboard:');
+  if (password === CONFIG.PASSWORDS['DASHBOARD']) {
+    activarPantalla('pantalla4');
+    setupDashboard();
+  } else {
+    alert('Contraseña incorrecta.');
+  }
+}
+function setupDashboard() {
+  const fechaInput = document.getElementById('fechaDashboard');
+  const turnoSelect = document.getElementById('turnoDashboardSelect');
+  fechaInput.value = new Date().toISOString().split('T')[0];
+  fechaInput.addEventListener('change', updateDashboard);
+  turnoSelect.addEventListener('change', updateDashboard);
+  updateDashboard();
+}
+
+function updateDashboard() {
+  const fechaSeleccionada = document.getElementById('fechaDashboard').value;
+  const turnoSeleccionado = document.getElementById('turnoDashboardSelect').value;
+
+  db.ref('historial').once('value', snapshot => {
+    const historial = snapshot.val();
+    let datosFiltrados = Object.values(historial).filter(item => {
+      const fechaItem = new Date(item.timestamp).toISOString().split('T')[0];
+      const turnoItem = item.turno;
+      let cumpleFiltro = fechaItem === fechaSeleccionada;
+      if (turnoSeleccionado !== 'todos') {
+        cumpleFiltro = cumpleFiltro && (turnoItem === turnoSeleccionado);
+      }
+      return cumpleFiltro;
+    });
+
+    const datosProduccion = datosFiltrados.filter(d => ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(d.area));
+    const datosCalidad = datosFiltrados.filter(d => d.area && d.area.startsWith('CALIDAD_'));
+    const datosLogistica = datosFiltrados.filter(d => d.area === 'LOGÍSTICA');
+
+    // KPIs
+    const tarimasConfirmadas = datosProduccion.length;
+    const tarimasRecolectadas = datosLogistica.length;
+    const tiemposRecoleccion = datosLogistica.map(d => d.tiempo).filter(t => t);
+    const tiempoPromedio = tiemposRecoleccion.length > 0 ? (tiemposRecoleccion.reduce((a, b) => a + b) / tiemposRecoleccion.length / 1000).toFixed(2) : '0';
+    
+    const rechazos = datosCalidad.filter(d => d.accion === 'Rechazada');
+    const liberadas = datosCalidad.filter(d => d.accion === 'Liberada');
+    const tasaRechazo = liberadas.length + rechazos.length > 0 ? ((rechazos.length / (liberadas.length + rechazos.length)) * 100).toFixed(1) : '0';
+
+    document.getElementById('dashTarimasConfirmadas').textContent = tarimasConfirmadas;
+    document.getElementById('dashTarimasRecolectadas').textContent = tarimasRecolectadas;
+    document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio}s`;
+    document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`;
+
+    // Gráficos
+    const produccionPorArea = contarPorCampo(datosProduccion, 'area');
+    const estadoCalidad = contarPorCampo(datosCalidad, 'accion');
+    const evolucionLogistica = datosLogistica.map(d => ({
+        hora: new Date(d.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        tiempo: (d.tiempo / 1000)
+    }));
+
+    renderizarGrafico('graficoProduccionDash', 'bar', Object.keys(produccionPorArea), Object.values(produccionPorArea), 'Tarimas');
+    renderizarGrafico('graficoCalidadDash', 'doughnut', Object.keys(estadoCalidad), Object.values(estadoCalidad), 'Estado');
+    renderizarGrafico('graficoLogisticaDash', 'line', evolucionLogistica.map(d => d.hora), evolucionLogistica.map(d => d.tiempo), 'Tiempo de recolección (s)');
+    
+    // Tabla de pendientes
+    const pendientesPorArea = {};
+    Object.keys(CONFIG.LEDS_POR_GRUPO).forEach(grupo => {
+        if (!grupo.startsWith('CALIDAD_')) {
+            const ledsOcupados = Object.values(historial).filter(h => h.area === grupo && h.accion === 'LED encendido').length;
+            pendientesPorArea[grupo] = ledsOcupados;
+        }
+    });
+    renderizarTablaPendientes(pendientesPorArea);
+
+  });
+}
+function contarPorCampo(datos, campo) {
+    return datos.reduce((acc, item) => {
+        if (item[campo]) {
+            acc[item[campo]] = (acc[item[campo]] || 0) + 1;
+        }
+        return acc;
+    }, {});
+}
+function renderizarGrafico(canvasId, tipo, labels, data, label) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (graficosDashboard[canvasId]) {
+        graficosDashboard[canvasId].destroy();
+    }
+    graficosDashboard[canvasId] = new Chart(ctx, {
+        type: tipo,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data,
+                backgroundColor: tipo === 'doughnut' ? ['#4caf50', '#f44336', '#ff9800'] : '#0066cc',
+                borderColor: '#fff',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: tipo === 'doughnut' },
+                title: { display: false }
+            },
+            scales: tipo !== 'doughnut' ? {
+                y: { beginAtZero: true }
+            } : {}
+        }
+    });
+}
+function renderizarTablaPendientes(datos) {
+    const tbody = document.querySelector('#tablaPendientes tbody');
+    tbody.innerHTML = '';
+    for (const area in datos) {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `<td>${area}</td><td>${datos[area]}</td>`;
+        tbody.appendChild(fila);
+    }
+}
 </script>
 </body>
 </html>
