@@ -1115,9 +1115,6 @@ let miGrafico;
 let graficosDashboard = {};
 let dashboardUpdateInterval;
 
-const temporizadores = {};
-
-
 // ================= FIREBASE =================
 const firebaseConfig = {
     apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
@@ -1571,36 +1568,6 @@ function inyectaLEDs(){
             contenedor.appendChild(led);
         }
     });
-}
-
-function iniciarContadorTiempo(idLed, horaEncendido) {
-    // Limpia el temporizador anterior si existe
-    if (temporizadores[idLed]) {
-        clearInterval(temporizadores[idLed]);
-    }
-    
-    // Busca el span del tiempo dentro del LED
-    const ledBoton = document.getElementById(idLed);
-    const spanTiempo = ledBoton ? ledBoton.querySelector('.tiempo-transcurrido') : null;
-
-    if (!spanTiempo) return;
-
-    // Función que calcula y actualiza el tiempo
-    const actualizarTiempo = () => {
-        const ahora = new Date();
-        const tiempoTranscurridoMs = ahora - new Date(horaEncendido);
-        const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / (1000 * 60));
-        spanTiempo.innerHTML = `<b>${minutosTranscurridos} min</b>`;
-    };
-
-    // Llama a la función de actualización por primera vez
-    actualizarTiempo();
-
-    // Inicia el contador para que se actualice cada 60 segundos (1 minuto)
-    const intervalo = setInterval(actualizarTiempo, 10000);
-
-    // Guarda la referencia al intervalo
-    temporizadores[idLed] = intervalo;
 }
 
 function pintarEstado() {
