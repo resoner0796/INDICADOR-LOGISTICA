@@ -1,6 +1,6 @@
 {
   "name": "Panel Logística",
-  "short_name": "Logística",
+  "short_name": "Panel Logistica",
   "description": "Control de LEDs para logística",
   "start_url": "./index.html",
   "display": "standalone",
