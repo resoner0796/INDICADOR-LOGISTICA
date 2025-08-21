@@ -1139,122 +1139,6 @@ contenedor.appendChild(led);
 }
 });
 }
-
-    (function(){
-let usuarioActual = null;
-function setUsuarioActual(usuario){
-  usuarioActual = usuario;
-  document.getElementById("mtOpenBtn").style.display = "block"; // solo después de elegir usuario
-}
-
-// Abrir/cerrar panel
-document.getElementById("mtOpenBtn").addEventListener("click", ()=> {
-  document.getElementById("mtPanel").classList.add("open");
-});
-document.getElementById("mtCloseBtn").addEventListener("click", ()=> {
-  document.getElementById("mtPanel").classList.remove("open");
-});
-
-// Buscar tarima por BX
-document.getElementById("buscarTarimaBtn").addEventListener("click", ()=>{
-  const bxCode = document.getElementById("bxInput").value.trim();
-  if(!bxCode){ alert("Escanea un código BX"); return; }
-
-  database.ref("tarimas").once("value").then(snapshot=>{
-    let encontrada = null;
-    snapshot.forEach(child=>{
-      const t = child.val();
-      if(t.cajas){
-        const match = t.cajas.find(c=>c.codigoCaja === bxCode);
-        if(match){ encontrada = {id:child.key, ...t}; }
-      }
-    });
-
-    if(encontrada){
-      document.getElementById("tarimaInfo").style.display="block";
-      document.getElementById("tarimaId").textContent = encontrada.id;
-      document.getElementById("empleado").textContent = encontrada.empleado || "N/D";
-      document.getElementById("turno").textContent = encontrada.turno || "N/D";
-      document.getElementById("totalCajas").textContent = encontrada.cajas.length;
-      document.getElementById("totalPiezas").textContent = encontrada.totalPiezas || 0;
-
-      const lista = document.getElementById("listaCajas");
-      lista.innerHTML="";
-      encontrada.cajas.forEach(caja=>{
-        const li = document.createElement("li");
-        li.textContent = `${caja.codigoCaja} - ${caja.piezas} piezas`;
-        lista.appendChild(li);
-      });
-
-      // Si es calidad mostrar dropdown LEDs
-      if(usuarioActual && usuarioActual.startsWith("CALIDAD")){
-        document.getElementById("ledAssignment").style.display="block";
-        cargarLedsDisponibles(encontrada.id);
-      } else {
-        document.getElementById("ledAssignment").style.display="none";
-      }
-    } else {
-      alert("No se encontró ninguna tarima con ese BX");
-    }
-  });
-});
-
-// Cargar LEDs disponibles
-function cargarLedsDisponibles(tarimaId){
-  const ledSelect = document.getElementById("ledSelect");
-  ledSelect.innerHTML="";
-  database.ref("estadoLEDs").once("value").then(snapshot=>{
-    snapshot.forEach(child=>{
-      const ledId = child.key;
-      const opt = document.createElement("option");
-      opt.value = ledId;
-      opt.textContent = ledId;
-      ledSelect.appendChild(opt);
-    });
-  });
-
-  document.getElementById("asignarLedBtn").onclick = ()=>{
-    const ledId = ledSelect.value;
-    if(!ledId) return;
-
-    database.ref("ledsAsignados/"+ledId).set({
-      tarimaId: tarimaId,
-      asignadoPor: usuarioActual,
-      timestamp: Date.now()
-    }).then(()=>{
-      alert("Tarima asignada al LED " + ledId);
-    });
-  };
-}
-
-// Validar LED antes de accionar
-function validarLedAntesDeAccion(ledId, callback){
-  database.ref("ledsAsignados/"+ledId).once("value").then(snap=>{
-    if(snap.exists()){
-      callback();
-    } else {
-      alert("Este LED no tiene una tarima asignada");
-    }
-  });
-}
-
-// Encender LED (ejemplo en producción)
-function encenderLed(ledId){
-  validarLedAntesDeAccion(ledId, ()=>{
-    database.ref("estadoLEDs/"+ledId).set(true);
-    alert("LED encendido");
-  });
-}
-
-// Apagar LED (ejemplo en logística) → además libera
-function apagarLed(ledId){
-  validarLedAntesDeAccion(ledId, ()=>{
-    database.ref("estadoLEDs/"+ledId).set(false);
-    database.ref("ledsAsignados/"+ledId).remove();
-    alert("LED apagado y liberado");
-  });
-}
-<!-- ===== FIN MÓDULO TARIMAS ===== -->
   
 function iniciarContadorTiempo(idLed, horaEncendido) {
 // Limpia el temporizador anterior si existe
@@ -1748,7 +1632,120 @@ alert('Contraseña incorrecta. Inténtalo de nuevo.');
 }
 }
 }
+let usuarioActual = null;
+function setUsuarioActual(usuario){
+  usuarioActual = usuario;
+  document.getElementById("mtOpenBtn").style.display = "block"; // solo después de elegir usuario
+}
 
+// Abrir/cerrar panel
+document.getElementById("mtOpenBtn").addEventListener("click", ()=> {
+  document.getElementById("mtPanel").classList.add("open");
+});
+document.getElementById("mtCloseBtn").addEventListener("click", ()=> {
+  document.getElementById("mtPanel").classList.remove("open");
+});
+
+// Buscar tarima por BX
+document.getElementById("buscarTarimaBtn").addEventListener("click", ()=>{
+  const bxCode = document.getElementById("bxInput").value.trim();
+  if(!bxCode){ alert("Escanea un código BX"); return; }
+
+  database.ref("tarimas").once("value").then(snapshot=>{
+    let encontrada = null;
+    snapshot.forEach(child=>{
+      const t = child.val();
+      if(t.cajas){
+        const match = t.cajas.find(c=>c.codigoCaja === bxCode);
+        if(match){ encontrada = {id:child.key, ...t}; }
+      }
+    });
+
+    if(encontrada){
+      document.getElementById("tarimaInfo").style.display="block";
+      document.getElementById("tarimaId").textContent = encontrada.id;
+      document.getElementById("empleado").textContent = encontrada.empleado || "N/D";
+      document.getElementById("turno").textContent = encontrada.turno || "N/D";
+      document.getElementById("totalCajas").textContent = encontrada.cajas.length;
+      document.getElementById("totalPiezas").textContent = encontrada.totalPiezas || 0;
+
+      const lista = document.getElementById("listaCajas");
+      lista.innerHTML="";
+      encontrada.cajas.forEach(caja=>{
+        const li = document.createElement("li");
+        li.textContent = `${caja.codigoCaja} - ${caja.piezas} piezas`;
+        lista.appendChild(li);
+      });
+
+      // Si es calidad mostrar dropdown LEDs
+      if(usuarioActual && usuarioActual.startsWith("CALIDAD")){
+        document.getElementById("ledAssignment").style.display="block";
+        cargarLedsDisponibles(encontrada.id);
+      } else {
+        document.getElementById("ledAssignment").style.display="none";
+      }
+    } else {
+      alert("No se encontró ninguna tarima con ese BX");
+    }
+  });
+});
+
+// Cargar LEDs disponibles
+function cargarLedsDisponibles(tarimaId){
+  const ledSelect = document.getElementById("ledSelect");
+  ledSelect.innerHTML="";
+  database.ref("estadoLEDs").once("value").then(snapshot=>{
+    snapshot.forEach(child=>{
+      const ledId = child.key;
+      const opt = document.createElement("option");
+      opt.value = ledId;
+      opt.textContent = ledId;
+      ledSelect.appendChild(opt);
+    });
+  });
+
+  document.getElementById("asignarLedBtn").onclick = ()=>{
+    const ledId = ledSelect.value;
+    if(!ledId) return;
+
+    database.ref("ledsAsignados/"+ledId).set({
+      tarimaId: tarimaId,
+      asignadoPor: usuarioActual,
+      timestamp: Date.now()
+    }).then(()=>{
+      alert("Tarima asignada al LED " + ledId);
+    });
+  };
+}
+
+// Validar LED antes de accionar
+function validarLedAntesDeAccion(ledId, callback){
+  database.ref("ledsAsignados/"+ledId).once("value").then(snap=>{
+    if(snap.exists()){
+      callback();
+    } else {
+      alert("Este LED no tiene una tarima asignada");
+    }
+  });
+}
+
+// Encender LED (ejemplo en producción)
+function encenderLed(ledId){
+  validarLedAntesDeAccion(ledId, ()=>{
+    database.ref("estadoLEDs/"+ledId).set(true);
+    alert("LED encendido");
+  });
+}
+
+// Apagar LED (ejemplo en logística) → además libera
+function apagarLed(ledId){
+  validarLedAntesDeAccion(ledId, ()=>{
+    database.ref("estadoLEDs/"+ledId).set(false);
+    database.ref("ledsAsignados/"+ledId).remove();
+    alert("LED apagado y liberado");
+  });
+}
+<!-- ===== FIN MÓDULO TARIMAS ===== -->
 function seleccionarReporte() {
 const password = prompt('Introduce la contraseña para REPORTES:');
 if (password === CONFIG.PASSWORDS['REPORTES']) {
