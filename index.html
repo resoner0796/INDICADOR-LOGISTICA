@@ -682,93 +682,7 @@ grid-column: span 1;
 }
 }
 
-    #modulo-tarimas-overlay {
-    position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6);
-    display: none;
-    z-index: 998;
-  }
-  #modulo-tarimas-overlay.active { display: block; }
-
-  #modulo-tarimas {
-    position: fixed;
-    top: 0; right: -420px;
-    width: 400px; height: 100%;
-    background: #1c1c1e;
-    color: white;
-    box-shadow: -4px 0 12px rgba(0,0,0,0.5);
-    z-index: 999;
-    padding: 20px;
-    overflow-y: auto;
-    transition: right 0.3s ease;
-  }
-  #modulo-tarimas.active { right: 0; }
-
-  #modulo-tarimas h2 { margin: 0 0 10px; text-align: center; }
-
-  .mt-input, .mt-btn, .mt-select {
-    width: 100%; padding: 10px; margin: 6px 0;
-    border-radius: 8px; border: none; font-size: 14px;
-  }
-  .mt-input { background: #2c2c2e; color: white; }
-  .mt-input::placeholder { color: #aaa; }
-  .mt-btn { cursor: pointer; font-weight: bold; }
-  .mt-btn-green { background: #4CAF50; color: white; }
-  .mt-btn-red { background: #ff3b30; color: white; }
-  .mt-select { background: #2c2c2e; color: white; }
-
-  .mt-list { list-style: none; padding: 0; margin: 0; }
-  .mt-list li {
-    background: #2c2c2e; padding: 10px; margin: 6px 0;
-    border-radius: 6px; font-size: 13px;
-  }
-
-  .mt-fab {
-    position: fixed; bottom: 20px; right: 20px;
-    background: #007AFF; color: white;
-    padding: 14px 20px; border-radius: 50px;
-    border: none; font-size: 14px; cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    z-index: 1000;
-  }
-  .mt-fab:active { transform: scale(0.95); }
-
-     <style>
-    <!-- Botón flotante para abrir el panel de Tarimas -->
-<button class="mt-fab" id="mtOpenBtn" style="display:none;">TARIMAS</button>
-<!-- Panel lateral de identificación de tarima -->
-<div id="mtPanel" class="mt-panel">
-  <div class="mt-panel-content">
-    <span id="mtCloseBtn" class="mt-close">&times;</span>
-    <h2>Identificación de Tarima</h2>
-    <p>Escanea un código BX para identificar la tarima</p>
-    <input type="text" id="bxInput" placeholder="Escanear BX..." />
-    <button id="buscarTarimaBtn">Buscar</button>
-
-    <!-- Resultados -->
-    <div id="tarimaInfo" style="margin-top:20px; display:none;">
-      <h3>Tarima encontrada</h3>
-      <p><b>ID:</b> <span id="tarimaId"></span></p>
-      <p><b>Empleado:</b> <span id="empleado"></span></p>
-      <p><b>Turno:</b> <span id="turno"></span></p>
-      <p><b>Total cajas:</b> <span id="totalCajas"></span></p>
-      <p><b>Total piezas:</b> <span id="totalPiezas"></span></p>
-
-      <h4>Cajas:</h4>
-      <ul id="listaCajas"></ul>
-
-      <!-- Dropdown solo para CALIDAD -->
-      <div id="ledAssignment" style="display:none; margin-top:20px;">
-        <label for="ledSelect">Asignar LED:</label>
-        <select id="ledSelect"></select>
-        <button id="asignarLedBtn">Asignar LED</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
+   <style>
 /* Estilos para el FAB y el panel */
 .mt-fab {
   position: fixed;
@@ -807,6 +721,38 @@ grid-column: span 1;
   float: right;
 }
 </style>
+    <!-- Botón flotante para abrir el panel de Tarimas -->
+<button class="mt-fab" id="mtOpenBtn" style="display:none;">TARIMAS</button>
+<!-- Panel lateral de identificación de tarima -->
+<div id="mtPanel" class="mt-panel">
+  <div class="mt-panel-content">
+    <span id="mtCloseBtn" class="mt-close">&times;</span>
+    <h2>Identificación de Tarima</h2>
+    <p>Escanea un código BX para identificar la tarima</p>
+    <input type="text" id="bxInput" placeholder="Escanear BX..." />
+    <button id="buscarTarimaBtn">Buscar</button>
+
+    <!-- Resultados -->
+    <div id="tarimaInfo" style="margin-top:20px; display:none;">
+      <h3>Tarima encontrada</h3>
+      <p><b>ID:</b> <span id="tarimaId"></span></p>
+      <p><b>Empleado:</b> <span id="empleado"></span></p>
+      <p><b>Turno:</b> <span id="turno"></span></p>
+      <p><b>Total cajas:</b> <span id="totalCajas"></span></p>
+      <p><b>Total piezas:</b> <span id="totalPiezas"></span></p>
+
+      <h4>Cajas:</h4>
+      <ul id="listaCajas"></ul>
+
+      <!-- Dropdown solo para CALIDAD -->
+      <div id="ledAssignment" style="display:none; margin-top:20px;">
+        <label for="ledSelect">Asignar LED:</label>
+        <select id="ledSelect"></select>
+        <button id="asignarLedBtn">Asignar LED</button>
+      </div>
+    </div>
+  </div>
+</div>
 </head>
 
 <body>
@@ -1629,8 +1575,6 @@ iniciarListenersFirebase();
 alert(`¡Bienvenido, ${usuario}!`);
 } else {
 alert('Contraseña incorrecta. Inténtalo de nuevo.');
-}
-}
 }
 let usuarioActual = null;
 function setUsuarioActual(usuario){
