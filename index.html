@@ -682,45 +682,128 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   }
 }
 </style>
-  <style>
-/* Estilos para el FAB y el panel */
-.mt-fab {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 70px;
-  height: 70px;
-  font-size: 12px;
-  cursor: pointer;
-  z-index: 1000;
-}
+    <!-- === NUEVO: FAB para abrir panel de Tarimas (solo se muestra tras elegir usuario) === -->
+<button class="mt-fab" id="mtOpenBtn" style="display:none;" title="Identificación de Tarima">TARIMAS</button>
 
-.mt-panel {
-  position: fixed;
-  top: 0;
-  right: -400px;
-  width: 400px;
-  height: 100%;
-  background: #1e1e1e;
-  color: white;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.5);
-  transition: right 0.3s ease;
-  z-index: 999;
-}
-.mt-panel.open { right: 0; }
+<!-- === NUEVO: Panel lateral de Identificación de Tarima === -->
+<div id="mtPanel" class="mt-panel" aria-hidden="true">
+  <div class="mt-panel-content">
+    <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
+    <h2>Identificación de Tarima</h2>
+    <p>Escanea o ingresa un código <b>BX</b> para identificar la tarima:</p>
 
-.mt-panel-content { padding: 20px; }
+    <div class="mt-row">
+      <input type="text" id="bxInput" placeholder="Escanear/pegar código BX..." autocomplete="off" />
+      <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
+    </div>
 
-.mt-close {
-  font-size: 30px;
-  cursor: pointer;
-  float: right;
-}
-    
+    <!-- Resultado de búsqueda -->
+    <div id="tarimaInfo" class="mt-card" style="display:none;">
+      <h3>Tarima encontrada</h3>
+      <div class="mt-grid">
+        <div><b>ID:</b> <span id="tarimaId">—</span></div>
+        <div><b>Empleado:</b> <span id="empleado">—</span></div>
+        <div><b>Turno:</b> <span id="turno">—</span></div>
+        <div><b>Total cajas:</b> <span id="totalCajas">0</span></div>
+        <div><b>Total piezas:</b> <span id="totalPiezas">0</span></div>
+      </div>
+
+      <h4>Detalle de cajas (BX | piezas)</h4>
+      <ul id="listaCajas" class="mt-list"></ul>
+
+      <!-- Solo para CALIDAD: asignación de LED -->
+      <div id="ledAssignment" class="mt-assign" style="display:none;">
+        <label for="ledSelect">Asignar LED a esta tarima:</label>
+        <div class="mt-row">
+          <select id="ledSelect" class="mt-select"></select>
+          <button id="asignarLedBtn" class="mt-btn mt-success">Asignar LED</button>
+        </div>
+        <small>Nota: los LEDs solo podrán encenderse/apagarse si tienen tarima asignada.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- === NUEVO: Estilos mínimos y tema oscuro para Calidad/Producción === -->
+<style>
+  /* FAB */
+  .mt-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #0a84ff;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 78px;
+    height: 78px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(10,132,255,.35);
+  }
+  .mt-fab:active { transform: translateY(1px); }
+
+  /* Panel lateral */
+  .mt-panel {
+    position: fixed;
+    top: 0; right: -420px; width: 420px; max-width: 95vw; height: 100%;
+    background: #111316; color: #eaeaea;
+    box-shadow: -4px 0 20px rgba(0,0,0,.45);
+    transition: right .28s ease;
+    z-index: 999;
+  }
+  .mt-panel.open { right: 0; }
+  .mt-panel-content { padding: 20px; }
+  .mt-close {
+    background: transparent; border: none; color: #aaa; font-size: 28px; cursor: pointer; float: right;
+  }
+  .mt-close:hover { color: #fff; }
+
+  /* Controles */
+  .mt-row { display: flex; gap: 10px; align-items: stretch; }
+  .mt-btn {
+    padding: 10px 14px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
+  }
+  .mt-primary { background:#0a84ff; color:#fff; }
+  .mt-success { background:#34c759; color:#000; }
+  .mt-select, #bxInput {
+    flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2b2f36; background:#171a1f; color:#eaeaea;
+  }
+  .mt-select:focus, #bxInput:focus { outline: 2px solid #0a84ff; }
+
+  .mt-card {
+    margin-top: 16px; padding: 16px; border-radius: 14px;
+    background: linear-gradient(180deg, #16191e 0%, #121418 100%);
+    border: 1px solid #20242b;
+  }
+  .mt-grid {
+    display: grid; grid-template-columns: repeat(2,1fr); gap: 8px 14px; margin-bottom: 10px;
+  }
+  .mt-list { list-style: none; padding-left: 0; margin: 8px 0 0; max-height: 200px; overflow: auto; }
+  .mt-list li {
+    padding: 10px 12px; margin-bottom: 8px; border-radius: 10px;
+    background:#0f1216; border: 1px solid #22262c; font-size: 14px;
+    word-break: break-word;
+  }
+  .mt-assign { margin-top: 14px; border-top: 1px dashed #2a2f36; padding-top: 12px; }
+
+  /* === TEMA OSCURO SOLO PARA CALIDAD/PRODUCCIÓN ===
+     Le agregamos a <body> la clase .theme-dark cuando el usuario pertenece a esas áreas.
+     Logística queda igual (sin esta clase). */
+  body.theme-dark {
+    background: #0b0d0f !important;
+    color: #eaeaea !important;
+  }
+  body.theme-dark .card, body.theme-dark .panel, body.theme-dark .widget {
+    background: #121418 !important;
+    color: #eaeaea !important;
+    border-color: #21252b !important;
+  }
+  body.theme-dark button, body.theme-dark .btn {
+    border-radius: 10px;
+  }
 </style>
 </head>
 <body>
@@ -1052,6 +1135,291 @@ let contadoresCalidadRef;
 let rechazosDetalladosRef;
 let dashboardListeners = [];
 
+window.database = window.database || firebase.database();
+
+// Guardaremos el usuario actual (texto del botón que usan)
+window.__usuarioActual = null;
+
+// -------------------------------------------------------
+//  ✅ Restauración/Compat: seleccionarUsuario()
+//  - Evita el error "seleccionarUsuario is not defined"
+//  - Si existía una versión anterior, la detecta y delega.
+//  - AÑADE: seteo de tema oscuro para Calidad/Producción,
+//           y muestra el FAB de Tarimas.
+// -------------------------------------------------------
+(function compatSeleccionarUsuario(){
+  const legacy = window.seleccionarUsuario; // por si ya existía
+  window._seleccionarUsuarioOriginal = (typeof legacy === 'function') ? legacy : null;
+
+  window.seleccionarUsuario = function(usuarioClave) {
+    try {
+      window.__usuarioActual = String(usuarioClave || '').toUpperCase();
+
+      // Tema oscuro solo para CALIDAD_* y PRODUCCION_*
+      const isDark = window.__usuarioActual.startsWith('CALIDAD') || window.__usuarioActual.startsWith('PRODUCCION');
+      document.body.classList.toggle('theme-dark', isDark);
+
+      // Mostrar FAB "TARIMAS" solo cuando ya hay usuario elegido
+      const fab = document.getElementById('mtOpenBtn');
+      if (fab) fab.style.display = 'block';
+
+      // Delegar a tu función original si existía:
+      if (window._seleccionarUsuarioOriginal) {
+        return window._seleccionarUsuarioOriginal(usuarioClave);
+      }
+
+      // Si no había original, al menos no tronamos:
+      console.info('[Compat] seleccionarUsuario activo (sin versión original). Usuario:', window.__usuarioActual);
+    } catch (e) {
+      console.error('Error en seleccionarUsuario compat:', e);
+    }
+  };
+})();
+
+// =======================================================
+//  🎯 NUEVO: Identificación de Tarimas y Amarre con LEDs
+//  - Buscar tarima por BX
+//  - Mostrar detalle: empleado/turno/cajas/piezas/lista BX
+//  - En CALIDAD: asignar LED a tarima (ledsAsignados/{ledId})
+//  - En PRODUCCIÓN/LOGÍSTICA: no se puede accionar LED sin tarima
+//  - En LOGÍSTICA: al apagar, se libera el LED (remove ledsAsignados)
+// =======================================================
+
+// Helpers UI panel
+const MT = {
+  ui: {
+    panel:   document.getElementById('mtPanel'),
+    openBtn: document.getElementById('mtOpenBtn'),
+    closeBtn:document.getElementById('mtCloseBtn'),
+    bxInput: document.getElementById('bxInput'),
+    buscarBtn: document.getElementById('buscarTarimaBtn'),
+    infoBox: document.getElementById('tarimaInfo'),
+    fields: {
+      id: document.getElementById('tarimaId'),
+      empleado: document.getElementById('empleado'),
+      turno: document.getElementById('turno'),
+      totalCajas: document.getElementById('totalCajas'),
+      totalPiezas: document.getElementById('totalPiezas'),
+      listaCajas: document.getElementById('listaCajas')
+    },
+    asignacion: {
+      wrap: document.getElementById('ledAssignment'),
+      select: document.getElementById('ledSelect'),
+      btn: document.getElementById('asignarLedBtn')
+    }
+  },
+  state: {
+    tarimaActual: null // { id, empleadoId, turno, cajas:{...}, totalPiezas }
+  }
+};
+
+// Abrir / cerrar panel
+if (MT.ui.openBtn) MT.ui.openBtn.addEventListener('click', () => MT.ui.panel.classList.add('open'));
+if (MT.ui.closeBtn) MT.ui.closeBtn.addEventListener('click', () => MT.ui.panel.classList.remove('open'));
+
+// Buscar tarima por BX
+if (MT.ui.buscarBtn) {
+  MT.ui.buscarBtn.addEventListener('click', () => {
+    const bx = (MT.ui.bxInput.value || '').trim();
+    if (!bx) { alert('Ingresa o escanea un código BX'); return; }
+    buscarTarimaPorBX(bx);
+  });
+}
+// También Enter en input
+if (MT.ui.bxInput) {
+  MT.ui.bxInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') MT.ui.buscarBtn.click();
+  });
+}
+
+/**
+ * Lee /tarimas en estructura:
+ * tarimas/{idTarima}/{
+ *   empleadoId, turno, cajas:{ pushKey: {codigoCaja, cantidadPiezas, numeroOrden, ...} }
+ * }
+ */
+function buscarTarimaPorBX(bxCode) {
+  database.ref('tarimas').once('value').then(snapshot => {
+    let encontrada = null;
+    snapshot.forEach(tSnap => {
+      const t = tSnap.val() || {};
+      const cajas = t.cajas || {};
+      for (const k in cajas) {
+        if (cajas[k] && cajas[k].codigoCaja === bxCode) {
+          encontrada = { id: t.id || tSnap.key, ...t };
+          break;
+        }
+      }
+      if (encontrada) return true; // corta forEach
+    });
+
+    if (!encontrada) {
+      MT.ui.infoBox.style.display = 'none';
+      alert('No se encontró tarima con ese BX.');
+      return;
+    }
+
+    // Guardamos y pintamos
+    MT.state.tarimaActual = normalizarTarima(encontrada);
+    renderTarimaEncontrada(MT.state.tarimaActual);
+  }).catch(err => {
+    console.error('Error buscando tarima:', err);
+    alert('Error al buscar la tarima. Reintenta.');
+  });
+}
+
+// Normaliza estructura a un objeto amigable p/ UI
+function normalizarTarima(t) {
+  const out = {
+    id: t.id,
+    empleadoId: t.empleadoId || t.empleado || 'N/D',
+    turno: t.turno || 'N/D',
+    totalCajas: 0,
+    totalPiezas: 0,
+    cajas: [] // [{codigoCaja, cantidadPiezas}]
+  };
+  const cajas = t.cajas || {};
+  for (const cid in cajas) {
+    const c = cajas[cid] || {};
+    out.cajas.push({
+      id: cid,
+      codigoCaja: c.codigoCaja || '—',
+      cantidadPiezas: Number(c.cantidadPiezas || c.piezas || 0)
+    });
+  }
+  out.totalCajas = out.cajas.length;
+  out.totalPiezas = out.cajas.reduce((a,c)=>a + (Number.isFinite(c.cantidadPiezas)?c.cantidadPiezas:0), 0);
+  return out;
+}
+
+function renderTarimaEncontrada(tarima) {
+  // Rellena campos
+  MT.ui.fields.id.textContent = tarima.id;
+  MT.ui.fields.empleado.textContent = tarima.empleadoId;
+  MT.ui.fields.turno.textContent = tarima.turno;
+  MT.ui.fields.totalCajas.textContent = tarima.totalCajas;
+  MT.ui.fields.totalPiezas.textContent = tarima.totalPiezas;
+
+  // Lista de cajas
+  MT.ui.fields.listaCajas.innerHTML = '';
+  tarima.cajas.forEach(c => {
+    const li = document.createElement('li');
+    li.textContent = `${c.codigoCaja}  |  ${c.cantidadPiezas} pz`;
+    MT.ui.fields.listaCajas.appendChild(li);
+  });
+
+  // Si el usuario es CALIDAD_* → mostrar asignación de LED
+  const isCalidad = (window.__usuarioActual || '').startsWith('CALIDAD');
+  MT.ui.asignacion.wrap.style.display = isCalidad ? 'block' : 'none';
+
+  if (isCalidad) {
+    cargarLedsDisponibles();
+    // Click asignar
+    MT.ui.asignacion.btn.onclick = () => {
+      const ledId = MT.ui.asignacion.select.value;
+      if (!ledId) return;
+      asignarLedATarima(ledId, tarima.id);
+    };
+  }
+
+  MT.ui.infoBox.style.display = 'block';
+}
+
+// Carga todos los LEDs definidos en /estadoLEDs
+function cargarLedsDisponibles() {
+  const sel = MT.ui.asignacion.select;
+  sel.innerHTML = '';
+  database.ref('estadoLEDs').once('value').then(snap => {
+    const ledIds = [];
+    snap.forEach(ch => ledIds.push(ch.key));
+    ledIds.sort((a,b)=> a.localeCompare(b, 'es', {numeric:true}));
+    ledIds.forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id; opt.textContent = id;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+// Escribe el vínculo LED ↔ Tarima en /ledsAsignados/{ledId}
+function asignarLedATarima(ledId, tarimaId) {
+  const payload = {
+    tarimaId,
+    asignadoPor: window.__usuarioActual || 'N/D',
+    timestamp: Date.now()
+  };
+  database.ref('ledsAsignados/'+ledId).set(payload).then(() => {
+    alert(`Tarima ${tarimaId} asignada al LED ${ledId}`);
+  }).catch(err => {
+    console.error('Error asignando LED:', err);
+    alert('No se pudo asignar el LED. Intenta nuevamente.');
+  });
+}
+
+// =======================================================
+//  ✅ VALIDACIÓN DE ACCIONES SOBRE LEDs
+//  - Solo permite encender/apagar si hay tarima asignada.
+//  - En apagado (Logística), libera el LED.
+//  - Se integra SIN romper tus funciones existentes.
+//    * Si tenías encenderLed/apagarLed → las envolvemos.
+//    * Si no, exponemos estas funciones para tus botones.
+// =======================================================
+
+function validarLedAntesDeAccion(ledId) {
+  return database.ref('ledsAsignados/'+ledId).once('value').then(snap => snap.exists());
+}
+
+// Wrappers seguros (detectan y envuelven funciones existentes)
+(function envolverAccionesLED(){
+  const _encender = window.encenderLed;
+  const _apagar = window.apagarLed;
+
+  // Encender: requiere tarima asignada
+  window.encenderLed = function(ledId) {
+    validarLedAntesDeAccion(ledId).then(ok => {
+      if (!ok) { alert('Este LED no tiene tarima asignada. Asigna una desde Calidad.'); return; }
+      if (typeof _encender === 'function') {
+        // Tu lógica original
+        _encender(ledId);
+      } else {
+        // Por si no existía: write directo (mantén tu pintarLed/cargarEstado aparte)
+        database.ref('estadoLEDs/'+ledId).set(true);
+      }
+    }).catch(err => console.error('Validación LED falló:', err));
+  };
+
+  // Apagar: requiere tarima asignada y luego libera
+  window.apagarLed = function(ledId) {
+    validarLedAntesDeAccion(ledId).then(ok => {
+      if (!ok) { alert('Este LED no tiene tarima asignada.'); return; }
+      const apagarAccion = () => {
+        if (typeof _apagar === 'function') {
+          _apagar(ledId);
+        } else {
+          database.ref('estadoLEDs/'+ledId).set(false);
+        }
+        // Liberación automática
+        database.ref('ledsAsignados/'+ledId).remove()
+          .then(()=>console.info('LED liberado:', ledId))
+          .catch(err=>console.warn('No se pudo liberar LED:', err));
+      };
+      apagarAccion();
+    }).catch(err => console.error('Validación LED falló:', err));
+  };
+})();
+
+// =======================================================
+//  📌 NOTAS PARA FUTURAS EXTENSIONES
+//  - Reportes: puedes consumir /tarimas y /ledsAsignados para ver
+//    qué LED tuvo qué tarima y cuándo.
+//  - Permisos: si luego agregas auth/roles, aquí puedes condicionar
+//    la visibilidad del FAB y del panel por usuario.
+//  - Reglas de seguridad: idealmente, en Firebase Rules valida que
+//    solo se pueda escribir /estadoLEDs/{ledId} si existe
+//    /ledsAsignados/{ledId}. Así la seguridad queda a prueba de balas.
+// =======================================================
+
+  
 // ================= FUNCIONES DE RENDER =================
 function inyectaLEDs(){
     document.querySelectorAll('.grupo').forEach(grupoDiv => {
@@ -1600,120 +1968,6 @@ function seleccionarUsuario(usuario) {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
         }
     }
-}
-  (function(){
-    let usuarioActual = null;
-function setUsuarioActual(usuario){
-  usuarioActual = usuario;
-  document.getElementById("mtOpenBtn").style.display = "block"; // solo después de elegir usuario
-}
-
-// Abrir/cerrar panel
-document.getElementById("mtOpenBtn").addEventListener("click", ()=> {
-  document.getElementById("mtPanel").classList.add("open");
-});
-document.getElementById("mtCloseBtn").addEventListener("click", ()=> {
-  document.getElementById("mtPanel").classList.remove("open");
-});
-
-// Buscar tarima por BX
-document.getElementById("buscarTarimaBtn").addEventListener("click", ()=>{
-  const bxCode = document.getElementById("bxInput").value.trim();
-  if(!bxCode){ alert("Escanea un código BX"); return; }
-
-  database.ref("tarimas").once("value").then(snapshot=>{
-    let encontrada = null;
-    snapshot.forEach(child=>{
-      const t = child.val();
-      if(t.cajas){
-        const match = t.cajas.find(c=>c.codigoCaja === bxCode);
-        if(match){ encontrada = {id:child.key, ...t}; }
-      }
-    });
-
-    if(encontrada){
-      document.getElementById("tarimaInfo").style.display="block";
-      document.getElementById("tarimaId").textContent = encontrada.id;
-      document.getElementById("empleado").textContent = encontrada.empleado || "N/D";
-      document.getElementById("turno").textContent = encontrada.turno || "N/D";
-      document.getElementById("totalCajas").textContent = encontrada.cajas.length;
-      document.getElementById("totalPiezas").textContent = encontrada.totalPiezas || 0;
-
-      const lista = document.getElementById("listaCajas");
-      lista.innerHTML="";
-      encontrada.cajas.forEach(caja=>{
-        const li = document.createElement("li");
-        li.textContent = `${caja.codigoCaja} - ${caja.piezas} piezas`;
-        lista.appendChild(li);
-      });
-
-      // Si es calidad mostrar dropdown LEDs
-      if(usuarioActual && usuarioActual.startsWith("CALIDAD")){
-        document.getElementById("ledAssignment").style.display="block";
-        cargarLedsDisponibles(encontrada.id);
-      } else {
-        document.getElementById("ledAssignment").style.display="none";
-      }
-    } else {
-      alert("No se encontró ninguna tarima con ese BX");
-    }
-  });
-});
-
-// Cargar LEDs disponibles
-function cargarLedsDisponibles(tarimaId){
-  const ledSelect = document.getElementById("ledSelect");
-  ledSelect.innerHTML="";
-  database.ref("estadoLEDs").once("value").then(snapshot=>{
-    snapshot.forEach(child=>{
-      const ledId = child.key;
-      const opt = document.createElement("option");
-      opt.value = ledId;
-      opt.textContent = ledId;
-      ledSelect.appendChild(opt);
-    });
-  });
-
-  document.getElementById("asignarLedBtn").onclick = ()=>{
-    const ledId = ledSelect.value;
-    if(!ledId) return;
-
-    database.ref("ledsAsignados/"+ledId).set({
-      tarimaId: tarimaId,
-      asignadoPor: usuarioActual,
-      timestamp: Date.now()
-    }).then(()=>{
-      alert("Tarima asignada al LED " + ledId);
-    });
-  };
-}
-
-// Validar LED antes de accionar
-function validarLedAntesDeAccion(ledId, callback){
-  database.ref("ledsAsignados/"+ledId).once("value").then(snap=>{
-    if(snap.exists()){
-      callback();
-    } else {
-      alert("Este LED no tiene una tarima asignada");
-    }
-  });
-}
-
-// Encender LED (ejemplo en producción)
-function encenderLed(ledId){
-  validarLedAntesDeAccion(ledId, ()=>{
-    database.ref("estadoLEDs/"+ledId).set(true);
-    alert("LED encendido");
-  });
-}
-
-// Apagar LED (ejemplo en logística) → además libera
-function apagarLed(ledId){
-  validarLedAntesDeAccion(ledId, ()=>{
-    database.ref("estadoLEDs/"+ledId).set(false);
-    database.ref("ledsAsignados/"+ledId).remove();
-    alert("LED apagado y liberado");
-  });
 }
   
 function seleccionarReporte() {
