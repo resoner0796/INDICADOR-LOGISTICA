@@ -1017,7 +1017,47 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     <button class="cerrar-btn">Cerrar</button>
 </div>
 </div>
+<!-- =======================
+   MODAL: Opciones de Calidad
+========================= -->
+<div id="modalOpcionesCalidad" class="modal">
+  <div class="modal-content">
+    <h3>Asignar tarima a LED de Calidad</h3>
 
+    <label for="selectLedCalidad">Selecciona LED:</label>
+    <select id="selectLedCalidad"></select>
+
+    <div class="modal-actions">
+      <button id="btnAsignarTarimaCalidad">Asignar</button>
+      <button onclick="cerrarModalCalidad()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* --- estilos básicos para modal --- */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+}
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  margin: 10% auto;
+  width: 90%; max-width: 400px;
+  border-radius: 10px;
+}
+.modal-actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+</style>
+  
 <div id="modalRechazo" class="modal-calidad">
 <div class="modal-content">
     <h3>Detalles del Rechazo</h3>
@@ -1047,6 +1087,38 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     </form>
 </div>
 </div>
+
+  <!-- =======================
+   MODAL: Asignar Tarima en Producción
+========================= -->
+<div id="modalAsignarTarimaProduccion" class="modal">
+  <div class="modal-content">
+    <h3>Asignar tarima recibida</h3>
+
+    <label for="selectTarimaProduccion">Selecciona Tarima:</label>
+    <select id="selectTarimaProduccion"></select>
+
+    <label for="selectLedProduccion">Selecciona LED:</label>
+    <select id="selectLedProduccion"></select>
+
+    <div class="modal-actions">
+      <button id="btnAsignarProduccion">Asignar</button>
+      <button onclick="cerrarModalProduccion()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Reutiliza el estilo del modal de calidad */
+#modalAsignarTarimaProduccion .modal-content {
+  background: #fff;
+  padding: 20px;
+  margin: 10% auto;
+  width: 90%; max-width: 400px;
+  border-radius: 10px;
+}
+</style>
+  
   <!-- Botón flotante para abrir el panel de Tarimas -->
 <button class="mt-fab" id="mtOpenBtn" style="display:none;">TARIMAS</button>
 
@@ -1854,35 +1926,115 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 }
 
 // ================= LÓGICA DE CALIDAD MODAL =================
-function mostrarOpcionesCalidad(grupo, idx, linea) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-calidad';
+function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
+    const modal = document.getElementById('modalOpcionesCalidad');
+    const select = modal.querySelector('#selectLedCalidad');
+    select.innerHTML = ''; // limpia opciones anteriores
 
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h3>Asignar resultado de inspección</h3>
-            <p><b>Grupo:</b> ${grupo}</p>
-            <label for="ledSelector">Asignar LED:</label>
-            <select id="ledSelector">
-                ${[...Array(CONFIG.LEDS_POR_GRUPO[grupo.replace('CALIDAD_', '')] || 5).keys()]
-                    .map(i => `<option value="${linea}-${i+1}">${linea}-${i+1}</option>`)
-                    .join('')}
-            </select>
-            <div class="botones">
-                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'naranja')">Naranja</button>
-                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'rojo')">Rojo</button>
-                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'verde')">Verde</button>
-                <button onclick="cerrarModal(this)">Cancelar</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+    // ==============================
+    // Generamos lista de LEDs (ej. linea1-1, linea1-2, etc.)
+    // ==============================
+    const totalLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 5;
+    for (let i = 0; i < totalLeds; i++) {
+        const opt = document.createElement('option');
+        opt.value = i; // guardamos índice real
+        opt.textContent = `${linea}-${i+1}`; // nombre visible
+        if (i === idx) opt.selected = true;
+        select.appendChild(opt);
+    }
+
+    // Guardamos contexto en dataset
+    select.dataset.grupo = grupo;
+    select.dataset.linea = linea;
+
+    modal.style.display = 'block';
+}
+  document.getElementById('btnAsignarTarimaCalidad').addEventListener('click', () => {
+    const select = document.getElementById('selectLedCalidad');
+    const grupo = select.dataset.grupo;
+    const linea = select.dataset.linea;
+    const idx = parseInt(select.value);
+
+    // Guardamos tarima en el LED correspondiente
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    ledRef.set({
+        color: 'naranja', // inicia como en revisión
+        tarimaId: tarimaEscaneadaActual || null,
+        usuario: usuarioSeleccionado,
+        timestamp: new Date().toISOString()
+    });
+
+    alert(`✅ Tarima ${tarimaEscaneadaActual} asignada a ${linea}-${idx+1}`);
+    cerrarModalCalidad();
+});
+
+function cerrarModalCalidad() {
+    document.getElementById('modalOpcionesCalidad').style.display = 'none';
 }
 
-function cerrarModal(btn) {
-    btn.closest('.modal-calidad, .modal-produccion').remove();
+  function mostrarModalProduccion(grupo, linea = 'linea1') {
+    const modal = document.getElementById('modalAsignarTarimaProduccion');
+    const selectTarima = modal.querySelector('#selectTarimaProduccion');
+    const selectLed = modal.querySelector('#selectLedProduccion');
+
+    // --- Poblar tarimas recibidas ---
+    selectTarima.innerHTML = '';
+    (window.tarimasRecibidas || []).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = `Tarima ${t.id}`;
+        selectTarima.appendChild(opt);
+    });
+
+    // --- Poblar LEDs de Producción ---
+    selectLed.innerHTML = '';
+    const totalLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 5;
+    for (let i = 0; i < totalLeds; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${linea}-${i+1}`;
+        selectLed.appendChild(opt);
+    }
+
+    // Guardamos contexto
+    selectLed.dataset.grupo = grupo;
+    selectLed.dataset.linea = linea;
+
+    modal.style.display = 'block';
 }
 
+document.getElementById('btnAsignarProduccion').addEventListener('click', () => {
+    const tarimaId = document.getElementById('selectTarimaProduccion').value;
+    const selectLed = document.getElementById('selectLedProduccion');
+    const grupo = selectLed.dataset.grupo;
+    const linea = selectLed.dataset.linea;
+    const idx = parseInt(selectLed.value);
+
+    if (!tarimaId) {
+        alert('Debes seleccionar una tarima.');
+        return;
+    }
+
+    // Guardamos tarima en LED de Producción
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    ledRef.set({
+        encendido: true,
+        tarimaId: tarimaId,
+        usuario: usuarioSeleccionado,
+        timestamp: new Date().toISOString(),
+        horaEncendido: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    // Eliminamos de la lista de tarimas recibidas (memoria local)
+    window.tarimasRecibidas = (window.tarimasRecibidas || []).filter(t => t.id !== tarimaId);
+
+    alert(`✅ Tarima ${tarimaId} asignada a LED ${linea}-${idx+1}`);
+    cerrarModalProduccion();
+});
+
+function cerrarModalProduccion() {
+    document.getElementById('modalAsignarTarimaProduccion').style.display = 'none';
+}
 function aplicarEstadoCalidad(nuevoColor) {
     const { grupo, idx, linea } = ledActivoParaFormulario;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
