@@ -1489,7 +1489,10 @@ function asignarTarimaProduccion() {
     // Obtenemos los datos del LED que guardamos al abrir el modal
     const { grupo, idx, linea } = ledProduccionSeleccionado;
 
-    const recibidasRef = db.ref('tarimasRecibidas/' + window.__usuarioActual + '/' + tarimaKey);
+    // AQUI ESTÁ EL CAMBIO CLAVE: Usamos usuarioSeleccionado
+    const usuarioActual = usuarioSeleccionado || '';
+
+    const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual + '/' + tarimaKey);
     recibidasRef.once('value', snapshot => {
         const tarima = snapshot.val();
         if (!tarima) return alert("Tarima no encontrada o ya ha sido asignada.");
@@ -1498,7 +1501,7 @@ function asignarTarimaProduccion() {
         const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
         ledRef.set({
             encendido: true,
-            usuario: window.__usuarioActual,
+            usuario: usuarioActual,
             horaEncendido: new Date().toISOString(),
             tarimaId: tarima.tarimaId,
             color: 'blanco' // O el color que desees para el estado "en uso" en Producción
@@ -1509,7 +1512,7 @@ function asignarTarimaProduccion() {
 
         // Registrar en el historial
         db.ref('historial').push({
-            usuario: window.__usuarioActual,
+            usuario: usuarioActual,
             grupo: grupo,
             led: `${linea}-${idx+1}`,
             accion: 'asignada_en_produccion',
@@ -1521,15 +1524,6 @@ function asignarTarimaProduccion() {
         alert(`✅ Tarima ${tarima.tarimaId} asignada al LED ${linea}-${idx+1}`);
     });
 }
-
-function cerrarModalProduccion() {
-    const modal = document.getElementById('modalAsignarTarimaProduccion');
-    modal.classList.remove('visible');
-}
-
-// Event Listeners para los botones del modal
-document.getElementById('btnAsignarProduccion').addEventListener('click', asignarTarimaProduccion);
-
   // --- !!TARIMAS RECIBIDAS POR CALIDAD !! ---
   
   function renderTarimasRecibidas(grupo) {
