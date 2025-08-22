@@ -1440,65 +1440,6 @@ function cerrarModal(btn) {
     btn.closest('.modal-calidad').remove();
 }
   
-  function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
-    const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
-    recibidasRef.once('value', snapshot => {
-        const recibidas = snapshot.val() || {};
-        const keys = Object.keys(recibidas);
-
-        if (keys.length === 0) {
-            return alert("No hay tarimas recibidas de Calidad para asignar.");
-        }
-
-        const modal = document.createElement('div');
-        modal.className = 'modal-produccion';
-
-        modal.innerHTML = `
-            <div class="modal-content">
-                <h3>Asignar Tarima a LED</h3>
-                <label for="tarimaSelect">Tarimas disponibles:</label>
-                <select id="tarimaSelect">
-                    ${keys.map(k => {
-                        const t = recibidas[k];
-                        return `<option value="${k}">${t.tarimaId} (de ${t.ledOrigen})</option>`;
-                    }).join('')}
-                </select>
-                <div class="botones">
-                    <button onclick="asignarTarimaProduccion('${grupo}', ${idx}, '${linea}')">Asignar</button>
-                    <button onclick="cerrarModal(this)">Cancelar</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    });
-}
-        if (!grupo) return; // nada que mostrar
-
-        // asumiendo que `db` es referencia a tu base de datos (Firebase u otro)
-        if (typeof db === 'undefined' || !db.ref) {
-            console.warn('db no está definido - renderTarimasRecibidas requiere db ref');
-            return;
-        }
-
-        const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
-        // evitamos múltiples listeners duplicados
-        if (typeof recibidasRef.off === 'function') recibidasRef.off();
-        if (typeof recibidasRef.on !== 'function') return;
-
-        recibidasRef.on('value', snapshot => {
-            const recibidas = snapshot.val() || {};
-            panel.innerHTML = '';
-
-            Object.values(recibidas).forEach(t => {
-                const li = document.createElement('li');
-                li.textContent = `${t.tarimaId || t.id || 'Tarima'} (origen: ${t.ledOrigen || 'N/A'})`;
-                panel.appendChild(li);
-            });
-        });
-    } catch (e) {
-        console.error('renderTarimasRecibidas error:', e);
-    }
-}
   // =======================================================
 //  ✅ VALIDACIÓN DE ACCIONES SOBRE LEDs
 //  - Solo permite encender/apagar si hay tarima asignada.
