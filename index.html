@@ -1405,24 +1405,22 @@ function asignarLedATarima(ledId, tarimaId) {
   });
 }
 
-   (_, i) =>
-            `<option value="${linea}-${i+1}">${linea}-${i+1}</option>`
-        ).join();
-        modal.innerHTML = `
-            <div class="modal-overlay" onclick="this.parentNode.remove()"></div>
-            <div class="modal-content">
-                <h3>Asignar resultado de inspección</h3>
-                <p><b>Grupo:</b> ${grupo}</p>
-                <label for="ledSelector">Asignar LED:</label>
-                <select id="ledSelector">${optionsHtml}</select>
-                <div class="botones" style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
-                    <button type="button" onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'naranja')">Naranja</button>
-                    <button type="button" onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'rojo')">Rojo</button>
-                    <button type="button" onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'verde')">Verde</button>
-                    <button type="button" onclick="this.closest('.modal-calidad').remove()">Cancelar</button>
-                </div>
-            </div>
-        `;
+   (_, i) => `<option value="${linea}-${i+1}">${linea}-${i+1}</option>`).join(''); // <-- Aquí está el cambio
+modal.innerHTML = `
+    <div class="modal-overlay" onclick="this.parentNode.remove()"></div>
+    <div class="modal-content">
+        <h3>Asignar resultado de inspección</h3>
+        <p><b>Grupo:</b> ${grupo}</p>
+        <label for="ledSelector">Asignar LED:</label>
+        <select id="ledSelector">${optionsHtml}</select>
+        <div class="botones" style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
+            <button type="button" onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'naranja')">Naranja</button>
+            <button type="button" onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'rojo')">Rojo</button>
+            <button type="button" onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'verde')">Verde</button>
+            <button type="button" onclick="this.closest('.modal-calidad').remove()">Cancelar</button>
+        </div>
+    </div>
+`;
         document.body.appendChild(modal);
     } catch (e) {
         console.error('mostrarOpcionesCalidad error:', e);
