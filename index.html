@@ -1,416 +1,1105 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- =======================================================
-       PANEL LOGÍSTICA — INDEX ÚNICO (Dark + console.log)
-       ======================================================= -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Panel Logística</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#121212" />
-  <link rel="icon" href="icon-192.png" type="image/png" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Logística</title>
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
 
-  <style>
-    /* =======================================================
-       === ESTILOS GLOBALES DARK ===
-       ======================================================= */
-    :root {
-      --bg: #121212;
-      --bg-2: #1b1f24;
-      --panel: #1e1e1e;
-      --text: #e8e8e8;
-      --muted: #b8b8b8;
-      --accent: #4caf50;
-      --warn: #ff9800;
-      --danger: #f44336;
-      --info: #2196f3;
-      --border: #2a2f36;
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root{
+  --btn-bg: #0066cc;
+  --btn-bg-hover: #004c99;
+  --grid-size: 26px;
+  --vignette: rgba(0,0,0,0.9);
+  --titulo-size: clamp(42px,7vw,96px);
+  --led-size: 50px;
+  --led-gap: 16px;
+  --led-off-core: #111;
+  --led-off-edge: #000;
+  --led-on-core: #0f0;
+  --led-on-edge: #063;
+  --glow: #00ff88;
+  --blink-duration: 0.9s;
+}
+
+*{ box-sizing: border-box; }
+html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color:#fff; background:#111; }
+
+.pantalla{ display:none; width:100%; min-height:100vh; }
+.pantalla.activa{ display:flex; flex-direction:column; }
+
+#pantalla1{
+  align-items:center;
+  justify-content:center;
+  flex-direction: column;
+  background:linear-gradient(135deg,#222,#444);
+  gap:18px;
+}
+.btn-contenedor{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+#pantalla1 h1{ margin:0 0 8px; }
+.usuario-btn{
+  background: var(--btn-bg);
+  color:#fff;
+  border:0;
+  padding:14px 28px;
+  margin:8px;
+  border-radius:10px;
+  font-size:18px;
+  cursor:pointer;
+  transition: background .25s ease;
+  outline-color: #000;
+}
+.usuario-btn:hover{ background: var(--btn-bg-hover); }
+
+#pantalla2{
+  background-color:#000;
+  background-image:
+    radial-gradient(circle, rgba(60,60,60,.28) 20%, transparent 21%),
+    radial-gradient(circle, #101010 20%, transparent 21%);
+  background-size: var(--grid-size) var(--grid-size);
+  box-shadow: inset 0 0 90px var(--vignette);
+  overflow-y: auto; /* Permite el scroll solo en esta pantalla */
+}
+.header{ display:flex; align-items:center; justify-content:center; padding:16px 20px 6px; position: relative; }
+#tituloFijo{
+  font-weight:800;
+  text-align:center;
+  letter-spacing:.5px;
+  text-shadow:0 2px 8px rgba(0,0,0,.65);
+  font-size:var(--titulo-size);
+}
+#turnoActual {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background-color: rgba(0,0,0,0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+.zona-centro{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px 24px 28px;
+  flex-direction: column;
+}
+.grupo-contenedor{
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(24px, 4vw, 64px);
+  width: min(1200px, 96vw);
+  justify-content: center;
+}
+.grupo.oculto {
+  display: none;
+}
+.grupo{ display:flex; flex-direction:column; align-items:center; text-align:center; }
+.grupo .nombre{ font-size: clamp(20px,2.2vw,28px); font-weight:800; margin-bottom:8px; letter-spacing:.5px; text-shadow:0 1px 6px rgba(0,0,0,.5); }
+.grupo .tarimas{ font-size: clamp(16px,1.7vw,22px); opacity:.9; margin-bottom:14px; }
+.leds{ display:flex; gap: var(--led-gap); justify-content:center; align-items:center; flex-wrap:nowrap; padding:4px; }
+.led{
+  width: var(--led-size);
+  height: var(--led-size);
+  border-radius:50%;
+  cursor:pointer;
+  background: radial-gradient(circle at 45% 40%, var(--led-off-core) 40%, var(--led-off-edge) 100%);
+  box-shadow: inset -4px -5px 8px rgba(0,0,0,.8), inset 4px 5px 6px rgba(255,255,255,.06), 0 1px 0 rgba(255,255,255,.05);
+  transition: transform .1s ease, filter .2s ease, box-shadow .2s ease;
+}
+.led:active{ transform: scale(.96); }
+.led.on{
+  background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
+  box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+  animation: blink var(--blink-duration) ease-in-out infinite;
+}
+.led.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.resumen-turno {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 20px;
+  background-color: #222;
+  border-radius: 12px;
+  padding: 15px 30px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.3);
+  width: min(800px, 90vw);
+}
+.resumen-turno.oculto {
+  display: none;
+}
+.dato-resumen {
+  text-align: center;
+}
+.dato-resumen .etiqueta {
+  font-size: 14px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.dato-resumen .valor {
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.tiempos{
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: 0.8;
+  text-align: left;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.btn-rojo{
+  background: #cc0000;
+  outline-color: #000;
+}
+.btn-rojo:hover{
+  background: #990000;
+}
+.footer{
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+.footer .usuario-btn{
+  padding: 10px 20px;
+  font-size: 16px;
+}
+.contadores-calidad {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.contador-calidad {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+.contador-calidad .valor {
+  font-size: 20px;
+  font-weight: bold;
+}
+.contador-calidad .etiqueta {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+@media(max-width:720px){ 
+  .grupo-contenedor{ 
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+  }
+}
+@keyframes blink {
+  0%, 100% {
+    box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+  }
+}
+/* ================= CSS DEL MODAL DE CALIDAD ================= */
+#modalCalidad .modal-content,
+#modalRechazo .modal-content {
+  background-color: #1c1c1c !important;
+  color: #eee !important;
+  padding: 25px 35px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
+#modalCalidad h3,
+  color: #f0f0f0 !important;
+}
+#modalCalidad .opcion-btn,
+
+#modalCalidad .opcion-btn[data-color="rojo"] { background: #d32f2f; color: #fff; }
+#modalCalidad .opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
+#modalCalidad .opcion-btn:hover { transform: scale(1.05); }
+
+
+/* Nuevo CSS para el formulario de rechazo */
+#modalRechazo .modal-content {
+  text-align: left;
+}
+#modalRechazo .modal-content h3 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+#modalRechazo form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+#modalRechazo label {
+  font-size: 16px;
+  margin-bottom: 5px;
+  display: block;
+}
+#modalRechazo input, #modalRechazo textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #555;
+  background-color: #333;
+  color: #fff;
+  font-size: 16px;
+}
+#modalRechazo textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+#modalRechazo button[type="submit"] {
+  margin-top: 20px;
+  background-color: var(--btn-bg);
+  color: #fff;
+  border: none;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+#modalRechazo button[type="submit"]:hover {
+  background-color: var(--btn-bg-hover);
+}
+.led.naranja {
+  background: radial-gradient(circle at 48% 45%, #ff9800 40%, #c17500 100%);
+  box-shadow: 0 0 22px #ff9800, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+}
+.led.rojo {
+  background: radial-gradient(circle at 48% 45%, #f44336 40%, #d32f2f 100%);
+  box-shadow: 0 0 22px #f44336, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+}
+.led.verde {
+  background: radial-gradient(circle at 48% 45%, #4caf50 40%, #388e3c 100%);
+  box-shadow: 0 0 22px #4caf50, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
+}
+
+/* ================= CSS PARA PANTALLA 3 (REPORTES) ================= */
+#pantalla3 {
+  background-color: #f5f5f5;
+  color: #333;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  overflow-y: auto;
+}
+#pantalla3 h1 {
+  font-size: 2.5rem;
+  color: #0066cc;
+  margin-bottom: 20px;
+}
+#pantalla3 .btn-contenedor {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  max-width: 800px;
+}
+#pantalla3 .usuario-btn {
+  background-color: #0066cc;
+  color: #fff;
+  font-size: 1.2rem;
+  padding: 15px 30px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+#pantalla3 .usuario-btn:hover {
+  background-color: #004c99;
+}
+#pantalla3 .contenedor-reporte {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 20px;
+}
+#pantalla3 .header-reporte {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+#pantalla3 .header-reporte h2 {
+  color: #0066cc;
+  margin: 0;
+}
+#pantalla3 .header-reporte .filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+#pantalla3 .header-reporte .filtros label {
+  font-size: 14px;
+}
+#pantalla3 .header-reporte .filtros input[type="date"],
+#pantalla3 .header-reporte .filtros select,
+#pantalla3 .header-reporte .filtros input[type="text"] {
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+#pantalla3 table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  display: table;
+}
+#pantalla3 th, #pantalla3 td {
+  border: 1px solid #ccc;
+  padding: 12px;
+  text-align: left;
+  font-size: 14px;
+}
+#pantalla3 thead {
+  background-color: #0066cc;
+  color: #fff;
+}
+#pantalla3 tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+#pantalla3 tbody tr:hover {
+  background-color: #ddd;
+}
+#pantalla3 .resumen-datos {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+#pantalla3 .dato {
+  background-color: #f2f2f2;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-align: center;
+}
+#pantalla3 .dato .valor {
+  font-size: 24px;
+  color: #0066cc;
+}
+#pantalla3 .dato .etiqueta {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #666;
+}
+.botones-reporte {
+  margin-top: 20px;
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.grafico-contenedor {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+}
+.opciones-grafico {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+.opciones-grafico .usuario-btn {
+    padding: 8px 15px;
+    font-size: 14px;
+}
+.reporte-calidad-mobile .tabla-calidad-movil .fila-dato {
+    background-color: #f2f2f2;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+.reporte-calidad-mobile .tabla-calidad-movil .etiqueta {
+    font-weight: bold;
+    color: #666;
+    display: block;
+    font-size: 12px;
+}
+.reporte-calidad-mobile .tabla-calidad-movil .valor {
+    color: #333;
+    font-size: 16px;
+}
+@media (max-width: 768px) {
+    #pantalla3 .header-reporte {
+        flex-direction: column;
+        align-items: flex-start;
     }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+    #pantalla3 .header-reporte .filtros {
+        width: 100%;
+        flex-direction: column;
     }
-    h1,h2,h3,h4 { margin: 0 0 10px; }
-    a,button { cursor: pointer; }
-    .oculto { display: none !important; }
-
-    /* =======================================================
-       === LAYOUT PANTALLAS ===
-       ======================================================= */
-    .pantalla { display: none; padding: 20px; }
-    .pantalla.activa { display: block; }
-    #tituloFijo { font-size: 22px; font-weight: 700; margin: 8px 0 16px; }
-
-    .btn {
-      background: #2a2f36;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-weight: 600;
-      transition: .2s;
+    #pantalla3 .header-reporte .filtros input,
+    #pantalla3 .header-reporte .filtros select {
+        width: 100%;
     }
-    .btn:hover { background: #343a43; }
-    .btn.primary { background: var(--info); border-color: var(--info); }
-    .btn.success { background: var(--accent); border-color: var(--accent); }
-    .btn.warn { background: var(--warn); border-color: var(--warn); }
-    .btn.danger { background: var(--danger); border-color: var(--danger); }
-
-    .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
-    .col { flex: 1 1 260px; min-width: 260px; }
-
-    /* =======================================================
-       === TARJETAS / PANEL ===
-       ======================================================= */
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    #pantalla3 .resumen-datos {
+        flex-direction: column;
+        gap: 15px;
     }
-
-    /* =======================================================
-       === LEDS ===
-       ======================================================= */
-    .leds { display: grid; grid-template-columns: repeat(auto-fit, minmax(46px,1fr)); gap: 10px; }
-    .led {
-      height: 46px; border-radius: 12px;
-      background: #3d4450; color: #fff;
-      display: grid; place-items: center; font-weight: 700;
-      border: 1px solid var(--border);
-      transition: transform .06s ease;
-      user-select: none;
+    #pantalla3 .dato {
+        width: 100%;
     }
-    .led:active { transform: scale(.96); }
-    .led.on { background: var(--info); }
-    .led.verde { background: var(--accent); }
-    .led.rojo { background: var(--danger); }
-    .led.naranja { background: var(--warn); color: #20262d; }
-    .led.disabled { background: #2e3440; color: #667; }
-
-    .grupo-title { font-size: 16px; font-weight: 700; margin: 6px 0 10px; opacity:.9 }
-    .grupo-wrap { margin-bottom: 18px; }
-
-    /* =======================================================
-       === MODALES DARK (Calidad / Rechazo / Producción) ===
-       ======================================================= */
-    .modal {
-      position: fixed; inset: 0; display: grid; place-items: center;
-      background: rgba(0,0,0,.8); z-index: 1000;
-      visibility: hidden; opacity: 0; transition: opacity .25s ease;
+    #pantalla3 table {
+        display: none; /* Oculta la tabla normal en móviles */
     }
-    .modal.visible { visibility: visible; opacity: 1; }
-    .modal-content {
-      width: min(92vw, 560px);
-      background: #171a1f;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px;
-      box-shadow: 0 10px 40px rgba(0,0,0,.45);
+    .reporte-calidad-mobile {
+        display: block; /* Muestra la tabla móvil */
     }
-    .modal h3 { font-size: 20px; margin-bottom: 14px; }
-    .modal .grid { display: grid; gap: 12px; }
-    .modal .row { gap: 10px; }
-    .modal .btn { width: 100%; }
-
-    .opciones { display: grid; gap: 10px; margin: 12px 0 18px; }
-    .opcion-btn { padding: 12px 14px; border-radius: 10px; border: 0; font-weight: 700; }
-    .opcion-btn[data-color="naranja"] { background: var(--warn); color: #111; }
-    .opcion-btn[data-color="rojo"]    { background: var(--danger); }
-    .opcion-btn[data-color="verde"]   { background: var(--accent); }
-
-    .input, select, textarea {
-      width: 100%; padding: 10px 12px; border-radius: 10px;
-      background: #0f1216; color: var(--text);
-      border: 1px solid var(--border); outline: none;
+}
+@media (min-width: 769px) {
+    .reporte-calidad-mobile {
+        display: none; /* Oculta la tabla móvil en desktop */
     }
-    label { font-size: 13px; color: var(--muted); }
+}
 
-    /* =======================================================
-       === LISTAS TARIMAS (pendientes / recibidas) ===
-       ======================================================= */
-    .list { display: grid; gap: 8px; }
-    .tarima-item {
-      background: #111419; border: 1px solid var(--border);
-      border-radius: 10px; padding: 12px;
-      display: grid; gap: 4px;
-    }
-    .tarima-head { display:flex; justify-content:space-between; align-items:center; }
-    .badge { padding: 3px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); opacity:.85 }
-    .badge.info { background: #0d2740; color: #9cd1ff; border-color: #1a3c5f; }
-    .badge.warn { background: #3c2a00; color: #ffd699; border-color: #5f430a; }
-    .badge.ok   { background: #07330d; color: #b9ffbf; border-color: #0b5a15; }
+/* ================= CSS PARA PANTALLA 4 (DASHBOARD) ================= */
+#pantalla4 {
+  background-color: #000;
+  color: #fff;
+  padding: 20px;
+  display: grid;
+  grid-template-areas:
+    "header"
+    "filtros"
+    "kpis"
+    "graficos"
+    "pendientes"
+    "footer";
+  gap: 20px;
+  align-content: start;
+  overflow-y: auto;
+}
+#pantalla4 .header {
+  grid-area: header;
+  text-align: center;
+}
+#pantalla4 .filtros-dashboard {
+  grid-area: filtros;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+#pantalla4 .filtros-dashboard label {
+  font-size: 14px;
+}
+#pantalla4 .filtros-dashboard input[type="date"],
+#pantalla4 .filtros-dashboard select {
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #555;
+  background-color: #222;
+  color: #fff;
+}
+#pantalla4 .kpis-grid {
+  grid-area: kpis;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+#pantalla4 .kpi-card {
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  border: 1px solid #333;
+}
+#pantalla4 .kpi-card h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: #aaa;
+  text-transform: uppercase;
+}
+#pantalla4 .kpi-card .valor {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #00ff88;
+  transition: color 0.3s ease;
+}
+#pantalla4 .kpi-card.alerta .valor {
+  color: #ff3333;
+}
+#pantalla4 .graficos-container {
+  grid-area: graficos;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+#pantalla4 .graficos-container .panel {
+  background-color: #1a1a1a;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  border: 1px solid #333;
+}
+#pantalla4 .graficos-container h3 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #eee;
+}
+#pantalla4 #tablaPendientes {
+  width: 100%;
+  border-collapse: collapse;
+  color: #fff;
+}
+#pantalla4 #tablaPendientes th, #pantalla4 #tablaPendientes td {
+  padding: 12px;
+  border-bottom: 1px solid #444;
+  text-align: left;
+}
+#pantalla4 #tablaPendientes th {
+  background-color: #222;
+}
+#pantalla4 #tablaPendientes tbody tr:hover {
+  background-color: #333;
+}
+#pantalla4 .footer {
+  grid-area: footer;
+}
+@media (min-width: 768px) {
+  #pantalla4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "header header"
+      "filtros filtros"
+      "kpis kpis"
+      "graficos graficos"
+      "pendientes pendientes"
+      "footer footer";
+  }
+  #pantalla4 .graficos-container {
+      grid-template-columns: 1fr 1fr;
+  }
+  .graficos-container > *:nth-child(3) {
+      grid-column: span 2;
+  }
+}
+@media (min-width: 1200px) {
+  #pantalla4 {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-areas:
+      "header header header"
+      "filtros filtros filtros"
+      "kpis kpis kpis"
+      "produccion calidad logistica"
+      "pendientes pendientes pendientes"
+      "footer footer footer";
+  }
+  #pantalla4 .graficos-container {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .graficos-container > *:nth-child(3) {
+      grid-column: span 1;
+  }
+}
+</style>
+  <button class="mt-fab" id="mtOpenBtn" style="display:none;" title="Identificación de Tarima">TARIMAS</button>
 
-    /* =======================================================
-       === STATS DASHBOARD ===
-       ======================================================= */
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-    .stat-card { text-align: center; padding: 16px; border-radius: 12px; background: var(--panel); border:1px solid var(--border); }
-    .stat-card h3 { font-size: 30px; margin: 4px 0; }
+<!-- === NUEVO: Panel lateral de Identificación de Tarima === -->
+<div id="mtPanel" class="mt-panel" aria-hidden="true">
+  <div class="mt-panel-content">
+    <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
+    <h2>Identificación de Tarima</h2>
+    <p>Escanea o ingresa un código <b>BX</b> para identificar la tarima:</p>
 
-    /* mini helper */
-    .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}
-    .mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}
-  </style>
+    <div class="mt-row">
+      <input type="text" id="bxInput" placeholder="Escanear/pegar código BX..." autocomplete="off" />
+      <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
+    </div>
+
+    <!-- Resultado de búsqueda -->
+    <div id="tarimaInfo" class="mt-card" style="display:none;">
+      <h3>Tarima encontrada</h3>
+      <div class="mt-grid">
+        <div><b>ID:</b> <span id="tarimaId">—</span></div>
+        <div><b>Empleado:</b> <span id="empleado">—</span></div>
+        <div><b>Turno:</b> <span id="turno">—</span></div>
+        <div><b>Total cajas:</b> <span id="totalCajas">0</span></div>
+        <div><b>Total piezas:</b> <span id="totalPiezas">0</span></div>
+      </div>
+
+      <h4>Detalle de cajas (BX | piezas)</h4>
+      <ul id="listaCajas" class="mt-list"></ul>
+ <div id="tarimasPendientesPanel">
+  <h3>Tarimas pendientes por inspección</h3>
+  <ul id="listaTarimasPendientes"></ul>
+</div>
+
+      <!-- Solo para CALIDAD: asignación de LED -->
+      <div id="ledAssignment" class="mt-assign" style="display:none;">
+        <label for="ledSelect">Asignar LED a esta tarima:</label>
+        <div class="mt-row">
+          <select id="ledSelect" class="mt-select"></select>
+          <button id="asignarLedBtn" class="mt-btn mt-success">Asignar LED</button>
+        </div>
+        <small>Nota: los LEDs solo podrán encenderse/apagarse si tienen tarima asignada.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- === NUEVO: Estilos mínimos y tema oscuro para Calidad/Producción === -->
+<style>
+  /* FAB */
+  .mt-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #0a84ff;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 78px;
+    height: 78px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(10,132,255,.35);
+  }
+  .mt-fab:active { transform: translateY(1px); }
+
+  /* Panel lateral */
+  .mt-panel {
+    position: fixed;
+    top: 0; right: -420px; width: 420px; max-width: 95vw; height: 100%;
+    background: #111316; color: #eaeaea;
+    box-shadow: -4px 0 20px rgba(0,0,0,.45);
+    transition: right .28s ease;
+    z-index: 999;
+  }
+  .mt-panel.open { right: 0; }
+  .mt-panel-content { padding: 20px; }
+  .mt-close {
+    background: transparent; border: none; color: #aaa; font-size: 28px; cursor: pointer; float: right;
+  }
+  .mt-close:hover { color: #fff; }
+
+  /* Controles */
+  .mt-row { display: flex; gap: 10px; align-items: stretch; }
+  .mt-btn {
+    padding: 10px 14px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
+  }
+  .mt-primary { background:#0a84ff; color:#fff; }
+  .mt-success { background:#34c759; color:#000; }
+  .mt-select, #bxInput {
+    flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2b2f36; background:#171a1f; color:#eaeaea;
+  }
+  .mt-select:focus, #bxInput:focus { outline: 2px solid #0a84ff; }
+
+  .mt-card {
+    margin-top: 16px; padding: 16px; border-radius: 14px;
+    background: linear-gradient(180deg, #16191e 0%, #121418 100%);
+    border: 1px solid #20242b;
+  }
+  .mt-grid {
+    display: grid; grid-template-columns: repeat(2,1fr); gap: 8px 14px; margin-bottom: 10px;
+  }
+  .mt-list { list-style: none; padding-left: 0; margin: 8px 0 0; max-height: 200px; overflow: auto; }
+  .mt-list li {
+    padding: 10px 12px; margin-bottom: 8px; border-radius: 10px;
+    background:#0f1216; border: 1px solid #22262c; font-size: 14px;
+    word-break: break-word;
+  }
+  .mt-assign { margin-top: 14px; border-top: 1px dashed #2a2f36; padding-top: 12px; }
+
+  /* === TEMA OSCURO SOLO PARA CALIDAD/PRODUCCIÓN ===
+     Le agregamos a <body> la clase .theme-dark cuando el usuario pertenece a esas áreas.
+     Logística queda igual (sin esta clase). */
+  body.theme-dark {
+    background: #0b0d0f !important;
+    color: #eaeaea !important;
+  }
+  body.theme-dark .card, body.theme-dark .panel, body.theme-dark .widget {
+    background: #121418 !important;
+    color: #eaeaea !important;
+    border-color: #21252b !important;
+  }
+  body.theme-dark button, body.theme-dark .btn {
+    border-radius: 10px;
+   }
+</style>
 </head>
 <body>
-  <!-- =======================================================
-       LOGIN / SELECCIÓN DE USUARIO
-       ======================================================= -->
-  <div id="pantalla1" class="pantalla activa">
-    <h1>Selecciona Usuario</h1>
-    <div class="row mt16">
-      <button class="btn" onclick="seleccionarUsuario('SUPERVISOR')">Supervisor</button>
-      <button class="btn" onclick="seleccionarUsuario('CALIDAD')">Calidad</button>
-      <button class="btn" onclick="seleccionarUsuario('MULTIPORT')">Multiport</button>
-      <button class="btn" onclick="seleccionarUsuario('DROPS')">Drops</button>
-      <button class="btn" onclick="seleccionarUsuario('BEDROCK')">Bedrock</button>
-      <button class="btn" onclick="seleccionarUsuario('LOGÍSTICA')">Logística</button>
-    </div>
-  </div>
 
-  <!-- =======================================================
-       PANTALLA PRINCIPAL
-       ======================================================= -->
-  <div id="pantalla2" class="pantalla">
-    <div class="row" style="justify-content:space-between; align-items:center">
-      <h2 id="tituloFijo">Panel</h2>
-      <div>
-        <button class="btn" onclick="activarPantalla('pantallaReportes')">Reportes</button>
-        <button class="btn" onclick="activarPantalla('pantallaDashboard')">Dashboard</button>
-        <button class="btn" onclick="volverLogin()">Salir</button>
+<section id="pantalla1" class="pantalla activa">
+<h1 id="mainTitle">Selecciona tu usuario</h1>
+<div class="btn-contenedor">
+    <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button> 
+    <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
+    <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
+</div>
+</section>
+
+<section id="pantalla2" class="pantalla">
+<header class="header">
+    <div id="tituloFijo">LOGÍSTICA</div>
+    <div id="turnoActual"></div>
+</header>
+<div class="zona-centro">
+    <div id="resumenTurno" class="resumen-turno oculto">
+<div class="dato-resumen">
+    <div class="etiqueta">Tarimas Totales</div>
+    <div id="tarimasTotales" class="valor">0</div>
+</div>
+<div class="dato-resumen">
+    <div class="etiqueta">Tiempo Promedio</div>
+    <div id="tiempoPromedio" class="valor">0 min</div>
+</div>
+</div>
+<div class="grupo-contenedor">
+    <div class="grupo" data-grupo="MULTIPORT">
+        <div class="nombre">MULTIPORT</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
+        <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
+      <div class="tarimas-recibidas-panel" id="tarimasRecibidasPanel">
+       <h3>Tarimas recibidas de Calidad</h3>
+       <ul id="listaTarimasRecibidas"></ul>
       </div>
+       <div class="tiempos" data-grupo="MULTIPORT"></div>
     </div>
 
-    <!-- === Panel Buscar BX / Asignación (solo CALIDAD_*) === -->
-    <div id="panelBusquedaCalidad" class="card mt12 oculto">
-      <h3>Identificar Tarima por BX</h3>
-      <div class="row mt8">
-        <input id="bxBuscar" class="input col" placeholder="Escanea o escribe BX..."/>
-        <button class="btn primary" onclick="buscarTarimaPorBX()">Buscar</button>
-      </div>
-      <div id="resultadoBX" class="mt12 oculto">
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <div><b>ID:</b> <span id="bxTarimaId">—</span></div>
-              <div><b>Empleado:</b> <span id="bxTarimaEmpleado">—</span></div>
-              <div><b>Turno:</b> <span id="bxTarimaTurno">—</span></div>
-              <div><b>Cajas:</b> <span id="bxTarimaCajas">—</span> | <b>Piezas:</b> <span id="bxTarimaPiezas">—</span></div>
+    <div class="grupo" data-grupo="DROPS">
+        <div class="nombre">DROPS</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
+        <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
+        <div class="tiempos" data-grupo="DROPS"></div>
+    </div>
+
+    <div class="grupo" data-grupo="BEDROCK">
+        <div class="nombre">BEDROCK</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
+        <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
+        <div class="tiempos" data-grupo="BEDROCK"></div>
+    </div>
+
+    <div class="grupo" data-grupo="CALIDAD_MULTIPORT">
+        <div class="nombre">CALIDAD MULTIPORT</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
+        <div class="contadores-calidad">
+            <div class="contador-calidad">
+                <span class="valor" id="liberadas_CALIDAD_MULTIPORT">0</span>
+                <div class="etiqueta">Liberadas</div>
             </div>
-            <div>
-              <label class="mb8">Asignar a LED (línea1-X):</label>
-              <div class="row">
-                <select id="selectLedCalidad" class="input" style="max-width:180px"></select>
-                <button class="btn success" onclick="asignarLedATarimaDesdePanel()">Asignar</button>
-              </div>
-              <small class="mt8" style="display:block;opacity:.7">Solo aparecen LEDs libres.</small>
+            <div class="contador-calidad">
+                <span class="valor" id="rechazadas_CALIDAD_MULTIPORT">0</span>
+                <div class="etiqueta">Rechazadas</div>
             </div>
-          </div>
-          <div class="mt12"><b>Cajas:</b><ul id="bxTarimaCajasLista" style="margin:6px 0 0 18px"></ul></div>
         </div>
-      </div>
+        <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
 
-    <!-- === LEDs (Calidad + Producción + Logística) === -->
-    <div id="panelLEDs" class="mt16"></div>
-
-    <!-- === Tarimas Pendientes → Calidad === -->
-    <div class="card mt20">
-      <div class="row" style="justify-content:space-between; align-items:center">
-        <h3>Tarimas Pendientes por Calidad</h3>
-        <span class="badge warn">Pendientes</span>
-      </div>
-      <div id="tarimasPendientes" class="list mt12"></div>
+    <div class="grupo" data-grupo="CALIDAD_DROPS">
+        <div class="nombre">CALIDAD DROPS</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
+        <div class="contadores-calidad">
+            <div class="contador-calidad">
+                <span class="valor" id="liberadas_CALIDAD_DROPS">0</span>
+                <div class="etiqueta">Liberadas</div>
+            </div>
+            <div class="contador-calidad">
+                <span class="valor" id="rechazadas_CALIDAD_DROPS">0</span>
+                <div class="etiqueta">Rechazadas</div>
+            </div>
+        </div>
+        <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
     </div>
 
-    <!-- === Tarimas Recibidas → Producción === -->
-    <div class="card mt20">
-      <div class="row" style="justify-content:space-between; align-items:center">
-        <h3>Tarimas Recibidas (Producción)</h3>
-        <span class="badge info">En Producción</span>
-      </div>
-      <div id="tarimasRecibidas" class="list mt12"></div>
+    <div class="grupo" data-grupo="CALIDAD_BEDROCK">
+        <div class="nombre">CALIDAD BEDROCK</div>
+        <div class="tarimas">Tarimas: 0</div>
+        <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
+        <div class="contadores-calidad">
+            <div class="contador-calidad">
+                <span class="valor" id="liberadas_CALIDAD_BEDROCK">0</span>
+                <div class="etiqueta">Liberadas</div>
+            </div>
+            <div class="contador-calidad">
+                <span class="valor" id="rechazadas_CALIDAD_BEDROCK">0</span>
+                <div class="etiqueta">Rechazadas</div>
+            </div>
+        </div>
+        <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
+    </div>
+</div>
+</div>
+<div class="footer">
+    <button class="usuario-btn btn-rojo" onclick="volverAPantalla1()">Cerrar sesión</button>
+</div>
+</section>
+
+<section id="pantalla3" class="pantalla">
+<header class="header">
+    <h1 id="tituloReportes">REPORTES</h1>
+</header>
+<div class="zona-centro">
+    <div id="selectoresReportes" class="btn-contenedor">
+        <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
+        <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
+        <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
+        <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
+    </div>
+    <div id="contenedorReporte" class="contenedor-reporte">
+        <h2>Selecciona un reporte</h2>
+    </div>
+</div>
+<div class="footer">
+    <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver</button>
+</div>
+</section>
+
+<section id="pantalla4" class="pantalla" style="display: none;">
+<header class="header">
+    <h1>DASHBOARD DE SUPERVISOR</h1>
+</header>
+<div class="filtros-dashboard">
+    <label for="fechaDashboard">Fecha:</label>
+    <input type="date" id="fechaDashboard">
+    <label for="turnoDashboardSelect">Turno:</label>
+    <select id="turnoDashboardSelect">
+        <option value="todos">Todos</option>
+        <option value="Turno 1">Turno 1</option>
+        <option value="Turno 2">Turno 2</option>
+    </select>
+</div>
+  <div class="kpis-grid">
+    <div class="kpi-card">
+        <h3>Tarimas Confirmadas</h3>
+        <div class="valor" id="dashTarimasConfirmadas">0</div>
+    </div>
+    <div class="kpi-card">
+        <h3>Tarimas Recolectadas</h3>
+        <div class="valor" id="dashTarimasRecolectadas">0</div>
+    </div>
+    <div class="kpi-card" id="kpiTiempoPromedio">
+        <h3>Tiempo Promedio</h3>
+        <div class="valor" id="dashTiempoPromedio">0 min</div>
+    </div>
+    <div class="kpi-card" id="kpiTasaRechazo">
+        <h3>Tasa de Rechazo</h3>
+        <div class="valor" id="dashTasaRechazo">0%</div>
+    </div>
+</div>
+<div class="graficos-container">
+    <div class="panel">
+        <h3>Producción por Área</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
+    </div>
+    <div class="panel">
+        <h3>Estado de Calidad</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
+    </div>
+    <div class="panel">
+        <h3>Evolución Tiempos de Recolección</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
+    </div>
+</div>
+<div class="panel" style="grid-area: pendientes;">
+    <h3>Tarimas Pendientes por Recolectar</h3>
+    <table id="tablaPendientes">
+        <thead>
+            <tr>
+                <th>Área</th>
+                <th>Tarimas Pendientes</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+<div class="footer">
+    <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
+</div>
+</section>
+
+<div id="modalCalidad" class="modal-calidad">
+  <div class="modal-content">
+    <h3>Selecciona el estado de la tarima:</h3>
+    <div class="opciones">
+      <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
+      <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
+    </div>
+    <button class="cerrar-btn">Cerrar</button>
+  </div>
+</div>
+<!-- =======================
+   MODAL: Opciones de Calidad
+========================= -->
+<div id="modalOpcionesCalidad" class="modal">
+  <div class="modal-content">
+    <h3>Asignar tarima a LED de Calidad</h3>
+
+    <label for="selectLedCalidad">Selecciona LED:</label>
+    <select id="selectLedCalidad"></select>
+
+    <div class="modal-actions">
+      <button id="btnAsignarTarimaCalidad">Asignar</button>
+      <button onclick="cerrarModalCalidad()">Cancelar</button>
     </div>
   </div>
+</div>
 
-  <!-- =======================================================
-       REPORTES
-       ======================================================= -->
-  <div id="pantallaReportes" class="pantalla">
-    <div class="row" style="justify-content:space-between; align-items:center">
-      <h2>Reportes</h2>
-      <button class="btn" onclick="activarPantalla('pantalla2')">Volver</button>
-    </div>
-    <div class="card mt12">
-      <div class="row">
-        <div class="col">
-          <label>Fecha inicio</label>
-          <input type="date" id="repInicio" class="input"/>
-        </div>
-        <div class="col">
-          <label>Fecha fin</label>
-          <input type="date" id="repFin" class="input"/>
-        </div>
-        <div class="col">
-          <label>Área</label>
-          <select id="repArea" class="input">
-            <option value="">Todas</option>
-            <option value="MULTIPORT">Multiport</option>
-            <option value="DROPS">Drops</option>
-            <option value="BEDROCK">Bedrock</option>
-            <option value="CALIDAD">Calidad</option>
-            <option value="LOGÍSTICA">Logística</option>
-          </select>
-        </div>
-        <div class="col">
-          <label>Turno</label>
-          <select id="repTurno" class="input">
-            <option value="">Todos</option>
-            <option value="1">Turno 1</option>
-            <option value="2">Turno 2</option>
-            <option value="3">Turno 3</option>
-          </select>
-        </div>
-      </div>
-      <div class="row mt12">
-        <button class="btn primary" onclick="generarReporte()">Generar</button>
-        <button class="btn" onclick="exportarCSV()">Exportar CSV</button>
-      </div>
-    </div>
-    <div id="reporteResultado" class="mt16"></div>
-  </div>
+</style>
 
-  <!-- =======================================================
-       DASHBOARD
-       ======================================================= -->
-  <div id="pantallaDashboard" class="pantalla">
-    <div class="row" style="justify-content:space-between; align-items:center">
-      <h2>Dashboard</h2>
-      <button class="btn" onclick="activarPantalla('pantalla2')">Volver</button>
-    </div>
-    <div class="stats mt12">
-      <div class="stat-card">
-        <h4>Liberadas (Hoy)</h4>
-        <h3 id="contadorLiberadas">0</h3>
-      </div>
-      <div class="stat-card">
-        <h4>Rechazadas (Hoy)</h4>
-        <h3 id="contadorRechazadas">0</h3>
-      </div>
-      <div class="stat-card">
-        <h4>Recolectadas (Hoy)</h4>
-        <h3 id="contadorRecolectadas">0</h3>
-      </div>
+</style>
+  
+<div id="modalRechazo" class="modal-calidad">
+<div class="modal-content">
+    <h3>Detalles del Rechazo</h3>
+    <form id="formularioRechazo">
+        <label for="empleado">Empleado Originador:</label>
+        <input type="text" id="empleado" name="empleado" required>
+        
+        <label for="linea">Línea afectada:</label>
+        <input type="text" id="linea" name="linea" required>
+
+        <label for="parte">No. de parte:</label>
+        <input type="text" id="parte" name="parte" required>
+
+        <label for="descripcionParte">Descripción del No. de parte:</label>
+        <input type="text" id="descripcionParte" name="descripcionParte" required>
+
+        <label for="problema">Descripción del problema:</label>
+        <textarea id="problema" name="problema" required></textarea>
+
+        <label for="causa">Causa raíz del problema:</label>
+        <textarea id="causa" name="causa" required></textarea>
+
+        <label for="accion">Acción correctiva:</label>
+        <textarea id="accion" name="accion" required></textarea>
+
+        <button type="submit">Guardar Rechazo</button>
+    </form>
+</div>
+</div>
+
+  <!-- =======================
+   MODAL: Asignar Tarima en Producción OJO AQUIIIII
+========================= -->
+<div id="modalAsignarTarimaProduccion" class="modal">
+  <div class="modal-content">
+    <h3>Asignar tarima recibida</h3>
+
+    <label for="selectTarimaProduccion">Selecciona Tarima:</label>
+    <select id="selectTarimaProduccion"></select>
+
+    <label for="selectLedProduccion">Selecciona LED:</label>
+    <select id="selectLedProduccion"></select>
+
+    <div class="modal-actions">
+      <button id="btnAsignarProduccion">Asignar</button>
+      <button onclick="cerrarModalProduccion()">Cancelar</button>
     </div>
   </div>
+</div>
 
-  <!-- =======================================================
-       MODAL CALIDAD (cambio de estado)
-       ======================================================= -->
-  <div id="modalCalidad" class="modal">
-    <div class="modal-content">
-      <h3>Selecciona el estado de la tarima</h3>
-      <div class="opciones">
-        <button class="opcion-btn" data-color="naranja">En proceso 🟡</button>
-        <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
-        <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
-      </div>
-      <div class="row">
-        <button class="btn" onclick="cerrarModal('modalCalidad')">Cerrar</button>
-      </div>
-    </div>
-  </div>
+<style>
+/* Reutiliza el estilo del modal de calidad */
+#modalAsignarTarimaProduccion .modal-content {
+  background: #fff;
+  padding: 20px;
+  margin: 10% auto;
+  width: 90%; max-width: 400px;
+  border-radius: 10px;
+}
+</style>
+  
+  <!-- Botón flotante para abrir el panel de Tarimas -->
+<button class="mt-fab" id="mtOpenBtn" style="display:none;">TARIMAS</button>
 
-  <!-- =======================================================
-       MODAL RECHAZO (formulario)
-       ======================================================= -->
-  <div id="modalRechazo" class="modal">
-    <div class="modal-content">
-      <h3>Detalles del Rechazo</h3>
-      <form id="formularioRechazo" class="grid">
-        <div>
-          <label>Empleado Originador</label>
-          <input class="input" id="r_empleado" required />
-        </div>
-        <div>
-          <label>Línea afectada</label>
-          <input class="input" id="r_linea" required />
-        </div>
-        <div>
-          <label>No. de parte</label>
-          <input class="input" id="r_parte" required />
-        </div>
-        <div>
-          <label>Descripción del No. de parte</label>
-          <input class="input" id="r_descparte" required />
-        </div>
-        <div>
-          <label>Descripción del problema</label>
-          <textarea class="input" id="r_problema" required></textarea>
-        </div>
-        <div>
-          <label>Causa raíz</label>
-          <textarea class="input" id="r_causa" required></textarea>
-        </div>
-        <div>
-          <label>Acción correctiva</label>
-          <textarea class="input" id="r_accion" required></textarea>
-        </div>
-        <div class="row">
-          <button type="submit" class="btn danger">Guardar Rechazo</button>
-          <button type="button" class="btn" onclick="cerrarModal('modalRechazo')">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
+<!-- Panel lateral de identificación de tarima -->
+<div id="mtPanel" class="mt-panel">
+  <div class="mt-panel-content">
+    <span id="mtCloseBtn" class="mt-close">&times;</span>
+    <h2>Identificación de Tarima</h2>
+    <p>Escanea un código BX para identificar la tarima</p>
+    <input type="text" id="bxInput" placeholder="Escanear BX..." />
+    <button id="buscarTarimaBtn">Buscar</button>
 
-  <!-- =======================================================
-       MODAL PRODUCCIÓN (asignar tarima a LED)
-       ======================================================= -->
-  <div id="modalProduccion" class="modal">
-    <div class="modal-content">
-      <h3>Asignar Tarima a LED (Producción)</h3>
-      <div class="grid">
-        <div>
-          <label>Tarima recibida</label>
-          <select id="selectTarimaProduccion" class="input"></select>
-        </div>
-        <div>
-          <label>LED (línea1-X)</label>
-          <select id="selectLedProduccion" class="input"></select>
-        </div>
-        <div class="row">
-          <button class="btn success" onclick="asignarTarimaProduccion()">Asignar</button>
-          <button class="btn" onclick="cerrarModal('modalProduccion')">Cerrar</button>
-        </div>
+    <!-- Resultados -->
+    <div id="tarimaInfo" style="margin-top:20px; display:none;">
+      <h3>Tarima encontrada</h3>
+      <p><b>ID:</b> <span id="tarimaId"></span></p>
+      <p><b>Empleado:</b> <span id="empleado"></span></p>
+      <p><b>Turno:</b> <span id="turno"></span></p>
+      <p><b>Total cajas:</b> <span id="totalCajas"></span></p>
+      <p><b>Total piezas:</b> <span id="totalPiezas"></span></p>
+
+      <h4>Cajas:</h4>
+      <ul id="listaCajas"></ul>
+
+      <!-- Dropdown solo para CALIDAD -->
+      <div id="ledAssignment" style="display:none; margin-top:20px;">
+        <label for="ledSelect">Asignar LED:</label>
+        <select id="ledSelect"></select>
+        <button id="asignarLedBtn">Asignar LED</button>
       </div>
     </div>
   </div>
-
-  <!-- =======================================================
-       LIBS FIREBASE
-       ======================================================= -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-  <!-- =======================================================
-       SCRIPT PRINCIPAL (Firebase + Lógica)
-       ======================================================= -->
-  <script>
-    console.log('[INIT] Cargando Panel Logística');
-
-    // ================= CONFIG =================
-    const CONFIG = {
-      USUARIOS: ['MULTIPORT','DROPS','BEDROCK','LOGÍSTICA','SUPERVISOR','CALIDAD'],
-      PRODUCCION_GRUPOS: ['MULTIPORT','DROPS','BEDROCK'],
-      PASSWORDS: {
+</div>
+  
+<script>
+// ================= CONFIG Y ESTADO =================
+const CONFIG = {
+    USUARIOS: ['MULTIPORT', 'BEDROCK', 'DROPS', 'LOGÍSTICA', 'SUPERVISOR', 'CALIDAD'],
+    PRODUCCION_GRUPOS: ['MULTIPORT', 'BEDROCK', 'DROPS'],
+    PASSWORDS: {
         'LOGÍSTICA': 'LOGRAM',
         'MULTIPORT': 'MP25',
         'BEDROCK': 'BR25',
@@ -421,683 +1110,2313 @@
         'CALIDAD_BEDROCK': 'AQLBR',
         'REPORTES': 'REPO25',
         'DASHBOARD': 'DASH25'
-      },
-      LEDS_POR_GRUPO: {
-        'MULTIPORT': 10,
-        'BEDROCK': 10,
-        'DROPS': 10,
+    },
+    LEDS_POR_GRUPO: {
+        'MULTIPORT': 5,
+        'BEDROCK': 5,
+        'DROPS': 5,
         'CALIDAD_MULTIPORT': 5,
         'CALIDAD_BEDROCK': 5,
         'CALIDAD_DROPS': 5
+    }
+};
+
+let usuarioSeleccionado = null;
+let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
+let reporteActual = null;
+let datosFiltradosReporte = null;
+let miGrafico;
+let graficosDashboard = {};
+let dashboardUpdateInterval;
+
+// ================= FIREBASE =================
+const firebaseConfig = {
+    apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
+    authDomain: "panel-logistica.firebaseapp.com",
+    databaseURL: "https://panel-logistica-default-rtdb.firebaseio.com",
+    projectId: "panel-logistica",
+    storageBucket: "panel-logistica.appspot.com",
+    messagingSenderId: "38365879945",
+    appId: "1:38365879945:web:e2f3590fe77f013dba3058"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const db = database; 
+const ledRef = database.ref('estadoLEDs');
+let historialRef;
+let contadoresCalidadRef;
+let rechazosDetalladosRef;
+let dashboardListeners = [];
+
+window.database = window.database || firebase.database();
+
+// Guardaremos el usuario actual (texto del botón que usan)
+window.__usuarioActual = null;
+
+// -------------------------------------------------------
+//  ✅ Restauración/Compat: seleccionarUsuario()
+//  - Evita el error "seleccionarUsuario is not defined"
+//  - Si existía una versión anterior, la detecta y delega.
+//  - AÑADE: seteo de tema oscuro para Calidad/Producción,
+//           y muestra el FAB de Tarimas.
+// -------------------------------------------------------
+
+
+// ==============ARRIBA ELIMINE ALGO=========================================
+//  🎯 NUEVO: Identificación de Tarimas y Amarre con LEDs
+//  - Buscar tarima por BX
+//  - Mostrar detalle: empleado/turno/cajas/piezas/lista BX
+//  - En CALIDAD: asignar LED a tarima (ledsAsignados/{ledId})
+//  - En PRODUCCIÓN/LOGÍSTICA: no se puede accionar LED sin tarima
+//  - En LOGÍSTICA: al apagar, se libera el LED (remove ledsAsignados)
+// =======================================================
+
+// Helpers UI panel
+const MT = {
+  ui: {
+    panel:   document.getElementById('mtPanel'),
+    openBtn: document.getElementById('mtOpenBtn'),
+    closeBtn:document.getElementById('mtCloseBtn'),
+    bxInput: document.getElementById('bxInput'),
+    buscarBtn: document.getElementById('buscarTarimaBtn'),
+    infoBox: document.getElementById('tarimaInfo'),
+    fields: {
+      id: document.getElementById('tarimaId'),
+      empleado: document.getElementById('empleado'),
+      turno: document.getElementById('turno'),
+      totalCajas: document.getElementById('totalCajas'),
+      totalPiezas: document.getElementById('totalPiezas'),
+      listaCajas: document.getElementById('listaCajas')
+    },
+    asignacion: {
+      wrap: document.getElementById('ledAssignment'),
+      select: document.getElementById('ledSelect'),
+      btn: document.getElementById('asignarLedBtn')
+    }
+  },
+  state: {
+    tarimaActual: null // { id, empleadoId, turno, cajas:{...}, totalPiezas }
+  }
+};
+
+// Abrir / cerrar panel
+if (MT.ui.openBtn) MT.ui.openBtn.addEventListener('click', () => MT.ui.panel.classList.add('open'));
+if (MT.ui.closeBtn) MT.ui.closeBtn.addEventListener('click', () => MT.ui.panel.classList.remove('open'));
+
+// Buscar tarima por BX
+if (MT.ui.buscarBtn) {
+  MT.ui.buscarBtn.addEventListener('click', () => {
+    const bx = (MT.ui.bxInput.value || '').trim();
+    if (!bx) { alert('Ingresa o escanea un código BX'); return; }
+    buscarTarimaPorBX(bx);
+  });
+}
+// También Enter en input
+if (MT.ui.bxInput) {
+  MT.ui.bxInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') MT.ui.buscarBtn.click();
+  });
+}
+
+/**
+ * Lee /tarimas en estructura:
+ * tarimas/{idTarima}/{
+ *   empleadoId, turno, cajas:{ pushKey: {codigoCaja, cantidadPiezas, numeroOrden, ...} }
+ * }
+ */
+function buscarTarimaPorBX(bxCode) {
+  database.ref('tarimas').once('value').then(snapshot => {
+    let encontrada = null;
+    snapshot.forEach(tSnap => {
+      const t = tSnap.val() || {};
+      const cajas = t.cajas || {};
+      for (const k in cajas) {
+        if (cajas[k] && cajas[k].codigoCaja === bxCode) {
+          encontrada = { id: t.id || tSnap.key, ...t };
+          break;
+        }
       }
-    };
+      if (encontrada) return true; // corta forEach
+    });
 
-    // ============== FIREBASE CONFIG (TU CONFIG) ==============
-    const firebaseConfig = {
-      apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
-      authDomain: "panel-logistica.firebaseapp.com",
-      databaseURL: "https://panel-logistica-default-rtdb.firebaseio.com",
-      projectId: "panel-logistica",
-      storageBucket: "panel-logistica.appspot.com",
-      messagingSenderId: "38365879945",
-      appId: "1:38365879945:web:e2f3590fe77f013dba3058"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const ledRef = db.ref('estadoLEDs');
-    const historialRef = db.ref('historial');
-    const tarimasRef = db.ref('tarimas'); // ← coleccion de tarimas generales (recolección)
-    const tarimasAsignadasRef = db.ref('tarimasAsignadas'); // tarimaId → { ledId, grupo, linea, idx }
-    const tarimasRecibidasRef = db.ref('tarimasRecibidas'); // por grupo de producción
-    const contadoresRef = db.ref('contadores'); // { liberadasHoy, rechazadasHoy, recolectadasHoy }
-    // Si manejas por área: contadores/areas/{MULTIPORT|...}/{liberadas, rechazadas, recolectadas}
-
-    // ============== ESTADO UI ==============
-    let usuarioSeleccionado = null;       // 'MULTIPORT' | 'CALIDAD_MULTIPORT' | 'LOGÍSTICA'...
-    let __grupoCalidad = null;            // 'CALIDAD_MULTIPORT' / etc
-    let __grupoProduccion = null;         // 'MULTIPORT' / etc
-    let ledSeleccionado = { grupo:null, linea:null, idx:null }; // para modal calidad
-    let tarimaBXActual = null;            // tarima encontrada por BX
-    let listeners = [];
-
-    // ============== HELPERS ==============
-    const qs  = s => document.querySelector(s);
-    const qsa = s => Array.from(document.querySelectorAll(s));
-    function activarPantalla(id) {
-      qsa('.pantalla').forEach(p=>p.classList.remove('activa'));
-      qs('#'+id).classList.add('activa');
-    }
-    function volverLogin(){
-      limpiarListeners();
-      usuarioSeleccionado = null;
-      __grupoCalidad = null;
-      __grupoProduccion = null;
-      document.getElementById('tituloFijo').textContent = 'Panel';
-      activarPantalla('pantalla1');
-    }
-    function limpiarListeners(){
-      console.log('[Listeners] Limpiando');
-      listeners.forEach(unsub => unsub && unsub.off && unsub.off());
-      listeners = [];
-    }
-    function esCalidad(){ return usuarioSeleccionado && usuarioSeleccionado.startsWith('CALIDAD_'); }
-    function esProduccion(){ return CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado); }
-    function esLogistica(){ return usuarioSeleccionado === 'LOGÍSTICA'; }
-    function getAreaDeCalidad(c){ return (c||'').replace('CALIDAD_',''); }
-
-    // ============== LOGIN / SELECCIÓN USUARIO ==============
-    function seleccionarUsuario(usuario) {
-      console.log('[Login] seleccionarUsuario:', usuario);
-      if (!CONFIG.USUARIOS.includes(usuario)) return;
-
-      if (usuario === 'SUPERVISOR') {
-        const p = prompt('Introduce la contraseña para SUPERVISOR:');
-        if (p !== CONFIG.PASSWORDS['SUPERVISOR']) return alert('Contraseña incorrecta');
-        usuarioSeleccionado = 'SUPERVISOR';
-      } else if (usuario === 'CALIDAD') {
-        const p = prompt('Contraseña para CALIDAD (AQLMP/AQLDP/AQLBR):');
-        if (p === CONFIG.PASSWORDS['CALIDAD_MULTIPORT']) usuarioSeleccionado = 'CALIDAD_MULTIPORT';
-        else if (p === CONFIG.PASSWORDS['CALIDAD_DROPS']) usuarioSeleccionado = 'CALIDAD_DROPS';
-        else if (p === CONFIG.PASSWORDS['CALIDAD_BEDROCK']) usuarioSeleccionado = 'CALIDAD_BEDROCK';
-        else return alert('Contraseña incorrecta');
-      } else {
-        const p = prompt(`Introduce la contraseña para ${usuario}:`);
-        if (p !== CONFIG.PASSWORDS[usuario]) return alert('Contraseña incorrecta');
-        usuarioSeleccionado = usuario;
-      }
-
-      // Config contexto
-      __grupoCalidad = esCalidad() ? usuarioSeleccionado : null;
-      __grupoProduccion = esProduccion() ? usuarioSeleccionado : null;
-      document.getElementById('tituloFijo').textContent = usuarioSeleccionado;
-
-      activarPantalla('pantalla2');
-      inicializarPantalla2();
-      alert(`¡Bienvenido, ${usuarioSeleccionado}!`);
+    if (!encontrada) {
+      MT.ui.infoBox.style.display = 'none';
+      alert('No se encontró tarima con ese BX.');
+      return;
     }
 
-    // ============== INICIALIZACIÓN PANTALLA 2 ==============
-    function inicializarPantalla2() {
-      limpiarListeners();
-      inyectaLEDs();
-      pintarEstado();
-      escucharDashboard();
-      renderTarimasPendientes();
-      if (esProduccion()) renderTarimasRecibidas(usuarioSeleccionado);
-      // Panel BX visible sólo en CALIDAD
-      qs('#panelBusquedaCalidad').classList.toggle('oculto', !esCalidad());
-      if (esCalidad()) cargarDropdownLedsCalidad(); // precargar disponibles
-    }
+    // Guardamos y pintamos
+    MT.state.tarimaActual = normalizarTarima(encontrada);
+    renderTarimaEncontrada(MT.state.tarimaActual);
+  }).catch(err => {
+    console.error('Error buscando tarima:', err);
+    alert('Error al buscar la tarima. Reintenta.');
+  });
+}
 
-    // ============== INYECTAR LEDS (HTML) ==============
-    function inyectaLEDs(){
-      const panel = qs('#panelLEDs');
-      panel.innerHTML = '';
+// Normaliza estructura a un objeto amigable p/ UI
+function normalizarTarima(t) {
+  const out = {
+    id: t.id,
+    empleadoId: t.empleadoId || t.empleado || 'N/D',
+    turno: t.turno || 'N/D',
+    totalCajas: 0,
+    totalPiezas: 0,
+    cajas: [] // [{codigoCaja, cantidadPiezas}]
+  };
+  const cajas = t.cajas || {};
+  for (const cid in cajas) {
+    const c = cajas[cid] || {};
+    out.cajas.push({
+      id: cid,
+      codigoCaja: c.codigoCaja || '—',
+      cantidadPiezas: Number(c.cantidadPiezas || c.piezas || 0)
+    });
+  }
+  out.totalCajas = out.cajas.length;
+  out.totalPiezas = out.cajas.reduce((a,c)=>a + (Number.isFinite(c.cantidadPiezas)?c.cantidadPiezas:0), 0);
+  return out;
+}
 
-      // Grupo CALIDAD del usuario actual (si aplica)
-      if (esCalidad()) {
-        const g = usuarioSeleccionado; // p.ej. CALIDAD_MULTIPORT
-        const wrap = document.createElement('div');
-        wrap.className = 'grupo-wrap card';
-        wrap.innerHTML = `<div class="grupo-title">${g} — Línea 1</div>
-          <div class="leds" data-grupo="${g}" data-linea="linea1">
-            ${Array.from({length: CONFIG.LEDS_POR_GRUPO[g]||5}).map((_,i)=>`
-              <div class="led" id="LED-${g}-linea1-${i}" onclick="togglearLED('${g}', ${i}, 'linea1')">${i+1}</div>
-            `).join('')}
-          </div>`;
-        panel.appendChild(wrap);
-      }
+// Carga todos los LEDs disponibles directamente en el dropdown del panel.
+// Carga todos los LEDs disponibles directamente en el dropdown del panel.
+  
+function cargarLedsDisponibles() {
+    const sel = MT.ui.asignacion.select;
+    sel.innerHTML = '';
 
-      // Grupos PRODUCCIÓN visibles si el usuario es producción
-      if (esProduccion()) {
-        const g = usuarioSeleccionado; // MULTIPORT | DROPS | BEDROCK
-        // LEDs de CALIDAD (para recibir) — se muestran arriba
-        const gCalidad = 'CALIDAD_'+g;
-        const wrapC = document.createElement('div');
-        wrapC.className = 'grupo-wrap card';
-        wrapC.innerHTML = `<div class="grupo-title">${gCalidad} — Línea 1 (para RECIBIR)</div>
-          <div class="leds" data-grupo="${gCalidad}" data-linea="linea1">
-            ${Array.from({length: CONFIG.LEDS_POR_GRUPO[gCalidad]||5}).map((_,i)=>`
-              <div class="led" id="LED-${gCalidad}-linea1-${i}" onclick="togglearLED('${gCalidad}', ${i}, 'linea1')">${i+1}</div>
-            `).join('')}
-          </div>`;
-        panel.appendChild(wrapC);
+    // Escuchar en tiempo real los LEDs asignados
+    db.ref('estadoLEDs/CALIDAD_MULTIPORT/linea1').on('value', snap => {
+        sel.innerHTML = ''; // limpiar cada vez
+        const ledsEstado = snap.val() || {};
+        const totalLeds = 5; // ajusta según corresponda
 
-        // LEDs de PRODUCCIÓN (para asignar tarimas recibidas)
-        const wrapP = document.createElement('div');
-        wrapP.className = 'grupo-wrap card';
-        wrapP.innerHTML = `<div class="grupo-title">${g} — Línea 1 (asignar/confirmar)</div>
-          <div class="leds" data-grupo="${g}" data-linea="linea1">
-            ${Array.from({length: CONFIG.LEDS_POR_GRUPO[g]||10}).map((_,i)=>`
-              <div class="led" id="LED-${g}-linea1-${i}" onclick="togglearLED('${g}', ${i}, 'linea1')">${i+1}</div>
-            `).join('')}
-          </div>`;
-        panel.appendChild(wrapP);
-      }
+        for (let i = 0; i < totalLeds; i++) {
+            const estado = ledsEstado[i] || {};
+            const ledId = `linea1-${i+1}`;
 
-      // LOGÍSTICA ve los 3 grupos de producción
-      if (esLogistica() || usuarioSeleccionado==='SUPERVISOR') {
-        CONFIG.PRODUCCION_GRUPOS.forEach(g=>{
-          const wrap = document.createElement('div');
-          wrap.className = 'grupo-wrap card';
-          wrap.innerHTML = `<div class="grupo-title">${g} — Línea 1</div>
-            <div class="leds" data-grupo="${g}" data-linea="linea1">
-              ${Array.from({length: CONFIG.LEDS_POR_GRUPO[g]||10}).map((_,i)=>`
-                <div class="led" id="LED-${g}-linea1-${i}" onclick="togglearLED('${g}', ${i}, 'linea1')">${i+1}</div>
-              `).join('')}
-            </div>`;
-          panel.appendChild(wrap);
-        });
-      }
-    }
-
-    // ============== PINTAR ESTADO (escucha tiempo real) ==============
-    function pintarEstado(){
-      console.log('[LEDs] Activando listener estadoLEDs');
-      const unsub = ledRef.on('value', snap=>{
-        const estados = snap.val() || {};
-        qsa('.leds').forEach(contenedor=>{
-          const grupo = contenedor.dataset.grupo;
-          const linea = contenedor.dataset.linea;
-          const ledsArr = (estados[grupo] && estados[grupo][linea]) ? estados[grupo][linea] : [];
-          contenedor.querySelectorAll('.led').forEach((ledEl, idx)=>{
-            ledEl.classList.remove('on','naranja','rojo','verde','disabled');
-            ledEl.innerHTML = (idx+1);
-
-            const st = ledsArr[idx];
-            if (!st) return;
-            let tarimaId = st.tarimaId || '';
-            if (tarimaId) {
-              const mini = (tarimaId.length > 6) ? tarimaId.slice(-4) : tarimaId;
-              ledEl.innerHTML = mini;
+            // Solo mostrar los disponibles (sin tarimaId asignada)
+            if (!estado.tarimaId) {
+                const opt = document.createElement('option');
+                opt.value = ledId;
+                opt.textContent = ledId;
+                sel.appendChild(opt);
             }
-            if (grupo.startsWith('CALIDAD_') && st.color) {
-              ledEl.classList.add(st.color);
-            } else if (st.encendido) {
-              ledEl.classList.add('on');
-            }
-          });
+        }
+    });
+}
+  
+function renderTarimasPendientes() {
+    const lista = document.getElementById('listaTarimasPendientes');
+    lista.innerHTML = '';
+
+    db.ref('tarimas').once('value').then(snap => {
+        const tarimas = snap.val() || {};
+
+        db.ref('tarimasAsignadas').once('value').then(snap2 => {
+            const asignadas = snap2.val() || {};
+            const usadas = Object.keys(asignadas);
+
+            Object.values(tarimas).forEach(t => {
+                if (!usadas.includes(t.id)) {
+                    const li = document.createElement('li');
+                    li.textContent = `#${t.id}`;
+                    li.style.cursor = "pointer";
+                    li.onclick = () => renderTarimaEncontrada(t);
+                    lista.appendChild(li);
+                }
+            });
         });
-        // refrescar leds libres en panel calidad (dropdown)
-        if (esCalidad()) cargarDropdownLedsCalidad();
-      });
-      listeners.push({ off: ()=> ledRef.off('value', unsub) });
-    }
+    });
+}
 
-    // ============== TOGGLE / ACCIONES LEDS ==============
-    function togglearLED(grupo, idx, linea='linea1') {
-      console.log('[LED] toggle', { grupo, idx, linea, usuarioSeleccionado });
-      const ref = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
-      const ledPath = `${linea}-${idx+1}`;
-      ref.once('value').then(snap=>{
-        const st = snap.val() || {};
+// 🔥 refrescar en tiempo real
+db.ref('tarimas').on('value', renderTarimasPendientes);
+db.ref('tarimasAsignadas').on('value', renderTarimasPendientes);
 
-        // ---- CALIDAD controla solo sus LEDs (color) ----
-        if (esCalidad() && grupo === usuarioSeleccionado) {
-          if (st.color === 'verde') return alert('Este LED ya está liberado.');
-          if (!st.tarimaId) return alert('Asigna una tarima a este LED desde el panel por BX.');
 
-          // abrir modal para cambiar estado (naranja/rojo/verde)
-          ledSeleccionado = { grupo, idx, linea, tarimaId: st.tarimaId };
-          abrirModal('modalCalidad');
-          return;
+// Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
+// Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
+  
+function asignarLedATarima(ledId, tarimaId) {
+    // 💡 Paso 1: Verificar si la tarima ya está asignada en algún otro lugar
+    database.ref('tarimasAsignadas/' + tarimaId).once('value').then(snap => {
+        if (snap.exists()) {
+            return alert(`Error: La tarima ${tarimaId} ya ha sido asignada al LED ${snap.val().ledId}.`);
         }
 
-        // ---- PRODUCCIÓN: recibe de CALIDAD_x y asigna a sus propios LEDs ----
-        const miArea = usuarioSeleccionado;
-        if (esProduccion() && grupo.startsWith('CALIDAD_')) {
-          // recibir tarima liberada
-          if (st.color === 'verde' && st.tarimaId) {
-            if (!confirm(`¿Recibir tarima ${st.tarimaId} de ${grupo}?`)) return;
-            // push a tarimasRecibidas/{miArea}
-            tarimasRecibidasRef.child(miArea).push({
-              id: st.tarimaId,
-              recibidoEn: Date.now(),
-              ledOrigen: ledPath
-            });
-            // apagar LED de calidad
-            ref.set(null);
-            historialRef.push({
-              usuario: miArea, grupo, led: ledPath,
-              accion: 'recibida_de_calidad', tarimaId: st.tarimaId,
-              timestamp: new Date().toISOString()
-            });
-            return;
-          }
-          return alert('Solo puedes recibir tarimas liberadas (verdes).');
-        }
+        // Si no está asignada, continuar con el proceso
+        const payload = {
+            tarimaId,
+            asignadoPor: window.__usuarioActual || 'N/D',
+            timestamp: Date.now()
+        };
 
-        // PRODUCCIÓN: clic en su propio LED → asignar tarima recibida a LED libre
-        if (esProduccion() && grupo === miArea) {
-          // LED libre → abrir modal asignación
-          if (!st.encendido && !st.tarimaId) {
-            abrirModalProduccionAsignacion(grupo, linea, idx);
-            return;
-          }
-          return alert('Este LED ya tiene tarima asignada.');
-        }
+        const grupo = 'CALIDAD_MULTIPORT';
+        const linea = 'linea1';
+        const ledIndex = parseInt(ledId.split('-')[1]) - 1;
 
-        // ---- LOGÍSTICA: solo apaga LEDs con tarima (recolección) ----
-        if (esLogistica() && CONFIG.PRODUCCION_GRUPOS.includes(grupo)) {
-          if (st.encendido && st.tarimaId) {
-            if (!confirm(`¿Recolectar tarima ${st.tarimaId}?`)) return;
-            ref.set(null);
-            incrementarContador('recolectadasHoy', +1);
-            historialRef.push({
-              usuario: 'LOGÍSTICA', grupo, led: ledPath,
-              accion: 'recolectada', tarimaId: st.tarimaId,
-              timestamp: new Date().toISOString()
-            });
-            return;
-          }
-          return alert('Solo puedes apagar LEDs con tarima asignada.');
-        }
-
-        alert('No tienes permiso para controlar estos LEDs.');
-      });
-    }
-
-    // ============== MODAL CALIDAD (cambiar estado) ==============
-    // Cerrar al elegir opción + actualizar contadores y DB
-    qsa('#modalCalidad .opcion-btn').forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        const color = e.currentTarget.dataset.color; // naranja / rojo / verde
-        console.log('[ModalCalidad] Opción:', color, ledSeleccionado);
-        if (!ledSeleccionado.grupo) return;
-        const { grupo, idx, linea, tarimaId } = ledSeleccionado;
-        const ref = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
-        if (color === 'rojo') {
-          // abrir modal de rechazo
-          cerrarModal('modalCalidad');
-          abrirModal('modalRechazo');
-          // guardar tarimaId activo para rechazo
-          qs('#formularioRechazo').dataset.tarimaId = tarimaId;
-          qs('#formularioRechazo').dataset.ledRef = `estadoLEDs/${grupo}/${linea}/${idx}`;
-          return;
-        }
-        if (color === 'naranja') {
-          // vuelve a "en proceso"
-          ref.update({ color: 'naranja', timestamp: new Date().toISOString() });
-          cerrarModal('modalCalidad');
-          return;
-        }
-        if (color === 'verde') {
-          // LIBERADA
-          ref.update({ color: 'verde', timestamp: new Date().toISOString() });
-          // contador
-          const area = getAreaDeCalidad(grupo);
-          incrementarContador('liberadasHoy', +1, area);
-          // historial
-          historialRef.push({
-            usuario: grupo, grupo, led: `${linea}-${idx+1}`,
-            accion: 'liberada_calidad', tarimaId,
+        const ledEstadoRef = db.ref(`estadoLEDs/${grupo}/${linea}/${ledIndex}`);
+        ledEstadoRef.set({
+            color: 'naranja',
+            tarimaId: tarimaId,
+            usuario: window.__usuarioActual || 'N/D',
             timestamp: new Date().toISOString()
-          });
-          cerrarModal('modalCalidad');
-          return;
-        }
-      });
+        }).then(() => {
+            // 💡 Paso 2: Registrar que la tarima ya fue asignada
+            database.ref('tarimasAsignadas/' + tarimaId).set({ ledId: ledId, timestamp: Date.now() });
+            alert(`✅ Tarima ${tarimaId} asignada al LED ${ledId}`);
+        }).catch(err => {
+            console.error('Error asignando LED:', err);
+            alert('No se pudo asignar el LED. Intenta nuevamente.');
+        });
     });
+}
 
-    // ============== MODAL RECHAZO (guardar) ==============
-    qs('#formularioRechazo').addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const f = e.currentTarget;
-      const tarimaId = f.dataset.tarimaId;
-      const ledPath = f.dataset.ledRef; // 'estadoLEDs/..'
-      const payload = {
-        tarimaId,
-        empleado: qs('#r_empleado').value.trim(),
-        linea: qs('#r_linea').value.trim(),
-        parte: qs('#r_parte').value.trim(),
-        descParte: qs('#r_descparte').value.trim(),
-        problema: qs('#r_problema').value.trim(),
-        causa: qs('#r_causa').value.trim(),
-        accion: qs('#r_accion').value.trim(),
-        timestamp: Date.now(),
-        usuario: usuarioSeleccionado
+ // ==========================
+// MODAL DE PRODUCCIÓN AQUI TAMBIEN ESTA EL DETALLEEEE
+// ==========================
+function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
+    const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
+    recibidasRef.once('value', snapshot => {
+        const recibidas = snapshot.val() || {};
+        const keys = Object.keys(recibidas);
+
+        if (keys.length === 0) {
+            return alert("No hay tarimas recibidas de Calidad para asignar.");
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-produccion';
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>Asignar Tarima a LED</h3>
+                <label for="tarimaSelect">Tarimas disponibles:</label>
+                <select id="tarimaSelect">
+                    ${keys.map(k => {
+                        const t = recibidas[k];
+                        return `<option value="${k}">${t.tarimaId} (de ${t.ledOrigen})</option>`;
+                    }).join('')}
+                </select>
+                <div class="botones">
+                    <button onclick="asignarTarimaProduccion('${grupo}', ${idx}, '${linea}')">Asignar</button>
+                    <button onclick="cerrarModal(this)">Cancelar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    });
+}
+
+function asignarTarimaProduccion(grupo, idx, linea) {
+    const select = document.getElementById('tarimaSelect');
+    const key = select.value;
+
+    const recibidasRef = db.ref('tarimasRecibidas/' + grupo + '/' + key);
+    recibidasRef.once('value', snapshot => {
+        const tarima = snapshot.val();
+        if (!tarima) return alert("Tarima no encontrada.");
+
+        const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
+        ledRef.set({
+            encendido: true,
+            usuario: usuarioSeleccionado,
+            horaEncendido: new Date().toISOString(),
+            tarimaId: tarima.tarimaId
+        });
+
+        // Eliminar de lista de recibidas
+        recibidasRef.remove();
+
+        historialRef.push({
+            usuario: usuarioSeleccionado,
+            grupo: grupo,
+            led: `${linea}-${idx+1}`,
+            accion: 'asignada_en_produccion',
+            tarimaId: tarima.tarimaId,
+            timestamp: new Date().toISOString()
+        });
+
+        cerrarModal(document.querySelector('.modal-produccion button'));
+    });
+}
+
+  // --- !!TARIMAS RECIBIDAS POR CALIDAD !! ---
+  
+  function renderTarimasRecibidas(grupo) {
+    const panel = document.getElementById('listaTarimasRecibidas');
+    if (!panel) return;
+
+    const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
+    recibidasRef.on('value', snapshot => {
+        const recibidas = snapshot.val() || {};
+        panel.innerHTML = '';
+
+        Object.values(recibidas).forEach(t => {
+            const li = document.createElement('li');
+            li.textContent = `${t.tarimaId} (origen: ${t.ledOrigen})`;
+            panel.appendChild(li);
+        });
+    });
+}
+  // --- !!DESPLIEQUE DE TARIMA EN PANEL, AGREGA DOWNDROP A CALIDAD O !! ---
+  
+  function renderTarimaEncontrada(tarima) {
+  // Rellena campos
+  MT.ui.fields.id.textContent = tarima.id;
+  MT.ui.fields.empleado.textContent = tarima.empleadoId;
+  MT.ui.fields.turno.textContent = tarima.turno;
+  MT.ui.fields.totalCajas.textContent = tarima.totalCajas;
+  MT.ui.fields.totalPiezas.textContent = tarima.totalPiezas;
+
+  // Lista de cajas
+  MT.ui.fields.listaCajas.innerHTML = '';
+  tarima.cajas.forEach(c => {
+    const li = document.createElement('li');
+    li.textContent = `${c.codigoCaja}  |  ${c.cantidadPiezas} pz`;
+    MT.ui.fields.listaCajas.appendChild(li);
+  });
+
+  // Si el usuario es CALIDAD_* → mostrar asignación de LED
+  const isCalidad = (window.__usuarioActual || '').startsWith('CALIDAD');
+  MT.ui.asignacion.wrap.style.display = isCalidad ? 'block' : 'none';
+
+  if (isCalidad) {
+    // 💡 Llama a la función que ahora genera los LEDs en el panel.
+    cargarLedsDisponibles();
+    // 💡 Asegura que el botón de asignar del panel tenga la lógica de asignación.
+    MT.ui.asignacion.btn.onclick = () => {
+      const ledId = MT.ui.asignacion.select.value;
+      if (!ledId) return;
+      asignarLedATarima(ledId, tarima.id);
+    };
+  }
+
+  MT.ui.infoBox.style.display = 'block';
+}
+
+  // =======================================================
+//  ✅ VALIDACIÓN DE ACCIONES SOBRE LEDs
+//  - Solo permite encender/apagar si hay tarima asignada.
+//  - En apagado (Logística), libera el LED.
+//  - Se integra SIN romper tus funciones existentes.
+//    * Si tenías encenderLed/apagarLed → las envolvemos.
+//    * Si no, exponemos estas funciones para tus botones.
+// =======================================================
+
+function validarLedAntesDeAccion(ledId) {
+  return database.ref('ledsAsignados/'+ledId).once('value').then(snap => snap.exists());
+}
+
+// Wrappers seguros (detectan y envuelven funciones existentes)
+(function envolverAccionesLED(){
+  const _encender = window.encenderLed;
+  const _apagar = window.apagarLed;
+
+  // Encender: requiere tarima asignada
+  window.encenderLed = function(ledId) {
+    validarLedAntesDeAccion(ledId).then(ok => {
+      if (!ok) { alert('Este LED no tiene tarima asignada. Asigna una desde Calidad.'); return; }
+      if (typeof _encender === 'function') {
+        // Tu lógica original
+        _encender(ledId);
+      } else {
+        // Por si no existía: write directo (mantén tu pintarLed/cargarEstado aparte)
+        database.ref('estadoLEDs/'+ledId).set(true);
+      }
+    }).catch(err => console.error('Validación LED falló:', err));
+  };
+
+  // Apagar: requiere tarima asignada y luego libera
+  window.apagarLed = function(ledId) {
+    validarLedAntesDeAccion(ledId).then(ok => {
+      if (!ok) { alert('Este LED no tiene tarima asignada.'); return; }
+      const apagarAccion = () => {
+        if (typeof _apagar === 'function') {
+          _apagar(ledId);
+        } else {
+          database.ref('estadoLEDs/'+ledId).set(false);
+        }
+        // Liberación automática
+        database.ref('ledsAsignados/'+ledId).remove()
+          .then(()=>console.info('LED liberado:', ledId))
+          .catch(err=>console.warn('No se pudo liberar LED:', err));
       };
-      // Guardar rechazo
-      db.ref('rechazos').push(payload);
-      // pintar LED rojo
-      db.ref(ledPath).update({ color:'rojo', timestamp: new Date().toISOString() });
-      // contadores
-      const grupo = ledPath.split('/')[1]; // CALIDAD_X
-      const area = getAreaDeCalidad(grupo);
-      incrementarContador('rechazadasHoy', +1, area);
-      historialRef.push({
-        usuario: usuarioSeleccionado, grupo, led: ledPath.split('/').slice(-2).join('-'),
-        accion: 'rechazada_calidad', tarimaId,
-        timestamp: new Date().toISOString()
-      });
-      cerrarModal('modalRechazo');
-      f.reset();
+      apagarAccion();
+    }).catch(err => console.error('Validación LED falló:', err));
+  };
+})();
+
+// =======================================================
+//  📌 NOTAS PARA FUTURAS EXTENSIONES
+//  - Reportes: puedes consumir /tarimas y /ledsAsignados para ver
+//    qué LED tuvo qué tarima y cuándo.
+//  - Permisos: si luego agregas auth/roles, aquí puedes condicionar
+//    la visibilidad del FAB y del panel por usuario.
+//  - Reglas de seguridad: idealmente, en Firebase Rules valida que
+//    solo se pueda escribir /estadoLEDs/{ledId} si existe
+//    /ledsAsignados/{ledId}. Así la seguridad queda a prueba de balas.
+// =======================================================
+
+  
+// ================= FUNCIONES DE RENDER ( REPARTE LA PANTALLA 2 ACORDE AL USUARIO SELECCIONADO =================
+function inyectaLEDs(){
+    document.querySelectorAll('.grupo').forEach(grupoDiv => {
+        grupoDiv.classList.add('oculto');
     });
 
-    function abrirModal(id){ qs('#'+id).classList.add('visible'); }
-    function cerrarModal(id){ qs('#'+id).classList.remove('visible'); }
-
-    // ============== PANEL CALIDAD: Buscar BX + Asignar LED ==============
-    async function buscarTarimaPorBX(){
-      const bx = qs('#bxBuscar').value.trim();
-      if (!bx) return alert('Escanea o escribe un BX.');
-      console.log('[BX] Buscar:', bx);
-
-      // Buscar en /tarimas por campo BX (asumimos modelo tarimas/{id:{bx,empleado,turno,totalCajas,totalPiezas,cajas[]}})
-      const snap = await tarimasRef.orderByChild('BX').equalTo(bx).once('value');
-      const data = snap.val();
-      if (!data) {
-        qs('#resultadoBX').classList.add('oculto');
-        return alert('No se encontró tarima para ese BX.');
-      }
-      const [tarimaId, tarima] = Object.entries(data)[0];
-      tarimaBXActual = { id: tarimaId, ...tarima };
-
-      // Rellenar UI
-      qs('#bxTarimaId').textContent = tarimaId;
-      qs('#bxTarimaEmpleado').textContent = tarima.empleadoId || '—';
-      qs('#bxTarimaTurno').textContent = tarima.turno || '—';
-      qs('#bxTarimaCajas').textContent = tarima.totalCajas || 0;
-      qs('#bxTarimaPiezas').textContent = tarima.totalPiezas || 0;
-      const ul = qs('#bxTarimaCajasLista'); ul.innerHTML = '';
-      (tarima.cajas||[]).forEach(c=>{
-        const li = document.createElement('li');
-        li.textContent = `${c.codigoCaja} | ${c.cantidadPiezas} pz`;
-        ul.appendChild(li);
-      });
-
-      // Cargar LEDs disponibles
-      await cargarDropdownLedsCalidad();
-
-      qs('#resultadoBX').classList.remove('oculto');
+    if (usuarioSeleccionado === 'SUPERVISOR') {
+        document.querySelectorAll('.grupo').forEach(grupoDiv => {
+            grupoDiv.classList.remove('oculto');
+        });
+    } else if (usuarioSeleccionado === 'LOGÍSTICA') {
+        document.querySelectorAll('.grupo:not([data-grupo*="CALIDAD_"])').forEach(grupoDiv => {
+            grupoDiv.classList.remove('oculto');
+        });
+    } else if (usuarioSeleccionado.startsWith('CALIDAD_')) {
+        document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
+    } else {
+        document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
+        document.querySelector(`.grupo[data-grupo="CALIDAD_${usuarioSeleccionado}"]`).classList.remove('oculto');
     }
 
-    async function cargarDropdownLedsCalidad(){
-      if (!esCalidad()) return;
-      const grupo = usuarioSeleccionado; // CALIDAD_X
-      const linea = 'linea1';
-      const total = CONFIG.LEDS_POR_GRUPO[grupo] || 5;
-      const sel = qs('#selectLedCalidad');
-      if (!sel) return;
-
-      // Obtener LEDs ocupados:
-      const ledsSnap = await db.ref(`estadoLEDs/${grupo}/${linea}`).once('value');
-      const leds = ledsSnap.val()||[];
-
-      // Generar opciones de libres:
-      sel.innerHTML = '';
-      for (let i=0; i<total; i++){
-        const st = leds[i];
-        const ocupado = !!(st && (st.color || st.tarimaId));
-        if (!ocupado) {
-          const opt = document.createElement('option');
-          opt.value = `${i}`;
-          opt.textContent = `linea1-${i+1}`;
-          sel.appendChild(opt);
+    document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
+        const grupoLeds = contenedor.dataset.grupo;
+        const linea = contenedor.dataset.linea;
+        
+        const ledsPorLinea = 5;
+        contenedor.innerHTML = '';
+        
+        for(let i = 0; i < ledsPorLinea; i++){
+            const led = document.createElement('div');
+            led.className = 'led';
+            led.title = `${grupoLeds} • ${linea} • LED ${i+1}`;
+            led.addEventListener('click', () => togglearLED(grupoLeds, i, linea));
+            contenedor.appendChild(led);
         }
-      }
-      if (!sel.children.length) {
+    });
+}
+
+// --- !!DETALLES CON LOS LEDS, ENCENDIDOS FX ETC!! ---
+  
+function pintarEstado() {
+    db.ref('estadoLEDs').on('value', snapshot => {
+        const estados = snapshot.val() || {};
+        document.querySelectorAll('.leds').forEach(contenedor => {
+            const grupoLeds = contenedor.dataset.grupo;
+            const linea = contenedor.dataset.linea;
+
+            if (estados[grupoLeds] && estados[grupoLeds][linea]) {
+                const ledsEstado = estados[grupoLeds][linea];
+                contenedor.querySelectorAll('.led').forEach((led, index) => {
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
+                    led.innerHTML = '';
+
+                    if (ledsEstado[index]) {
+                        const estado = ledsEstado[index];
+                        let tarimaId = estado.tarimaId || "";
+                        if (tarimaId.length > 6) {
+                            // mostramos últimos 4 caracteres si es largo
+                            tarimaId = tarimaId.slice(-4);
+                        }
+
+                        if (grupoLeds.startsWith('CALIDAD_') && estado.color) {
+                            // LEDs de Calidad
+                            led.classList.add(estado.color);
+                            if (tarimaId) {
+                                led.innerHTML = `<span class="tarima-label">${tarimaId}</span>`;
+                            }
+                        } else if (estado.encendido) {
+                            // LEDs de Producción
+                            led.classList.add('on');
+                            if (tarimaId) {
+                                led.innerHTML = `<span class="tarima-label">${tarimaId}</span>`;
+                            }
+                        }
+                    }
+                });
+            } else {
+                contenedor.querySelectorAll('.led').forEach(led => {
+                    led.classList.remove('on', 'naranja', 'rojo', 'verde', 'disabled');
+                    led.innerHTML = '';
+                });
+            }
+        });
+    });
+}
+  
+function actualizarTiemposLEDs() {
+    document.querySelectorAll('.led-linea .led.on').forEach(led => {
+        const horaEncendido = led.dataset.horaEncendido;
+        if (horaEncendido) {
+            const tiempoTranscurrido = (new Date() - new Date(horaEncendido)) / 1000; // En segundos
+            const minutos = Math.floor(tiempoTranscurrido / 60);
+            const segundos = Math.floor(tiempoTranscurrido % 60);
+            led.querySelector('.tiempo-led').textContent = `${minutos}m ${segundos}s`;
+        }
+    });
+}
+  // --- !!CONFIGURACION DE HORA Y TURNOS!! ---
+  
+  function formatoHora(isoString) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+function obtenerTurnoActual() {
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const minutos = ahora.getMinutes();
+
+    let fecha = new Date(ahora);
+    let turno;
+
+    // Turno 1: 06:30 a 18:29
+    if ((hora > 6 || (hora === 6 && minutos >= 30)) && (hora < 18 || (hora === 18 && minutos < 30))) {
+        turno = 'Turno 1';
+    } 
+    // Turno 2: 18:30 a 06:29 del día siguiente
+    else {
+        turno = 'Turno 2';
+        if (hora < 6 || (hora === 6 && minutos < 30)) {
+            fecha.setDate(ahora.getDate() - 1);
+        }
+    }
+    
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const fechaFormateada = `${year}-${month}-${day}`;
+    
+    return { fecha: fechaFormateada, turno };
+}
+
+// --- !! SINCRONIZACION EN TIEMPO REAL  !! ---
+  
+  function iniciarListenersFirebase() {
+    const { fecha, turno } = obtenerTurnoActual();
+    document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
+
+    if (historialRef) historialRef.off();
+    if (contadoresCalidadRef) contadoresCalidadRef.off();
+    if (rechazosDetalladosRef) rechazosDetalladosRef.off();
+  
+    historialRef = database.ref(`historialLogs/${fecha}/${turno}`);
+    contadoresCalidadRef = database.ref(`contadoresCalidad/${fecha}/${turno}`);
+    rechazosDetalladosRef = database.ref(`rechazosDetallados/${fecha}/${turno}`);
+
+    historialRef.on('value', (snapshot) => {
+        const logs = snapshot.val() || {};
+        const contadores = { MULTIPORT: 0, BEDROCK: 0, DROPS: 0, CALIDAD_MULTIPORT: 0, CALIDAD_BEDROCK: 0, CALIDAD_DROPS: 0 };
+        const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
+        let tarimasTotales = 0;
+        let tiempoTotalRecoleccion = 0;
+
+        if (logs) {
+            Object.values(logs).forEach(log => {
+                if (log.accion === 'encendido' && contadores.hasOwnProperty(log.grupo)) {
+                    contadores[log.grupo]++;
+                } else if (log.accion === 'apagado' && log.tiempoRecoleccion) {
+                    const grupoBase = log.grupo;
+                    tiempos[grupoBase].push(log);
+                    tarimasTotales++;
+                    tiempoTotalRecoleccion += log.tiempoRecoleccion;
+                }
+            });
+        }
+        const tiempoPromedio = tarimasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasTotales) : 0;
+        document.getElementById('tarimasTotales').textContent = tarimasTotales;
+        document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
+        const resumenTurnoDiv = document.getElementById('resumenTurno');
+        if (usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR') {
+            resumenTurnoDiv.classList.remove('oculto');
+        } else {
+            resumenTurnoDiv.classList.add('oculto');
+        }  
+
+        document.querySelector('.grupo[data-grupo="MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.MULTIPORT}`;
+        document.querySelector('.grupo[data-grupo="BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.BEDROCK}`;
+        document.querySelector('.grupo[data-grupo="DROPS"] .tarimas').textContent = `Tarimas: ${contadores.DROPS}`;
+        document.querySelector('.grupo[data-grupo="CALIDAD_MULTIPORT"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_MULTIPORT}`;
+        document.querySelector('.grupo[data-grupo="CALIDAD_BEDROCK"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_BEDROCK}`;
+        document.querySelector('.grupo[data-grupo="CALIDAD_DROPS"] .tarimas').textContent = `Tarimas: ${contadores.CALIDAD_DROPS}`;
+
+        Object.keys(tiempos).forEach(grupo => {
+            const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
+            if (!contenedorTiempos) return;
+
+            contenedorTiempos.innerHTML = '';
+            tiempos[grupo].forEach((logEntry, index) => {
+                const p = document.createElement('p');
+                const horaInicio = formatoHora(logEntry.horaEncendido);
+                const horaFin = formatoHora(logEntry.horaApagado);
+                p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} minutos (${horaInicio} - ${horaFin})`;
+                contenedorTiempos.appendChild(p);
+            });
+            contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
+        });
+    });
+    contadoresCalidadRef.on('value', (snapshot) => {
+        const contadores = snapshot.val() || {};
+        const gruposCalidad = ['CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
+
+        gruposCalidad.forEach(grupo => {
+            const liberadas = contadores[grupo] ? contadores[grupo].liberadas || 0 : 0;
+            const rechazadas = contadores[grupo] ? contadores[grupo].rechazadas || 0 : 0;         
+            const liberadasSpan = document.getElementById(`liberadas_${grupo}`);
+            const rechazadasSpan = document.getElementById(`rechazadas_${grupo}`);
+            if (liberadasSpan) liberadasSpan.textContent = liberadas;
+            if (rechazadasSpan) rechazadasSpan.textContent = rechazadas;
+        });
+    });
+}
+// ================= PERMISOS Y LÓGICA =================
+function esUsuarioProduccion() {
+    return CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado);
+}
+
+function puedeControlar(grupo){
+    if(!usuarioSeleccionado) {
+        return false;
+    }
+  
+    if (usuarioSeleccionado === 'SUPERVISOR') {
+        return false;
+    }
+  
+    if (usuarioSeleccionado === 'LOGÍSTICA') {
+        return true;
+    }
+  
+    const grupoBaseUsuario = usuarioSeleccionado.startsWith('CALIDAD_') ? usuarioSeleccionado.replace('CALIDAD_', '') : usuarioSeleccionado;
+    const grupoBaseLed = grupo.startsWith('CALIDAD_') ? grupo.replace('CALIDAD_', '') : grupo;
+
+    return grupoBaseUsuario === grupoBaseLed;
+}
+    
+function togglearLED(grupo, idx, linea = 'linea1') {
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    const ledPath = `${linea}-${idx+1}`;
+    const usuarioActual = usuarioSeleccionado || '';
+
+    ledRef.once('value', snapshot => {
+        const estadoActual = snapshot.val() || {};
+
+        // --- CALIDAD ---
+        if (usuarioActual.startsWith('CALIDAD_') && grupo.startsWith('CALIDAD_')) {
+            if (!estadoActual.tarimaId) {
+                return alert('Este LED no tiene ninguna tarima asignada.');
+            }
+
+            const color = estadoActual.color || 'naranja';
+
+            if (color === 'verde') {
+                return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
+            }
+
+            if (color === 'naranja' || color === 'rojo') {
+                // 👉 Ahora sí abre el modal real
+                abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
+                return;
+            }
+        }
+
+        // --- PRODUCCIÓN ---
+        else if (
+            (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
+            && grupo.startsWith('CALIDAD_')
+        ) {
+            if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
+                if (!confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`)) return;
+
+                const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual);
+                recibidasRef.push({
+                    tarimaId: estadoActual.tarimaId,
+                    recibidoEn: new Date().toISOString(),
+                    ledOrigen: ledPath
+                });
+
+                ledRef.set(null);
+
+                db.ref('historial').push({
+                    usuario: usuarioActual,
+                    grupo: grupo,
+                    led: ledPath,
+                    accion: 'recibida_de_calidad',
+                    tarimaId: estadoActual.tarimaId,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                alert('Solo puedes recibir tarimas liberadas (verdes).');
+            }
+        }
+
+        // --- LEDs de PRODUCCIÓN ---
+        else if (
+            (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
+            && grupo === usuarioActual
+        ) {
+            if (!estadoActual.encendido && !estadoActual.tarimaId) {
+                mostrarSelectorTarimaProduccion(grupo, idx, linea);
+            } else {
+                alert('Este LED ya tiene una tarima asignada.');
+            }
+        }
+
+        // --- LOGÍSTICA ---
+        else if (usuarioActual === 'LOGÍSTICA') {
+            if (estadoActual.encendido && estadoActual.tarimaId) {
+                if (!confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`)) return;
+
+                ledRef.set(null);
+
+                db.ref('historial').push({
+                    usuario: usuarioActual,
+                    grupo: grupo,
+                    led: ledPath,
+                    accion: 'recolectada',
+                    tarimaId: estadoActual.tarimaId,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                alert('LOGÍSTICA solo puede apagar LEDs con tarima asignada.');
+            }
+        } else {
+            alert('No tienes permiso para controlar estos LEDs.');
+        }
+    });
+}
+  
+function actualizarEstadoLED(nuevoColor) {
+    if (!ledSeleccionado.grupo) return;
+
+    const { grupo, idx, linea } = ledSeleccionado;
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+
+    ledRef.once('value').then(snap => {
+        const estado = snap.val() || {};
+        const tarimaId = estado.tarimaId || "N/D";
+
+        // Actualizar color
+        ledRef.update({
+            color: nuevoColor,
+            timestamp: new Date().toISOString()
+        });
+
+        // Registrar historial
+        db.ref('historial').push({
+            usuario: usuarioSeleccionado,
+            grupo,
+            led: `${linea}-${idx+1}`,
+            accion: nuevoColor === 'verde' ? 'liberada' : 'otro',
+            tarimaId,
+            timestamp: new Date().toISOString()
+        });
+
+        // 🔥 Incrementar contador
+        if (nuevoColor === 'verde') {
+            db.ref('contadores/calidad/liberadas').transaction(val => (val || 0) + 1);
+        }
+
+        cerrarModalCalidad();
+    });
+}
+
+  let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
+
+function abrirModalCalidad(grupo, idx, linea) {
+    ledSeleccionado = { grupo, idx, linea };
+
+    const modal = document.getElementById('modalCalidad');
+    modal.classList.add('visible');
+
+    modal.querySelectorAll('.opcion-btn').forEach(btn => {
+        btn.onclick = () => {
+            const color = btn.dataset.color;
+            if (color === 'rojo') {
+                modal.classList.remove('visible');
+                document.getElementById('modalRechazo').classList.add('visible');
+            } else {
+                actualizarEstadoLED(color);
+                modal.classList.remove('visible'); // 🔥 cerrar inmediatamente
+            }
+        };
+    });
+
+    modal.querySelector('.cerrar-btn').onclick = () => {
+        modal.classList.remove('visible');
+    };
+}
+
+
+function cerrarModalCalidad() {
+    document.getElementById('modalCalidad').classList.remove('visible');
+    document.getElementById('modalRechazo').classList.remove('visible');
+}
+  
+// ================= LÓGICA DE CALIDAD MODAL =================
+function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
+    const modal = document.getElementById('modalOpcionesCalidad');
+    const select = modal.querySelector('#selectLedCalidad');
+    select.innerHTML = ''; // limpia opciones anteriores
+
+    // ==============================
+    // Generamos lista de LEDs (ej. linea1-1, linea1-2, etc.)
+    // ==============================
+    const totalLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 5;
+    for (let i = 0; i < totalLeds; i++) {
         const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = 'Sin LEDs libres';
-        sel.appendChild(opt);
-      }
+        opt.value = i; // guardamos índice real
+        opt.textContent = `${linea}-${i+1}`; // nombre visible
+        if (i === idx) opt.selected = true;
+        select.appendChild(opt);
     }
 
-    async function asignarLedATarimaDesdePanel(){
-      if (!tarimaBXActual) return alert('Primero identifica una tarima por BX.');
-      const sel = qs('#selectLedCalidad');
-      const idx = parseInt(sel.value);
-      if (isNaN(idx)) return alert('No hay LED disponible seleccionado.');
-      const grupo = usuarioSeleccionado; // CALIDAD_X
-      const linea = 'linea1';
-      const ledRefPath = `estadoLEDs/${grupo}/${linea}/${idx}`;
-      const ref = db.ref(ledRefPath);
+    // Guardamos contexto en dataset
+    select.dataset.grupo = grupo;
+    select.dataset.linea = linea;
 
-      // Evitar duplicidad: la tarima ya asignada?
-      const ya = (await tarimasAsignadasRef.child(tarimaBXActual.id).once('value')).val();
-      if (ya) return alert(`Tarima ${tarimaBXActual.id} ya está asignada al LED ${ya.ledId}`);
+    modal.style.display = 'block';
+}
+  document.getElementById('btnAsignarTarimaCalidad').addEventListener('click', () => {
+    const select = document.getElementById('selectLedCalidad');
+    const grupo = select.dataset.grupo;
+    const linea = select.dataset.linea;
+    const idx = parseInt(select.value);
 
-      await ref.set({
-        color: 'naranja',
-        tarimaId: tarimaBXActual.id,
+    // Guardamos tarima en el LED correspondiente
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    ledRef.set({
+        color: 'naranja', // inicia como en revisión
+        tarimaId: tarimaEscaneadaActual || null,
         usuario: usuarioSeleccionado,
         timestamp: new Date().toISOString()
-      });
-      await tarimasAsignadasRef.child(tarimaBXActual.id).set({
-        ledId: `${linea}-${idx+1}`,
-        grupo, linea, idx,
-        timestamp: Date.now()
-      });
+    });
 
-      historialRef.push({
-        usuario: usuarioSeleccionado, grupo, led: `${linea}-${idx+1}`,
-        accion: 'asignada_calidad', tarimaId: tarimaBXActual.id,
-        timestamp: new Date().toISOString()
-      });
+    alert(`✅ Tarima ${tarimaEscaneadaActual} asignada a ${linea}-${idx+1}`);
+    cerrarModalCalidad();
+});
 
-      alert(`✅ Tarima ${tarimaBXActual.id} asignada al LED ${linea}-${idx+1}`);
-      // refrescar dropdown
-      cargarDropdownLedsCalidad();
-    }
+function cerrarModalCalidad() {
+    document.getElementById('modalOpcionesCalidad').style.display = 'none';
+}
+// --- ATENCION AQUI ---
+  
+  function mostrarModalProduccion(grupo, linea = 'linea1') {
+    const modal = document.getElementById('modalAsignarTarimaProduccion');
+    const selectTarima = modal.querySelector('#selectTarimaProduccion');
+    const selectLed = modal.querySelector('#selectLedProduccion');
 
-    // ============== PRODUCCIÓN: modal asignar tarima a LED ==============
-    async function abrirModalProduccionAsignacion(grupo, linea, idx){
-      console.log('[Producción] Abrir modal asignación', {grupo,linea,idx});
-      // tarimas recibidas
-      const list = await tarimasRecibidasRef.child(grupo).once('value');
-      const rec = list.val() || {};
-      const selTarima = qs('#selectTarimaProduccion');
-      selTarima.innerHTML = '';
-      Object.values(rec).forEach(t=>{
+    // --- Poblar tarimas recibidas ---
+    selectTarima.innerHTML = '';
+    (window.tarimasRecibidas || []).forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.id;
         opt.textContent = `Tarima ${t.id}`;
-        selTarima.appendChild(opt);
-      });
-      if (!selTarima.children.length) {
+        selectTarima.appendChild(opt);
+    });
+
+    // --- Poblar LEDs de Producción ---
+    selectLed.innerHTML = '';
+    const totalLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 5;
+    for (let i = 0; i < totalLeds; i++) {
         const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = 'No hay tarimas recibidas';
-        selTarima.appendChild(opt);
-      }
-
-      // leds disponibles en producción
-      const total = CONFIG.LEDS_POR_GRUPO[grupo] || 10;
-      const selLed = qs('#selectLedProduccion'); selLed.innerHTML = '';
-      const ledsSnap = await db.ref(`estadoLEDs/${grupo}/${linea}`).once('value');
-      const leds = ledsSnap.val()||[];
-      for (let i=0;i<total;i++){
-        const st = leds[i];
-        const libre = !(st && (st.encendido || st.tarimaId));
-        if (libre) {
-          const opt = document.createElement('option');
-          opt.value = i;
-          opt.textContent = `${linea}-${i+1}`;
-          selLed.appendChild(opt);
-        }
-      }
-      // Preseleccionar donde clickeó
-      if ([...selLed.options].some(o=>+o.value===idx)) selLed.value = String(idx);
-
-      abrirModal('modalProduccion');
-      // guardar contexto en dataset
-      selLed.dataset.grupo = grupo;
-      selLed.dataset.linea = linea;
+        opt.value = i;
+        opt.textContent = `${linea}-${i+1}`;
+        selectLed.appendChild(opt);
     }
 
-    async function asignarTarimaProduccion(){
-      const selTarima = qs('#selectTarimaProduccion');
-      const selLed = qs('#selectLedProduccion');
-      const tarimaId = selTarima.value;
-      const grupo = selLed.dataset.grupo;
-      const linea = selLed.dataset.linea;
-      const idx = parseInt(selLed.value);
-      if (!tarimaId) return alert('Selecciona una tarima recibida.');
+    // Guardamos contexto
+    selectLed.dataset.grupo = grupo;
+    selectLed.dataset.linea = linea;
 
-      const ref = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
-      await ref.set({
+    modal.style.display = 'block';
+}
+
+document.getElementById('btnAsignarProduccion').addEventListener('click', () => {
+    const tarimaId = document.getElementById('selectTarimaProduccion').value;
+    const selectLed = document.getElementById('selectLedProduccion');
+    const grupo = selectLed.dataset.grupo;
+    const linea = selectLed.dataset.linea;
+    const idx = parseInt(selectLed.value);
+
+    if (!tarimaId) {
+        alert('Debes seleccionar una tarima.');
+        return;
+    }
+
+    // Guardamos tarima en LED de Producción
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    ledRef.set({
         encendido: true,
-        tarimaId,
+        tarimaId: tarimaId,
         usuario: usuarioSeleccionado,
         timestamp: new Date().toISOString(),
         horaEncendido: firebase.database.ServerValue.TIMESTAMP
-      });
+    });
 
-      // eliminar de recibidas (solo 1 ejemplar)
-      const recSnap = await tarimasRecibidasRef.child(grupo).once('value');
-      const rec = recSnap.val()||{};
-      const key = Object.keys(rec).find(k=>rec[k].id===tarimaId);
-      if (key) await tarimasRecibidasRef.child(`${grupo}/${key}`).remove();
+    // Eliminamos de la lista de tarimas recibidas (memoria local)
+    window.tarimasRecibidas = (window.tarimasRecibidas || []).filter(t => t.id !== tarimaId);
 
-      historialRef.push({
-        usuario: usuarioSeleccionado, grupo, led: `${linea}-${idx+1}`,
-        accion: 'asignada_produccion', tarimaId,
-        timestamp: new Date().toISOString()
-      });
+    alert(`✅ Tarima ${tarimaId} asignada a LED ${linea}-${idx+1}`);
+    cerrarModalProduccion();
+});
 
-      alert(`✅ Tarima ${tarimaId} asignada al LED ${linea}-${idx+1}`);
-      cerrarModal('modalProduccion');
-      // refrescar listas
-      renderTarimasRecibidas(grupo);
-    }
+function cerrarModalProduccion() {
+    document.getElementById('modalAsignarTarimaProduccion').style.display = 'none';
+}
+function aplicarEstadoCalidad(nuevoColor) {
+    const { grupo, idx, linea } = ledActivoParaFormulario;
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
 
-    // ============== TARIMAS PENDIENTES (para Calidad) ==============
-    function renderTarimasPendientes(){
-      console.log('[Tarimas] Listener pendientes');
-      // Criterio: tarimas que NO están en tarimasAsignadas
-      const container = qs('#tarimasPendientes');
-      const unsub1 = tarimasRef.on('value', async (snap)=>{
-        const todas = snap.val()||{};
-        // leer asignadas
-        const asignadas = (await tarimasAsignadasRef.once('value')).val()||{};
-        const asignadasSet = new Set(Object.keys(asignadas));
-        container.innerHTML = '';
-        Object.entries(todas).forEach(([id, t])=>{
-          if (!asignadasSet.has(id)) {
-            const el = document.createElement('div');
-            el.className = 'tarima-item';
-            el.innerHTML = `
-              <div class="tarima-head">
-                <b>#${id}</b>
-                <span class="badge warn">Pendiente</span>
-              </div>
-              <div class="mt8" style="opacity:.85">Cajas: ${t.totalCajas || 0} — Piezas: ${t.totalPiezas || 0}</div>
-            `;
-            container.appendChild(el);
-          }
+    if (nuevoColor === 'verde') {
+        const contadorRef = contadoresCalidadRef.child(grupo);
+        contadorRef.child('liberadas').transaction(currentCount => (currentCount || 0) + 1);
+        ledRef.update({
+            color: nuevoColor,
+            timestamp: new Date().toISOString(),
+            usuario: usuarioSeleccionado,
+            disabled: true // Nuevo estado para deshabilitar
         });
-      });
-      listeners.push({ off: ()=> tarimasRef.off('value', unsub1) });
+    } else {
+        ledRef.update({
+            color: nuevoColor,
+            timestamp: new Date().toISOString(),
+            usuario: usuarioSeleccionado,
+            disabled: false // Asegurarse de que no esté deshabilitado en otros estados
+        });
+        if (nuevoColor === 'rojo') {
+            const contadorRef = contadoresCalidadRef.child(grupo);
+            contadorRef.child('rechazadas').transaction(currentCount => (currentCount || 0) + 1);
+        }
+    }
+}
+
+function mostrarFormularioRechazo() {
+    document.getElementById('modalCalidad').classList.remove('visible');
+    document.getElementById('modalRechazo').classList.add('visible');
+}
+
+function guardarRechazo() {
+    if (!ledSeleccionado.grupo) return;
+
+    const { grupo, idx, linea } = ledSeleccionado;
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+
+    ledRef.once('value').then(snap => {
+        const estado = snap.val() || {};
+        const tarimaId = estado.tarimaId || "N/D";
+
+        const form = document.getElementById('formularioRechazo');
+        const data = {
+            empleado: form.empleado.value,
+            linea: form.linea.value,
+            parte: form.parte.value,
+            descripcionParte: form.descripcionParte.value,
+            problema: form.problema.value,
+            causa: form.causa.value,
+            accion: form.accion.value,
+            timestamp: new Date().toISOString()
+        };
+
+        ledRef.update({
+            color: 'rojo',
+            tarimaId,
+            rechazo: data,
+            usuario: usuarioSeleccionado
+        });
+
+        db.ref('historial').push({
+            usuario: usuarioSeleccionado,
+            grupo,
+            led: `${linea}-${idx+1}`,
+            accion: 'rechazada',
+            tarimaId,
+            timestamp: new Date().toISOString(),
+            detalles: data
+        });
+
+        // 🔥 Incrementar contador
+        db.ref('contadores/calidad/rechazadas').transaction(val => (val || 0) + 1);
+
+        alert(`❌ Tarima ${tarimaId} rechazada.`);
+        cerrarModalCalidad();
+    });
+}
+
+// ================= NAVEGACIÓN Y ARRANQUE =================
+function activarPantalla(id){
+    document.querySelectorAll('.pantalla').forEach(p => {
+        p.style.display = 'none';
+        p.classList.remove('activa');
+    });
+    const pantalla = document.getElementById(id);
+    pantalla.style.display = 'flex';
+    pantalla.classList.add('activa');
+}
+
+function volverAPantalla1(){
+    usuarioSeleccionado = null;
+    db.ref('estadoLEDs').off(); 
+    if (historialRef) historialRef.off();
+    if (contadoresCalidadRef) contadoresCalidadRef.off();
+    if (rechazosDetalladosRef) rechazosDetalladosRef.off();
+    clearInterval(dashboardUpdateInterval);
+    activarPantalla('pantalla1');
+}
+
+function seleccionarUsuario(usuario) {
+    if (!CONFIG.USUARIOS.includes(usuario)) {
+        return;
     }
 
-    // ============== TARIMAS RECIBIDAS (por Producción) ==============
-    function renderTarimasRecibidas(area){
-      console.log('[Producción] Listener recibidas:', area);
-      const cont = qs('#tarimasRecibidas');
-      const ref = tarimasRecibidasRef.child(area);
-      const unsub = ref.on('value', (snap)=>{
-        const data = snap.val()||{};
-        cont.innerHTML = '';
-        Object.values(data).forEach(t=>{
-          const el = document.createElement('div');
-          el.className = 'tarima-item';
-          el.innerHTML = `
-            <div class="tarima-head">
-              <b>#${t.id}</b>
-              <span class="badge info">Recibida</span>
+    if (usuario === 'SUPERVISOR') {
+        const password = prompt('Introduce la contraseña para SUPERVISOR:');
+        if (password === CONFIG.PASSWORDS['SUPERVISOR']) {
+            usuarioSeleccionado = usuario;
+            document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            pintarEstado();
+            iniciarListenersFirebase();
+            alert(`¡Bienvenido, ${usuario}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
+    } else if (usuario === 'CALIDAD') {
+        const password = prompt('Introduce la contraseña para CALIDAD:');
+        let subusuario = null;
+
+        if (password === CONFIG.PASSWORDS['CALIDAD_MULTIPORT']) {
+            subusuario = 'CALIDAD_MULTIPORT';
+        } else if (password === CONFIG.PASSWORDS['CALIDAD_DROPS']) {
+            subusuario = 'CALIDAD_DROPS';
+        } else if (password === CONFIG.PASSWORDS['CALIDAD_BEDROCK']) {
+            subusuario = 'CALIDAD_BEDROCK';
+        }
+
+        if (subusuario) {
+            usuarioSeleccionado = subusuario;
+            document.getElementById('tituloFijo').textContent = `CALIDAD - ${subusuario.split('_')[1]}`;
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            pintarEstado();
+            iniciarListenersFirebase();
+            alert(`¡Bienvenido, ${subusuario.replace('_', ' ')}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
+    } else {
+        const password = prompt(`Introduce la contraseña para ${usuario}:`);
+        if (password === CONFIG.PASSWORDS[usuario]) {
+            usuarioSeleccionado = usuario;
+            if (usuario === 'LOGÍSTICA') {
+                document.getElementById('tituloFijo').textContent = 'LOGÍSTICA';
+            } else {
+                document.getElementById('tituloFijo').textContent = usuario;
+            }
+            activarPantalla('pantalla2');
+            inyectaLEDs();
+            pintarEstado();
+            iniciarListenersFirebase();
+
+            // ✅ Producción carga tarimas recibidas
+            if (esUsuarioProduccion()) {
+                renderTarimasRecibidas(usuarioSeleccionado);
+            }
+
+            alert(`¡Bienvenido, ${usuario}!`);
+        } else {
+            alert('Contraseña incorrecta. Inténtalo de nuevo.');
+        }
+    }
+}
+  
+function seleccionarReporte() {
+    const password = prompt('Introduce la contraseña para REPORTES:');
+    if (password === CONFIG.PASSWORDS['REPORTES']) {
+        activarPantalla('pantalla3');
+        document.getElementById('tituloReportes').textContent = 'REPORTES';
+        document.getElementById('selectoresReportes').style.display = 'flex';
+        document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
+    } else {
+        alert('Contraseña incorrecta. Acceso denegado.');
+    }
+}
+
+// --- !!AQUI EMPIEZA BLOQUE DE DASHBOARD!! ---    
+    
+function seleccionarDashboard() {
+    const password = prompt('Introduce la contraseña para DASHBOARD:');
+    if (password === CONFIG.PASSWORDS['DASHBOARD']) {
+        activarPantalla('pantalla4');
+        iniciarDashboard();
+    } else {
+        alert('Contraseña incorrecta. Acceso denegado.');
+    }
+}
+
+function limpiarDashboardListeners() {
+    dashboardListeners.forEach(listener => listener.off());
+    dashboardListeners = [];
+}
+
+function iniciarDashboard() {
+    limpiarDashboardListeners();
+    const { fecha, turno } = obtenerTurnoActual();
+    document.getElementById('fechaDashboard').value = fecha;
+    document.getElementById('turnoDashboardSelect').value = 'todos';
+    
+    setupDashboardListeners(fecha, turno);
+    
+    // Listeners para los filtros de fecha y turno
+    document.getElementById('fechaDashboard').addEventListener('change', () => {
+        setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value);
+    });
+
+    document.getElementById('turnoDashboardSelect').addEventListener('change', () => {
+        setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value);
+    });
+}
+
+function setupDashboardListeners(fecha, turno) {
+    limpiarDashboardListeners();
+    
+    const historialRefDash = db.ref(`historialLogs/${fecha}`);
+    const calidadRefDash = db.ref(`contadoresCalidad/${fecha}`);
+    const ledsRefDash = db.ref('estadoLEDs');
+
+    const historialListener = historialRefDash.on('value', snapshot => {
+        const logsPorTurno = snapshot.val() || {};
+        let logsFiltrados = {};
+        if (turno === 'todos') {
+            Object.values(logsPorTurno).forEach(logs => {
+                logsFiltrados = { ...logsFiltrados, ...logs };
+            });
+        } else {
+            logsFiltrados = logsPorTurno[turno] || {};
+        }
+        actualizarDashboard(logsFiltrados, 'historial', null, null);
+    });
+    dashboardListeners.push({ off: () => historialRefDash.off('value', historialListener) });
+
+    const calidadListener = calidadRefDash.on('value', snapshot => {
+        const contadoresPorTurno = snapshot.val() || {};
+        let contadoresFiltrados = {};
+        if (turno === 'todos') {
+            for (const t in contadoresPorTurno) {
+                for (const g in contadoresPorTurno[t]) {
+                    contadoresFiltrados[g] = contadoresFiltrados[g] || { liberadas: 0, rechazadas: 0 };
+                    contadoresFiltrados[g].liberadas += contadoresPorTurno[t][g].liberadas || 0;
+                    contadoresFiltrados[g].rechazadas += contadoresPorTurno[t][g].rechazadas || 0;
+                }
+            }
+        } else {
+            contadoresFiltrados = contadoresPorTurno[turno] || {};
+        }
+        actualizarDashboard(null, 'calidad', contadoresFiltrados, null);
+    });
+    dashboardListeners.push({ off: () => calidadRefDash.off('value', calidadListener) });
+    
+    const ledsListener = ledsRefDash.on('value', snapshot => {
+        const leds = snapshot.val() || {};
+        actualizarDashboard(null, 'leds', null, leds);
+    });
+    dashboardListeners.push({ off: () => ledsRefDash.off('value', ledsListener) });
+}
+
+
+function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs, filtroArea = 'TODAS') {
+    if (tipo === 'historial') {
+        const produccionPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+        const tarimasPorHora = {};
+        let tarimasRecolectadas = 0;
+        let tiempoTotalRecoleccion = 0;
+        
+        for (const logKey in historialLogs) {
+            const log = historialLogs[logKey];
+            
+            // Nuevo filtro de área
+            if (filtroArea === 'TODAS' || log.grupo === filtroArea) {
+                if (log.accion === 'encendido' && produccionPorArea.hasOwnProperty(log.grupo)) {
+                    produccionPorArea[log.grupo]++;
+                } else if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(log.grupo)) {
+                    tarimasRecolectadas++;
+                    tiempoTotalRecoleccion += log.tiempoRecoleccion;
+                    
+                    const horaApagado = new Date(log.horaApagado);
+                    const horaRedondeada = horaApagado.getHours();
+                    tarimasPorHora[horaRedondeada] = (tarimasPorHora[horaRedondeada] || 0) + 1;
+                }
+            }
+        }
+        
+        const tiempoPromedio = tarimasRecolectadas > 0 ? (tiempoTotalRecoleccion / tarimasRecolectadas).toFixed(1) : 0;
+        
+        document.getElementById('dashTarimasConfirmadas').textContent = Object.values(produccionPorArea).reduce((a, b) => a + b, 0);
+        document.getElementById('dashTarimasRecolectadas').textContent = tarimasRecolectadas;
+        document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`;
+        
+        const kpiTiempoPromedio = document.getElementById('kpiTiempoPromedio');
+        if (tiempoPromedio > 10) {
+            kpiTiempoPromedio.classList.add('alerta');
+        } else {
+            kpiTiempoPromedio.classList.remove('alerta');
+        }
+        
+        generarGraficoProduccionDash(produccionPorArea);
+        generarGraficoLogisticaDash(tarimasPorHora);
+    }
+    
+    // El resto de la función para 'calidad' y 'leds' se mantiene igual y funciona de manera independiente
+    if (tipo === 'calidad') {
+        let liberadas = 0;
+        let rechazadas = 0;
+        for (const grupo in contadoresCalidad) {
+            liberadas += contadoresCalidad[grupo].liberadas || 0;
+            rechazadas += contadoresCalidad[grupo].rechazadas || 0;
+        }
+        const totalCalidad = liberadas + rechazadas;
+        const tasaRechazo = totalCalidad > 0 ? ((rechazadas / totalCalidad) * 100).toFixed(1) : 0;
+        
+        document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`;
+
+        const kpiTasaRechazo = document.getElementById('kpiTasaRechazo');
+        if (tasaRechazo > 5) {
+            kpiTasaRechazo.classList.add('alerta');
+        } else {
+            kpiTasaRechazo.classList.remove('alerta');
+        }
+        generarGraficoCalidadDash({ liberadas, rechazadas });
+    }
+
+    if (tipo === 'leds') {
+        const pendientesPorArea = {};
+        
+        CONFIG.PRODUCCION_GRUPOS.forEach(grupo => {
+            pendientesPorArea[grupo] = 0;
+            if (estadoLEDs.hasOwnProperty(grupo)) {
+                for (const linea in estadoLEDs[grupo]) {
+                    for (const led in estadoLEDs[grupo][linea]) {
+                        if (estadoLEDs[grupo][linea][led].encendido) {
+                            pendientesPorArea[grupo]++;
+                        }
+                    }
+                }
+            }
+        });
+        
+        const tablaPendientesBody = document.querySelector('#tablaPendientes tbody');
+        tablaPendientesBody.innerHTML = '';
+        for (const area in pendientesPorArea) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${area}</td><td>${pendientesPorArea[area]}</td>`;
+            tablaPendientesBody.appendChild(tr);
+        }
+    }
+}
+function generarGraficoProduccionDash(datos) {
+    if (graficosDashboard.produccion) {
+        graficosDashboard.produccion.destroy();
+    }
+    const ctx = document.getElementById('graficoProduccionDash').getContext('2d');
+    const labels = Object.keys(datos);
+    const data = Object.values(datos);
+    graficosDashboard.produccion = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tarimas Confirmadas',
+                data: data,
+                backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56'],
+                borderColor: ['#4BC0C0', '#36A2EB', '#FFCE56'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Tarimas' } }
+            },
+            plugins: {
+                legend: { display: false },
+                title: { display: false }
+            }
+        }
+    });
+}
+
+function generarGraficoCalidadDash(datos) {
+    if (graficosDashboard.calidad) {
+        graficosDashboard.calidad.destroy();
+    }
+    const ctx = document.getElementById('graficoCalidadDash').getContext('2d');
+    const labels = ['Liberadas', 'Rechazadas'];
+    const data = [datos.liberadas, datos.rechazadas];
+    graficosDashboard.calidad = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: ['#4caf50', '#f44336']
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: false }
+            }
+        }
+    });
+}
+
+function generarGraficoLogisticaDash(tarimasPorHora) {
+    if (graficosDashboard.logistica) {
+        graficosDashboard.logistica.destroy();
+    }
+    const ctx = document.getElementById('graficoLogisticaDash').getContext('2d');
+    
+    const horasOrdenadas = Object.keys(tarimasPorHora).sort((a, b) => a - b);
+    const labels = horasOrdenadas.map(hora => `${hora}:00 - ${parseInt(hora) + 1}:00`);
+    const data = horasOrdenadas.map(hora => tarimasPorHora[hora] || 0);
+
+    graficosDashboard.logistica = new Chart(ctx, {
+        type: 'bar', // Cambiado a gráfico de barras para mejor visualización de conteos
+        data: {
+            labels: labels, 
+            datasets: [{
+                label: 'Tarimas Recolectadas por Hora',
+                data: data,
+                backgroundColor: '#36A2EB',
+                borderColor: '#36A2EB',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Tarimas Recolectadas' // Nueva etiqueta del eje Y
+                    },
+                    ticks: {
+                        stepSize: 1 // Asegura que las etiquetas sean números enteros
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hora del Día'
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+// --- !!AQUI EMPIEZAN FUNCIONES DE REPORTE!! ---
+    
+    
+    function mostrarReporte(tipo) {
+    reporteActual = tipo;
+    document.getElementById('selectoresReportes').style.display = 'none';
+    const contenedor = document.getElementById('contenedorReporte');
+    const { fecha: fechaActual, turno: turnoActual } = obtenerTurnoActual();
+
+    let areaFiltroHtml = '';
+    const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK', 'CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
+    areaFiltroHtml = `
+        <label for="areaFiltro">Área:</label>
+        <select id="areaFiltro">
+            ${areas.map(area => `<option value="${area}">${area.replace('CALIDAD_', 'Calidad ')}</option>`).join('')}
+        </select>
+    `;
+
+    let empleadoFiltroHtml = '';
+    if (tipo === 'calidad') {
+        empleadoFiltroHtml = `
+            <label for="empleadoFiltro">Empleado:</label>
+            <input type="text" id="empleadoFiltro" placeholder="Nombre de Empleado">
+        `;
+    }
+
+    let fechaFiltroHtml = '';
+    fechaFiltroHtml = `
+        <label for="fechaReporte">Fecha:</label>
+        <input type="date" id="fechaReporte" value="${fechaActual}">
+    `;
+
+    let turnoFiltroHtml = '';
+    turnoFiltroHtml = `
+        <label for="turnoFiltro">Turno:</label>
+        <select id="turnoFiltro">
+            <option value="todos">Todos</option>
+            <option value="Turno 1">Turno 1</option>
+            <option value="Turno 2">Turno 2</option>
+        </select>
+    `;
+
+    let exportButtons = `
+        <button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button>
+        <button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button>
+        <button class="usuario-btn" onclick="exportarReporte('csv')">Exportar a CSV</button>
+    `;
+
+    let graficoSelector = '';
+    if (tipo !== 'resumen') {
+        graficoSelector = `
+            <div class="opciones-grafico">
+                <label>Tipo de Gráfico:</label>
+                <select id="tipoGrafico">
+                    <option value="bar">Barras</option>
+                    <option value="pie">Pastel</option>
+                    <option value="line">Línea</option>
+                </select>
             </div>
-            <div class="mt8" style="opacity:.85">LED origen: ${t.ledOrigen || '—'} · ${new Date(t.recibidoEn).toLocaleString()}</div>
-          `;
-          cont.appendChild(el);
+        `;
+    }
+
+
+    contenedor.innerHTML = `
+        <div class="header-reporte">
+            <button onclick="regresarASelectores()" class="usuario-btn">Regresar</button>
+            <div class="filtros">
+                ${fechaFiltroHtml}
+                ${turnoFiltroHtml}
+                ${tipo === 'resumen' ? '' : areaFiltroHtml}
+                ${empleadoFiltroHtml}
+                <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>
+            </div>
+        </div>
+        <h2 id="tituloReporteDinamico">Cargando...</h2>
+        ${graficoSelector}
+        <div id="contenidoReporte"></div>
+        <div class="botones-reporte">
+            ${exportButtons}
+        </div>
+    `;
+
+    if (document.getElementById('turnoFiltro')) {
+        document.getElementById('turnoFiltro').value = turnoActual;
+    }
+    if (document.getElementById('areaFiltro')) {
+        document.getElementById('areaFiltro').value = 'TODAS';
+    }
+    
+    // Listener para el cambio de tipo de gráfico
+    if (document.getElementById('tipoGrafico')) {
+        document.getElementById('tipoGrafico').addEventListener('change', actualizarGraficoReporte);
+    }
+
+    const fecha = document.getElementById('fechaReporte').value;
+    const turno = document.getElementById('turnoFiltro').value;
+    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
+    const empleado = document.getElementById('empleadoFiltro') ? document.getElementById('empleadoFiltro').value : null;
+
+    cargarDatosReporte(tipo, fecha, turno, area, empleado);
+}
+
+function actualizarGraficoReporte() {
+    const tipoGraficoSeleccionado = document.getElementById('tipoGrafico').value;
+    const contenedorGrafico = document.querySelector('#grafico-contenedor');
+    
+    if (contenedorGrafico) {
+        contenedorGrafico.innerHTML = '<canvas id="graficoDinamico"></canvas>';
+    }
+
+    if (datosFiltradosReporte) {
+        let labels, data, chartTitle;
+        if (reporteActual === 'produccion') {
+            const conteo = {};
+            datosFiltradosReporte.forEach(log => {
+                const area = log.grupo;
+                conteo[area] = (conteo[area] || 0) + 1;
+            });
+            labels = Object.keys(conteo);
+            data = Object.values(conteo);
+            chartTitle = 'Tarimas Producidas por Área';
+        } else if (reporteActual === 'logistica') {
+            const conteo = {};
+            datosFiltradosReporte.forEach(log => {
+                const area = log.grupo;
+                conteo[area] = (conteo[area] || 0) + 1;
+            });
+            labels = Object.keys(conteo);
+            data = Object.values(conteo);
+            chartTitle = 'Total de Tarimas Recolectadas por Área';
+        } else if (reporteActual === 'calidad') {
+            const conteo = {};
+            datosFiltradosReporte.forEach(rechazo => {
+                const problema = rechazo.problema;
+                conteo[problema] = (conteo[problema] || 0) + 1;
+            });
+            labels = Object.keys(conteo);
+            data = Object.values(conteo);
+            chartTitle = 'Causas de Rechazo';
+        }
+
+        if (miGrafico) {
+            miGrafico.destroy();
+        }
+
+        const ctx = document.getElementById('graficoDinamico').getContext('2d');
+        const backgroundColors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
+            '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
+        ];
+
+        miGrafico = new Chart(ctx, {
+            type: tipoGraficoSeleccionado,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: chartTitle,
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors,
+                    borderWidth: 1,
+                    fill: tipoGraficoSeleccionado === 'line',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { font: { size: 14 } }
+                    },
+                    title: {
+                        display: true,
+                        text: chartTitle,
+                        font: { size: 20 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
         });
-      });
-      listeners.push({ off: ()=> ref.off('value', unsub) });
     }
+}
 
-    // ============== CONTADORES / DASHBOARD ==============
-    function escucharDashboard(){
-      console.log('[Dashboard] Listener contadores');
-      const unsub = contadoresRef.on('value', (snap)=>{
-        const c = snap.val()||{};
-        qs('#contadorLiberadas').textContent = c.liberadasHoy || 0;
-        qs('#contadorRechazadas').textContent = c.rechazadasHoy || 0;
-        qs('#contadorRecolectadas').textContent = c.recolectadasHoy || 0;
-      });
-      listeners.push({ off: ()=> contadoresRef.off('value', unsub) });
+
+function regresarASelectores() {
+    document.getElementById('tituloReportes').textContent = 'REPORTES';
+    document.getElementById('selectoresReportes').style.display = 'flex';
+    document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
+    if (miGrafico) {
+        miGrafico.destroy();
     }
-    async function incrementarContador(campo, delta, area=null){
-      const ref = contadoresRef.child(campo);
-      await ref.transaction(v=>(v||0)+delta);
-      // Si quieres por área:
-      if (area) {
-        await contadoresRef.child('areas').child(area).child(campo).transaction(v=>(v||0)+delta);
-      }
+    datosFiltradosReporte = null;
+}
+
+function buscarReporte() {
+    const tipo = reporteActual;
+    const fecha = document.getElementById('fechaReporte').value;
+    const turno = document.getElementById('turnoFiltro').value;
+    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
+    const empleado = document.getElementById('empleadoFiltro') ? document.getElementById('empleadoFiltro').value : null;
+
+    cargarDatosReporte(tipo, fecha, turno, area, empleado);
+}
+
+
+function cargarDatosReporte(tipo, fecha, turno, area, empleado) {
+    const contenedor = document.getElementById('contenidoReporte');
+    const tituloReporte = document.getElementById('tituloReporteDinamico');
+    contenedor.innerHTML = '<p>Cargando datos...</p>';
+    
+    if (miGrafico) {
+        miGrafico.destroy();
     }
+    
+    const refHistorial = db.ref(`historialLogs`);
+    const refCalidad = db.ref(`contadoresCalidad`);
+    const refRechazos = db.ref(`rechazosDetallados`);
 
-    // ============== REPORTES ==============
-    async function generarReporte(){
-      console.log('[Reportes] Generar');
-      const inicio = qs('#repInicio').value ? new Date(qs('#repInicio').value).getTime() : null;
-      const fin    = qs('#repFin').value   ? (new Date(qs('#repFin').value).getTime() + 86400000 - 1) : null;
-      const area   = qs('#repArea').value;
-      const turno  = qs('#repTurno').value;
-
-      const snap = await historialRef.once('value');
-      const data = snap.val()||{};
-      // filtrado básico
-      const rows = Object.values(data).filter(r=>{
-        const t = new Date(r.timestamp).getTime();
-        if (inicio && t<inicio) return false;
-        if (fin && t>fin) return false;
-        if (area) {
-          // match si la acción/usuario/grupo contiene el área
-          const matchArea = (r.usuario||'').includes(area) || (r.grupo||'').includes(area);
-          if (!matchArea) return false;
+    Promise.all([
+        refHistorial.once('value').then(s => s.val()),
+        refCalidad.once('value').then(s => s.val()),
+        refRechazos.once('value').then(s => s.val())
+    ]).then(([historial, calidad, rechazos]) => {
+        const datosCompletos = { historial, calidad, rechazos };
+        
+        if (tipo === 'calidad') {
+            tituloReporte.textContent = `Reporte de Calidad - ${fecha}`;
+            procesarReporteCalidad(datosCompletos, contenedor, fecha, turno, area, empleado);
+        } else if (tipo === 'produccion') {
+            tituloReporte.textContent = `Reporte de Producción - ${fecha}`;
+            procesarReporteProduccion(datosCompletos, contenedor, fecha, turno, area);
+        } else if (tipo === 'logistica') {
+            tituloReporte.textContent = `Reporte de Logística - ${fecha}`;
+            procesarReporteLogistica(datosCompletos, contenedor, fecha, turno, area);
+        } else if (tipo === 'resumen') {
+            tituloReporte.textContent = `Resumen Ejecutivo`;
+            procesarReporteResumen(datosCompletos, contenedor, fecha, turno);
         }
-        if (turno) {
-          // si guardas turno en historial, filtra aquí (ejemplo omitido)
+    }).catch(error => {
+        console.error("Error al cargar los datos:", error);
+        contenedor.innerHTML = `<p>Error al cargar los datos. Intenta de nuevo.</p>`;
+    });
+}
+
+
+function procesarReporteCalidad(datos, contenedor, fecha, turno, area, empleado) {
+    let rechazosFiltrados = [];
+    
+    for (const fechaKey in datos.rechazos) {
+        if (fecha !== fechaKey) continue;
+        
+        for (const turnoKey in datos.rechazos[fechaKey]) {
+            if (turno !== 'todos' && turnoKey !== turno) continue;
+            
+            for (const rechazoKey in datos.rechazos[fechaKey][turnoKey]) {
+                const rechazo = datos.rechazos[fechaKey][turnoKey][rechazoKey];
+                
+                if (
+                    (area === 'TODAS' || rechazo.areaRechazo === area) &&
+                    (!empleado || (rechazo.empleado && rechazo.empleado.toLowerCase().includes(empleado.toLowerCase())))
+                ) {
+                    rechazosFiltrados.push(rechazo);
+                }
+            }
         }
-        return true;
-      });
+    }
+    
+    datosFiltradosReporte = rechazosFiltrados;
 
-      const out = document.createElement('div');
-      out.className = 'card';
-      out.innerHTML = `<h3>Resultados: ${rows.length}</h3>` +
-        rows.map(r=>`
-          <div style="border-top:1px solid var(--border); padding:8px 0">
-            <div><b>${r.accion}</b> — ${r.tarimaId || '—'}</div>
-            <div style="opacity:.85">${r.usuario} | ${r.grupo} | LED: ${r.led || '—'} | ${new Date(r.timestamp).toLocaleString()}</div>
-          </div>
-        `).join('');
-      const cont = qs('#reporteResultado');
-      cont.innerHTML = '';
-      cont.appendChild(out);
-      window.__reporteCache = rows; // para exportar
+    const conteoProblemas = {};
+    rechazosFiltrados.forEach(rechazo => {
+        const problema = rechazo.problema || 'Desconocido';
+        conteoProblemas[problema] = (conteoProblemas[problema] || 0) + 1;
+    });
+
+    // KPIs
+    const kpisHtml = `
+        <div class="resumen-datos">
+            <div class="dato">
+                <div class="valor">${rechazosFiltrados.length}</div>
+                <div class="etiqueta">Tarimas Rechazadas</div>
+            </div>
+            <div class="dato">
+                <div class="valor">${Object.keys(conteoProblemas).length}</div>
+                <div class="etiqueta">Problemas Identificados</div>
+            </div>
+        </div>
+    `;
+    
+    let tablaHtml = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Área</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción de la Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
+    rechazosFiltrados.forEach(r => {
+        const areaRechazoFormateada = r.areaRechazo ? r.areaRechazo.replace('CALIDAD_', '') : 'N/A';
+        tablaHtml += `
+            <tr>
+                <td>${r.fecha}</td>
+                <td>${r.hora}</td>
+                <td>${areaRechazoFormateada}</td>
+                <td>${r.linea || 'N/A'}</td>
+                <td>${r.empleado || 'N/A'}</td>
+                <td>${r.parte || 'N/A'}</td>
+                <td>${r.descripcionParte || 'N/A'}</td>
+                <td>${r.problema || 'N/A'}</td>
+                <td>${r.causa || 'N/A'}</td>
+                <td>${r.accion || 'N/A'}</td>
+            </tr>
+        `;
+    });
+    tablaHtml += `</tbody></table>`;
+
+    // Versión para móvil
+    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
+    rechazosFiltrados.forEach(r => {
+        const areaRechazoFormateada = r.areaRechazo ? r.areaRechazo.replace('CALIDAD_', '') : 'N/A';
+        tablaMovilHtml += `
+            <div class="fila-dato">
+                <span class="etiqueta">Fecha:</span> <span class="valor">${r.fecha}</span><br>
+                <span class="etiqueta">Hora:</span> <span class="valor">${r.hora}</span><br>
+                <span class="etiqueta">Área:</span> <span class="valor">${areaRechazoFormateada}</span><br>
+                <span class="etiqueta">Línea:</span> <span class="valor">${r.linea || 'N/A'}</span><br>
+                <span class="etiqueta">Empleado:</span> <span class="valor">${r.empleado || 'N/A'}</span><br>
+                <span class="etiqueta">Problema:</span> <span class="valor">${r.problema || 'N/A'}</span>
+            </div>
+        `;
+    });
+    tablaMovilHtml += `</div></div>`;
+
+    let graficoHtml = '';
+    if (Object.keys(conteoProblemas).length > 0) {
+        graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
+    }
+    
+    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+
+    if (Object.keys(conteoProblemas).length > 0) {
+        actualizarGraficoReporte();
+    }
+}
+
+
+function procesarReporteProduccion(datos, contenedor, fecha, turno, area) {
+    let logsProduccion = [];
+    const conteo = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+    
+    for (const fechaKey in datos.historial) {
+        if (fecha !== fechaKey) continue;
+        
+        for (const turnoKey in datos.historial[fechaKey]) {
+            if (turno !== 'todos' && turnoKey !== turno) continue;
+
+            for (const logKey in datos.historial[fechaKey][turnoKey]) {
+                const log = datos.historial[fechaKey][turnoKey][logKey];
+                if (log.accion === 'encendido' && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
+                    if (area === 'TODAS' || log.grupo === area) {
+                        logsProduccion.push(log);
+                        conteo[log.grupo]++;
+                    }
+                }
+            }
+        }
+    }
+    
+    datosFiltradosReporte = logsProduccion;
+
+    const kpisHtml = `
+        <div class="resumen-datos">
+            <div class="dato">
+                <div class="valor">${logsProduccion.length}</div>
+                <div class="etiqueta">Tarimas Confirmadas</div>
+            </div>
+        </div>
+    `;
+
+    const graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
+
+    let tablaHtml = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Línea</th>
+                    <th>Tarima</th>
+                    <th>Hora de Confirmación</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    logsProduccion.forEach(log => {
+        tablaHtml += `
+            <tr>
+                <td>${log.grupo}</td>
+                <td>${log.led}</td>
+                <td>${formatoHora(log.timestamp)}</td>
+                <td>${log.usuario}</td>
+            </tr>
+        `;
+    });
+    tablaHtml += `</tbody></table>`;
+    
+    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
+    logsProduccion.forEach(log => {
+        tablaMovilHtml += `
+            <div class="fila-dato">
+                <span class="etiqueta">Línea:</span> <span class="valor">${log.grupo}</span><br>
+                <span class="etiqueta">Tarima:</span> <span class="valor">${log.led}</span><br>
+                <span class="etiqueta">Hora:</span> <span class="valor">${formatoHora(log.timestamp)}</span><br>
+                <span class="etiqueta">Usuario:</span> <span class="valor">${log.usuario}</span>
+            </div>
+        `;
+    });
+    tablaMovilHtml += `</div></div>`;
+
+    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+    actualizarGraficoReporte();
+}
+
+
+function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
+    let logsRecoleccion = [];
+    let tiempoTotal = 0;
+    
+    for (const fechaKey in datos.historial) {
+        if (fecha !== fechaKey) continue;
+        
+        for (const turnoKey in datos.historial[fechaKey]) {
+            if (turno !== 'todos' && turnoKey !== turno) continue;
+            
+            for (const logKey in datos.historial[fechaKey][turnoKey]) {
+                const log = datos.historial[fechaKey][turnoKey][logKey];
+                if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
+                    if (area === 'TODAS' || log.grupo === area) {
+                        logsRecoleccion.push(log);
+                        tiempoTotal += log.tiempoRecoleccion;
+                    }
+                }
+            }
+        }
     }
 
-    function exportarCSV(){
-      console.log('[Reportes] Exportar CSV');
-      const rows = window.__reporteCache || [];
-      const cols = ['timestamp','usuario','grupo','accion','tarimaId','led'];
-      const csv = [
-        cols.join(','),
-        ...rows.map(r=>cols.map(k=>JSON.stringify(r[k]||'')).join(','))
-      ].join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `reporte_${Date.now()}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
+    datosFiltradosReporte = logsRecoleccion;
+    
+    const tiempoPromedio = logsRecoleccion.length > 0 ? (tiempoTotal / logsRecoleccion.length).toFixed(1) : 0;
+    
+    const conteoTarimasPorArea = {};
+    logsRecoleccion.forEach(log => {
+        const area = log.grupo;
+        conteoTarimasPorArea[area] = (conteoTarimasPorArea[area] || 0) + 1;
+    });
+
+    const kpisHtml = `
+        <div class="resumen-datos">
+            <div class="dato">
+                <div class="valor">${logsRecoleccion.length}</div>
+                <div class="etiqueta">Tarimas Recolectadas</div>
+            </div>
+            <div class="dato">
+                <div class="valor">${tiempoPromedio} min</div>
+                <div class="etiqueta">Tiempo Promedio</div>
+            </div>
+        </div>
+    `;
+
+    const graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
+
+    let tablaHtml = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Línea</th>
+                    <th>Tarima</th>
+                    <th>Tiempo de Recolección (min)</th>
+                    <th>Hora de Encendido</th>
+                    <th>Hora de Apagado</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    logsRecoleccion.forEach(log => {
+        tablaHtml += `
+            <tr>
+                <td>${log.grupo}</td>
+                <td>${log.led}</td>
+                <td>${log.tiempoRecoleccion}</td>
+                <td>${formatoHora(log.horaEncendido)}</td>
+                <td>${formatoHora(log.horaApagado)}</td>
+            </tr>
+        `;
+    });
+    tablaHtml += `</tbody></table>`;
+    
+    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
+    logsRecoleccion.forEach(log => {
+        tablaMovilHtml += `
+            <div class="fila-dato">
+                <span class="etiqueta">Línea:</span> <span class="valor">${log.grupo}</span><br>
+                <span class="etiqueta">Tarima:</span> <span class="valor">${log.led}</span><br>
+                <span class="etiqueta">Tiempo:</span> <span class="valor">${log.tiempoRecoleccion} min</span><br>
+                <span class="etiqueta">Hora de Recolección:</span> <span class="valor">${formatoHora(log.horaApagado)}</span>
+            </div>
+        `;
+    });
+    tablaMovilHtml += `</div></div>`;
+
+    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+    document.getElementById('tipoGrafico').value = 'bar'; // Establecer por defecto a barras
+    actualizarGraficoReporte();
+}
+
+function procesarReporteResumen(datos, contenedor, fecha, turno) {
+    const areas = ['MULTIPORT', 'DROPS', 'BEDROCK'];
+    const resumen = {};
+    
+    areas.forEach(area => {
+        resumen[area] = {
+            produccion: 0,
+            liberadas: 0,
+            rechazadas: 0,
+            tiempoLogistica: { total: 0, count: 0, promedio: 0 }
+        };
+    });
+
+    // Procesar historial (producción y logística)
+    for (const fechaKey in datos.historial) {
+        if (fechaKey !== fecha && fecha !== null) continue; // Si se elige una fecha, procesar solo esa
+        for (const turnoKey in datos.historial[fechaKey]) {
+            if (turnoKey !== turno && turno !== 'todos') continue; // Si se elige un turno, procesar solo ese
+            for (const logKey in datos.historial[fechaKey][turnoKey]) {
+                const log = datos.historial[fechaKey][turnoKey][logKey];
+                if (log.accion === 'encendido' && resumen.hasOwnProperty(log.grupo)) {
+                    resumen[log.grupo].produccion++;
+                } else if (log.accion === 'apagado' && log.tiempoRecoleccion && resumen.hasOwnProperty(log.grupo)) {
+                    resumen[log.grupo].tiempoLogistica.total += log.tiempoRecoleccion;
+                    resumen[log.grupo].tiempoLogistica.count++;
+                }
+            }
+        }
     }
 
-    // ============== UTILS MODALES PRODUCCIÓN ==============
-    function abrirModal(id){ qs('#'+id).classList.add('visible'); }
-    function cerrarModal(id){ qs('#'+id).classList.remove('visible'); }
+    // Procesar contadores de calidad
+    for (const fechaKey in datos.calidad) {
+        if (fechaKey !== fecha && fecha !== null) continue;
+        for (const turnoKey in datos.calidad[fechaKey]) {
+            if (turnoKey !== turno && turno !== 'todos') continue;
+            for (const grupoKey in datos.calidad[fechaKey][turnoKey]) {
+                const grupoBase = grupoKey.replace('CALIDAD_', '');
+                if (resumen.hasOwnProperty(grupoBase)) {
+                    const contadores = datos.calidad[fechaKey][turnoKey][grupoKey];
+                    resumen[grupoBase].liberadas += contadores.liberadas || 0;
+                    resumen[grupoBase].rechazadas += contadores.rechazadas || 0;
+                }
+            }
+        }
+    }
 
-    // ============== NOTA: PWA SW OPCIONAL ==============
-       if ('serviceWorker' in navigator) {
+    let html = ``;
+    areas.forEach(area => {
+        const prod = resumen[area].produccion;
+        const liberadas = resumen[area].liberadas;
+        const rechazadas = resumen[area].rechazadas;
+        const totalCalidad = liberadas + rechazadas;
+        const tasaRechazo = totalCalidad > 0 ? ((rechazadas / totalCalidad) * 100).toFixed(1) : 0;
+        const tiempoPromedio = resumen[area].tiempoLogistica.count > 0 ? (resumen[area].tiempoLogistica.total / resumen[area].tiempoLogistica.count).toFixed(1) : 0;
+
+        html += `
+            <h3>${area}</h3>
+            <div class="resumen-datos">
+                <div class="dato">
+                    <div class="valor">${prod}</div>
+                    <div class="etiqueta">Tarimas Producidas</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${liberadas}</div>
+                    <div class="etiqueta">Tarimas Liberadas</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${rechazadas}</div>
+                    <div class="etiqueta">Tarimas Rechazadas</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${tasaRechazo}%</div>
+                    <div class="etiqueta">Tasa de Rechazo</div>
+                </div>
+                <div class="dato">
+                    <div class="valor">${tiempoPromedio} min</div>
+                    <div class="etiqueta">Tiempo Recolección</div>
+                </div>
+            </div>
+        `;
+    });
+    contenedor.innerHTML = html;
+}
+
+function generarGraficoRechazos(datos) {
+    const ctx = document.getElementById('graficoRechazos').getContext('2d');
+    const labels = Object.keys(datos);
+    const data = Object.values(datos);
+    
+    const backgroundColors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
+        '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
+    ];
+    
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
+    
+    miGrafico = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                hoverBackgroundColor: backgroundColors
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: { size: 14 }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Causas de Rechazo',
+                    font: { size: 20 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const label = context.label || '';
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function generarGraficoProduccion(datos) {
+    const ctx = document.getElementById('graficoProduccion').getContext('2d');
+    const labels = Object.keys(datos);
+    const data = Object.values(datos);
+
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
+
+    miGrafico = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Tarimas Confirmadas',
+                data: data,
+                backgroundColor: [
+                    '#4BC0C0',
+                    '#36A2EB',
+                    '#FFCE56'
+                ],
+                borderColor: [
+                    '#4BC0C0',
+                    '#36A2EB',
+                    '#FFCE56'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Cantidad de Tarimas'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Producción por Área'
+                }
+            }
+        }
+    });
+}
+
+
+function exportarReporte(formato) {
+    const tabla = document.querySelector('#contenidoReporte table');
+    const chart = miGrafico;
+    const tipo = reporteActual;
+
+    if (!tabla) {
+        alert('No hay datos para exportar. Por favor, genera un reporte primero.');
+        return;
+    }
+
+    const nombreArchivo = `${tipo}_${document.getElementById('fechaReporte').value}`;
+
+    if (formato === 'excel') {
+        const data = XLSX.utils.table_to_sheet(tabla);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, data, 'Reporte');
+        XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+    } else if (formato === 'pdf') {
+        exportarAPdf(tabla, chart, nombreArchivo);
+    } else if (formato === 'csv') {
+        exportarACsv(tabla, nombreArchivo);
+    }
+}
+
+function exportarACsv(tabla, nombreReporte) {
+    let csv = [];
+    const filas = tabla.querySelectorAll('tr');
+
+    for (const fila of filas) {
+        let filaDatos = [];
+        const celdas = fila.querySelectorAll('th, td');
+        for (const celda of celdas) {
+            filaDatos.push(`"${celda.textContent.trim().replace(/"/g, '""')}"`); // Escapar comillas dobles
+        }
+        csv.push(filaDatos.join(','));
+    }
+
+    const csvFinal = csv.join('\n');
+    const blob = new Blob([csvFinal], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${nombreReporte}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportarAPdf(tabla, chart, nombreArchivo) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'letter');
+    const margin = 20;
+    let y = margin;
+    let pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+    let pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+
+    // Título del reporte
+    doc.setFontSize(22);
+    doc.text(`Reporte de ${reporteActual.toUpperCase()}`, pageWidth / 2, y, { align: 'center' });
+    y += 30;
+
+    // Agregar la fecha
+    doc.setFontSize(12);
+    doc.text(`Fecha: ${document.getElementById('fechaReporte').value}`, margin, y);
+    y += 20;
+
+    // Agregar resumen si existe
+    const resumenDiv = document.querySelector('#contenidoReporte .resumen-datos');
+    if (resumenDiv) {
+        const resumenText = Array.from(resumenDiv.children).map(dato => {
+            const etiqueta = dato.querySelector('.etiqueta').textContent;
+            const valor = dato.querySelector('.valor').textContent;
+            return `${etiqueta}: ${valor}`;
+        }).join('  |  ');
+        doc.text(resumenText, margin, y);
+        y += 30;
+    }
+
+    // Agregar gráfica como imagen
+    if (chart) {
+        const chartDataURL = chart.toBase64Image();
+        const imgWidth = 500;
+        const imgHeight = 250;
+        const imgX = (pageWidth - imgWidth) / 2;
+
+        if (y + imgHeight + 30 > pageHeight) {
+            doc.addPage();
+            y = margin;
+        }
+
+        doc.addImage(chartDataURL, 'PNG', imgX, y, imgWidth, imgHeight);
+        y += imgHeight + 30;
+    }
+
+    // Agregar tabla
+    const tableHeaders = Array.from(tabla.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    const tableData = Array.from(tabla.querySelectorAll('tbody tr')).map(tr =>
+        Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
+    );
+
+    const startY = y;
+    doc.autoTable({
+        startY: startY,
+        head: [tableHeaders],
+        body: tableData,
+        theme: 'striped',
+        styles: { fontSize: 8, cellPadding: 5 },
+        columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 50 },
+            3: { cellWidth: 60 },
+            4: { cellWidth: 60 },
+            5: { cellWidth: 70 },
+            6: { cellWidth: 70 },
+            7: { cellWidth: 70 },
+            8: { cellWidth: 70 },
+            9: { cellWidth: 70 },
+        },
+        margin: { top: y, left: margin, right: margin, bottom: margin }
+    });
+
+    doc.save(`${nombreArchivo}.pdf`);
+}
+
+// ================= ARRANQUE Y MANEJO DE MODALES =================
+window.addEventListener('load', ()=>{
+    firebase.auth().signInAnonymously().catch(err => {
+        console.error('Auth error:', err);
+    });
+    
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            iniciarListenersFirebase(); 
+            activarPantalla('pantalla1');
+        } else {
+            // Manejar el caso de no autenticación si es necesario
+        }
+    });
+    
+    const modalCalidad = document.getElementById('modalCalidad');
+    modalCalidad.querySelector('.cerrar-btn').addEventListener('click', () => {
+        modalCalidad.classList.remove('visible');
+    });
+
+    modalCalidad.querySelectorAll('.opcion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const nuevoColor = btn.dataset.color;
+            if (nuevoColor === 'rojo') {
+                mostrarFormularioRechazo();
+            } else {
+                aplicarEstadoCalidad(nuevoColor);
+                modalCalidad.classList.remove('visible');
+            }
+        });
+    });
+
+    const modalRechazo = document.getElementById('modalRechazo');
+    modalRechazo.querySelector('#formularioRechazo').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const formulario = e.target;
+        const datos = {
+            empleado: formulario.empleado.value,
+            linea: formulario.linea.value,
+            parte: formulario.parte.value,
+            descripcionParte: formulario.descripcionParte.value,
+            problema: formulario.problema.value,
+            causa: formulario.causa.value,
+            accion: formulario.accion.value,
+        };
+        
+        guardarRechazo(datos);
+        formulario.reset();
+    });
+
+    const selectoresReportes = document.getElementById('selectoresReportes');
+    selectoresReportes.querySelectorAll('.usuario-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tipoReporte = btn.dataset.reporte;
+            mostrarReporte(tipoReporte);
+        });
+    });
+
+    if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(reg => {
                 console.log("✅ Service Worker registrado:", reg);
@@ -1107,6 +3426,6 @@
             });
     }
 });
-  </script>
+</script>
 </body>
 </html>
