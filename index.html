@@ -843,10 +843,11 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
-      <div <div class="tarimas-recibidas-panel" id="tarimasRecibidasPanel">
-  <h3>Tarimas recibidas de Calidad</h3>
-  <ul id="listaTarimasRecibidas"></ul>
-        ="tiempos" data-grupo="MULTIPORT"></div>
+      <div class="tarimas-recibidas-panel" id="tarimasRecibidasPanel">
+       <h3>Tarimas recibidas de Calidad</h3>
+       <ul id="listaTarimasRecibidas"></ul>
+      </div>
+       <div class="tiempos" data-grupo="MULTIPORT"></div>
     </div>
 
     <div class="grupo" data-grupo="DROPS">
@@ -1385,7 +1386,10 @@ function cerrarModal(btn) {
     btn.closest('.modal-calidad').remove();
 }
   
-  function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
+ // ==========================
+// MODAL DE PRODUCCIÓN
+// ==========================
+function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
     const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
     recibidasRef.once('value', snapshot => {
         const recibidas = snapshot.val() || {};
@@ -1418,7 +1422,38 @@ function cerrarModal(btn) {
     });
 }
 
+function asignarTarimaProduccion(grupo, idx, linea) {
+    const select = document.getElementById('tarimaSelect');
+    const key = select.value;
 
+    const recibidasRef = db.ref('tarimasRecibidas/' + grupo + '/' + key);
+    recibidasRef.once('value', snapshot => {
+        const tarima = snapshot.val();
+        if (!tarima) return alert("Tarima no encontrada.");
+
+        const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
+        ledRef.set({
+            encendido: true,
+            usuario: usuarioSeleccionado,
+            horaEncendido: new Date().toISOString(),
+            tarimaId: tarima.tarimaId
+        });
+
+        // Eliminar de lista de recibidas
+        recibidasRef.remove();
+
+        historialRef.push({
+            usuario: usuarioSeleccionado,
+            grupo: grupo,
+            led: `${linea}-${idx+1}`,
+            accion: 'asignada_en_produccion',
+            tarimaId: tarima.tarimaId,
+            timestamp: new Date().toISOString()
+        });
+
+        cerrarModal(document.querySelector('.modal-produccion button'));
+    });
+}
   function renderTarimasRecibidas(grupo) {
     const panel = document.getElementById('listaTarimasRecibidas');
     if (!panel) return;
@@ -1437,38 +1472,7 @@ function cerrarModal(btn) {
         });
     });
 }
-  function asignarTarimaProduccion(grupo, idx, linea) {
-    const select = document.getElementById('tarimaSelect');
-    const key = select.value;
 
-    const recibidasRef = db.ref('tarimasRecibidas/' + grupo + '/' + key);
-    recibidasRef.once('value', snapshot => {
-        const tarima = snapshot.val();
-        if (!tarima) return alert("Tarima no encontrada.");
-
-        const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
-        ledRef.set({
-            encendido: true,
-            usuario: usuarioSeleccionado,
-            horaEncendido: new Date().toISOString(),
-            tarimaId: tarima.tarimaId
-        });
-
-        // eliminar de lista de recibidas
-        recibidasRef.remove();
-
-        historialRef.push({
-            usuario: usuarioSeleccionado,
-            grupo: grupo,
-            led: `${linea}-${idx+1}`,
-            accion: 'asignada_en_produccion',
-            tarimaId: tarima.tarimaId,
-            timestamp: new Date().toISOString()
-        });
-
-        cerrarModal(document.querySelector('.modal-produccion button'));
-    });
-}
   // =======================================================
 //  ✅ VALIDACIÓN DE ACCIONES SOBRE LEDs
 //  - Solo permite encender/apagar si hay tarima asignada.
@@ -1851,8 +1855,32 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 
 // ================= LÓGICA DE CALIDAD MODAL =================
 function mostrarOpcionesCalidad(grupo, idx, linea) {
-    ledActivoParaFormulario = { grupo, idx, linea };
-    document.getElementById('modalCalidad').classList.add('visible');
+    const modal = document.createElement('div');
+    modal.className = 'modal-calidad';
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Asignar resultado de inspección</h3>
+            <p><b>Grupo:</b> ${grupo}</p>
+            <label for="ledSelector">Asignar LED:</label>
+            <select id="ledSelector">
+                ${[...Array(CONFIG.LEDS_POR_GRUPO[grupo.replace('CALIDAD_', '')] || 5).keys()]
+                    .map(i => `<option value="${linea}-${i+1}">${linea}-${i+1}</option>`)
+                    .join('')}
+            </select>
+            <div class="botones">
+                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'naranja')">Naranja</button>
+                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'rojo')">Rojo</button>
+                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'verde')">Verde</button>
+                <button onclick="cerrarModal(this)">Cancelar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function cerrarModal(btn) {
+    btn.closest('.modal-calidad, .modal-produccion').remove();
 }
 
 function aplicarEstadoCalidad(nuevoColor) {
@@ -1943,12 +1971,12 @@ function seleccionarUsuario(usuario) {
     if (usuario === 'SUPERVISOR') {
         const password = prompt('Introduce la contraseña para SUPERVISOR:');
         if (password === CONFIG.PASSWORDS['SUPERVISOR']) {
-             usuarioSeleccionado = usuario;
+            usuarioSeleccionado = usuario;
             document.getElementById('tituloFijo').textContent = 'SUPERVISOR';
             activarPantalla('pantalla2');
             inyectaLEDs();
             pintarEstado();
-            iniciarListenersFirebase(); 
+            iniciarListenersFirebase();
             alert(`¡Bienvenido, ${usuario}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -1956,7 +1984,7 @@ function seleccionarUsuario(usuario) {
     } else if (usuario === 'CALIDAD') {
         const password = prompt('Introduce la contraseña para CALIDAD:');
         let subusuario = null;
-        
+
         if (password === CONFIG.PASSWORDS['CALIDAD_MULTIPORT']) {
             subusuario = 'CALIDAD_MULTIPORT';
         } else if (password === CONFIG.PASSWORDS['CALIDAD_DROPS']) {
@@ -1989,6 +2017,12 @@ function seleccionarUsuario(usuario) {
             inyectaLEDs();
             pintarEstado();
             iniciarListenersFirebase();
+
+            // ✅ Producción carga tarimas recibidas
+            if (esUsuarioProduccion()) {
+                renderTarimasRecibidas(usuarioSeleccionado);
+            }
+
             alert(`¡Bienvenido, ${usuario}!`);
         } else {
             alert('Contraseña incorrecta. Inténtalo de nuevo.');
