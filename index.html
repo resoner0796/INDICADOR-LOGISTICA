@@ -1440,31 +1440,21 @@ function asignarLedATarima(ledId, tarimaId) {
 let ledProduccionSeleccionado = {};
   
   function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
-    // Usamos la misma variable y lógica de validación que en togglearLED
     const usuarioActual = usuarioSeleccionado || '';
-
-    // Validamos usando la lista de usuarios, igual que en togglearLED
     if (usuarioActual !== 'MULTIPORT' && usuarioActual !== 'DROPS' && usuarioActual !== 'BEDROCK') {
         alert('No tienes permiso para realizar esta acción.');
         return;
     }
-
     const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual);
     recibidasRef.once('value', snapshot => {
         const recibidas = snapshot.val() || {};
         const keys = Object.keys(recibidas);
-
         if (keys.length === 0) {
             return alert("No hay tarimas recibidas de Calidad para asignar.");
         }
-        
-        // Guardamos el contexto del LED que se tocó
         ledProduccionSeleccionado = { grupo, idx, linea };
-
-        // Abrimos y poblamos el modal preexistente
         const modal = document.getElementById('modalAsignarTarimaProduccion');
         const selectTarima = modal.querySelector('#selectTarimaProduccion');
-
         selectTarima.innerHTML = '';
         keys.forEach(k => {
             const t = recibidas[k];
@@ -1473,7 +1463,6 @@ let ledProduccionSeleccionado = {};
             option.textContent = `${t.tarimaId} (de ${t.ledOrigen})`;
             selectTarima.appendChild(option);
         });
-
         modal.classList.add('visible');
     });
 }
@@ -1487,11 +1476,7 @@ function asignarTarimaProduccion() {
         alert('Debes seleccionar una tarima.');
         return;
     }
-    
-    // Obtenemos los datos del LED que guardamos al abrir el modal
     const { grupo, idx, linea } = ledProduccionSeleccionado;
-
-    // AQUI ESTÁ EL CAMBIO CLAVE: Usamos usuarioSeleccionado
     const usuarioActual = usuarioSeleccionado || '';
 
     const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual + '/' + tarimaKey);
@@ -1499,20 +1484,17 @@ function asignarTarimaProduccion() {
         const tarima = snapshot.val();
         if (!tarima) return alert("Tarima no encontrada o ya ha sido asignada.");
 
-        // Asignar tarima al LED de Producción
         const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
         ledRef.set({
             encendido: true,
             usuario: usuarioActual,
             horaEncendido: new Date().toISOString(),
             tarimaId: tarima.tarimaId,
-            color: 'blanco' // O el color que desees para el estado "en uso" en Producción
+            color: 'blanco'
         });
 
-        // Eliminar la tarima de la lista de recibidas
         recibidasRef.remove();
 
-        // Registrar en el historial
         db.ref('historial').push({
             usuario: usuarioActual,
             grupo: grupo,
@@ -1895,13 +1877,10 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             if (!estadoActual.tarimaId) {
                 return alert('Este LED no tiene ninguna tarima asignada.');
             }
-
             const color = estadoActual.color || 'naranja';
-
             if (color === 'verde') {
                 return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
             }
-
             if (color === 'naranja' || color === 'rojo') {
                 abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
                 return;
@@ -1915,16 +1894,13 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         ) {
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
                 if (!confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`)) return;
-
                 const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual);
                 recibidasRef.push({
                     tarimaId: estadoActual.tarimaId,
                     recibidoEn: new Date().toISOString(),
                     ledOrigen: ledPath
                 });
-
                 ledRef.set(null);
-
                 db.ref('historial').push({
                     usuario: usuarioActual,
                     grupo: grupo,
@@ -1944,9 +1920,6 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             && grupo === usuarioActual
         ) {
             if (!estadoActual.encendido && !estadoActual.tarimaId) {
-                // 👉 AQUI ESTÁ EL CAMBIO CLAVE
-                // En lugar de usar el modal con un select, usamos la lógica para poblar el modal que ya tienes
-                // Y con el flujo que ya unificamos.
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
                 alert('Este LED ya tiene una tarima asignada.');
@@ -1957,9 +1930,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         else if (usuarioActual === 'LOGÍSTICA') {
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`)) return;
-
                 ledRef.set(null);
-
                 db.ref('historial').push({
                     usuario: usuarioActual,
                     grupo: grupo,
