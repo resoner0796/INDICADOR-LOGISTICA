@@ -1402,25 +1402,22 @@ function renderTarimaEncontrada(tarima) {
 
 // Carga todos los LEDs disponibles directamente en el dropdown del panel.
 function cargarLedsDisponibles() {
-    const sel = MT.ui.asignacion.select;
-    sel.innerHTML = ''; // Limpia las opciones anteriores.
+  const sel = MT.ui.asignacion.select;
+  sel.innerHTML = ''; // Limpia las opciones anteriores.
 
-    // Asumimos que el usuario de calidad pertenece a un grupo, por ejemplo 'CALIDAD_MULTIPORT'.
-    // Puedes obtener el nombre del grupo de calidad dinámicamente si es necesario.
-    const grupo = 'CALIDAD_MULTIPORT';
-    const linea = 'linea1';
+  // Asumimos que el usuario de calidad pertenece a un grupo, por ejemplo 'CALIDAD_MULTIPORT'.
+  const grupo = 'CALIDAD_MULTIPORT';
+  const linea = 'linea1';
 
-    // Generamos la lista de LEDs de forma dinámica (ej. linea1-1, linea1-2, etc.).
-    // Esto evita leer nombres incorrectos de la base de datos.
-    const totalLeds = 5; // Reemplaza esto con una variable de configuración si la tienes (ej. CONFIG.LEDS_POR_GRUPO[grupo]).
-    for (let i = 0; i < totalLeds; i++) {
-        const opt = document.createElement('option');
-        opt.value = `${linea}-${i+1}`;
-        opt.textContent = `${linea}-${i+1}`;
-        sel.appendChild(opt);
-    }
+  // Generamos la lista de LEDs de forma dinámica (ej. linea1-1, linea1-2, etc.).
+  const totalLeds = 5; // Asegúrate de que este número sea el correcto.
+  for (let i = 0; i < totalLeds; i++) {
+    const opt = document.createElement('option');
+    opt.value = `${linea}-${i+1}`;
+    opt.textContent = `${linea}-${i+1}`;
+    sel.appendChild(opt);
+  }
 }
-
 
 // Escribe el vínculo LED ↔ Tarima en /ledsAsignados/{ledId}
 function asignarLedATarima(ledId, tarimaId) {
@@ -1437,35 +1434,6 @@ function asignarLedATarima(ledId, tarimaId) {
   });
 }
 
-  function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
-    const modal = document.getElementById('modalOpcionesCalidad');
-    const select = modal.querySelector('#selectLedCalidad');
-    select.innerHTML = ''; // limpia opciones anteriores
-
-    // ==============================
-    // Generamos lista de LEDs (ej. linea1-1, linea1-2, etc.)
-    // ==============================
-    const totalLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 5; // por default 5
-    for (let i = 0; i < totalLeds; i++) {
-        const opt = document.createElement('option');
-        opt.value = `${linea}-${i+1}`;
-        opt.textContent = `${linea}-${i+1}`;
-        if (i === idx) opt.selected = true;
-        select.appendChild(opt);
-    }
-
-    // Guardamos contexto para cuando se confirme
-    select.dataset.grupo = grupo;
-    select.dataset.linea = linea;
-    select.dataset.idx = idx;
-
-    modal.style.display = 'block';
-}
-  
-function cerrarModal(btn) {
-    btn.closest('.modal-calidad').remove();
-}
-  
  // ==========================
 // MODAL DE PRODUCCIÓN
 // ==========================
@@ -1534,23 +1502,38 @@ function asignarTarimaProduccion(grupo, idx, linea) {
         cerrarModal(document.querySelector('.modal-produccion button'));
     });
 }
-  function renderTarimasRecibidas(grupo) {
-    const panel = document.getElementById('listaTarimasRecibidas');
-    if (!panel) return;
-  if (esUsuarioProduccion()) {
-    renderTarimasRecibidas(usuarioSeleccionado);
-    }
-  const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
-    recibidasRef.on('value', snapshot => {
-        const recibidas = snapshot.val() || {};
-        panel.innerHTML = '';
+  function renderTarimaEncontrada(tarima) {
+  // Rellena campos
+  MT.ui.fields.id.textContent = tarima.id;
+  MT.ui.fields.empleado.textContent = tarima.empleadoId;
+  MT.ui.fields.turno.textContent = tarima.turno;
+  MT.ui.fields.totalCajas.textContent = tarima.totalCajas;
+  MT.ui.fields.totalPiezas.textContent = tarima.totalPiezas;
 
-        Object.values(recibidas).forEach(t => {
-            const li = document.createElement('li');
-            li.textContent = `${t.tarimaId} (origen: ${t.ledOrigen})`;
-            panel.appendChild(li);
-        });
-    });
+  // Lista de cajas
+  MT.ui.fields.listaCajas.innerHTML = '';
+  tarima.cajas.forEach(c => {
+    const li = document.createElement('li');
+    li.textContent = `${c.codigoCaja}  |  ${c.cantidadPiezas} pz`;
+    MT.ui.fields.listaCajas.appendChild(li);
+  });
+
+  // Si el usuario es CALIDAD_* → mostrar asignación de LED
+  const isCalidad = (window.__usuarioActual || '').startsWith('CALIDAD');
+  MT.ui.asignacion.wrap.style.display = isCalidad ? 'block' : 'none';
+
+  if (isCalidad) {
+    // 💡 Llama a la función que ahora genera los LEDs en el panel.
+    cargarLedsDisponibles();
+    // 💡 Asegura que el botón de asignar del panel tenga la lógica de asignación.
+    MT.ui.asignacion.btn.onclick = () => {
+      const ledId = MT.ui.asignacion.select.value;
+      if (!ledId) return;
+      asignarLedATarima(ledId, tarima.id);
+    };
+  }
+
+  MT.ui.infoBox.style.display = 'block';
 }
 
   // =======================================================
