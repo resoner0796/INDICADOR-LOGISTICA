@@ -1873,12 +1873,12 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         const estadoActual = snapshot.val() || {};
 
         // --- LÓGICA DE CALIDAD ---
-        if (usuarioActual.startsWith('CALIDAD_') && grupo.startsWith('CALIDAD_')) {
+        if (usuarioActual.startsWith('CALIDAD_')) {
             if (estadoActual.color === 'verde') {
                 return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
             }
             if (estadoActual.color === 'naranja') {
-                // 💡 CAMBIO CLAVE: Usamos el modal en lugar de confirm()
+                // Abre el modal para cambiar el estado.
                 abrirModalCalidad(grupo, idx, linea);
             } else {
                 alert('La tarima debe estar en revisión (naranja) para cambiar su estado.');
