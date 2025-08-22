@@ -226,47 +226,23 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   }
 }
 /* ================= CSS DEL MODAL DE CALIDAD ================= */
-.modal-calidad {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(10, 10, 10, 0.85);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-.modal-calidad.visible {
-  visibility: visible;
-  opacity: 1;
-}
-.modal-content {
-  background-color: #1c1c1c;
+#modalCalidad .modal-content,
+#modalRechazo .modal-content {
+  background-color: #1c1c1c !important;
+  color: #eee !important;
   padding: 25px 35px;
   border-radius: 12px;
   text-align: center;
   max-width: 450px;
   width: 90%;
-  color: #eee;
   box-shadow: 0 8px 20px rgba(0,0,0,0.6);
 }
-.modal-content h3 {
-  font-size: 20px;
-  margin-bottom: 20px;
-  color: #f0f0f0;
+#modalCalidad h3,
+#modalRechazo h3 {
+  color: #f0f0f0 !important;
 }
-.opciones {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.opcion-btn {
+#modalCalidad .opcion-btn,
+#modalRechazo .opcion-btn {
   padding: 12px 20px;
   font-size: 16px;
   font-weight: bold;
@@ -275,23 +251,10 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   cursor: pointer;
   transition: transform 0.15s ease;
 }
-.opcion-btn[data-color="rojo"] { background: #d32f2f; color: #fff; }
-.opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
-.opcion-btn[data-color="rojo"]:hover,
-.opcion-btn[data-color="verde"]:hover {
-  transform: scale(1.05);
-}
-.cerrar-btn {
-  background-color: #444;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.cerrar-btn:hover {
-  background-color: #666;
-}
+#modalCalidad .opcion-btn[data-color="rojo"] { background: #d32f2f; color: #fff; }
+#modalCalidad .opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
+#modalCalidad .opcion-btn:hover { transform: scale(1.05); }
+
 
 /* Nuevo CSS para el formulario de rechazo */
 #modalRechazo .modal-content {
@@ -713,6 +676,10 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 
       <h4>Detalle de cajas (BX | piezas)</h4>
       <ul id="listaCajas" class="mt-list"></ul>
+ <div id="tarimasPendientesPanel">
+  <h3>Tarimas pendientes por inspección</h3>
+  <ul id="listaTarimasPendientes"></ul>
+</div>
 
       <!-- Solo para CALIDAD: asignación de LED -->
       <div id="ledAssignment" class="mt-assign" style="display:none;">
@@ -1430,10 +1397,39 @@ function cargarLedsDisponibles() {
         }
     });
 }
+  
+function renderTarimasPendientes() {
+    const lista = document.getElementById('listaTarimasPendientes');
+    lista.innerHTML = '';
+
+    db.ref('tarimas').once('value').then(snap => {
+        const tarimas = snap.val() || {};
+
+        db.ref('tarimasAsignadas').once('value').then(snap2 => {
+            const asignadas = snap2.val() || {};
+            const usadas = Object.keys(asignadas);
+
+            Object.values(tarimas).forEach(t => {
+                if (!usadas.includes(t.id)) {
+                    const li = document.createElement('li');
+                    li.textContent = `#${t.id}`;
+                    li.style.cursor = "pointer";
+                    li.onclick = () => renderTarimaEncontrada(t);
+                    lista.appendChild(li);
+                }
+            });
+        });
+    });
+}
+
+// 🔥 refrescar en tiempo real
+db.ref('tarimas').on('value', renderTarimasPendientes);
+db.ref('tarimasAsignadas').on('value', renderTarimasPendientes);
 
 
 // Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
 // Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
+  
 function asignarLedATarima(ledId, tarimaId) {
     // 💡 Paso 1: Verificar si la tarima ya está asignada en algún otro lugar
     database.ref('tarimasAsignadas/' + tarimaId).once('value').then(snap => {
@@ -1983,62 +1979,64 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 function actualizarEstadoLED(nuevoColor) {
     if (!ledSeleccionado.grupo) return;
 
-    const { grupo, idx, linea, tarimaId } = ledSeleccionado;
+    const { grupo, idx, linea } = ledSeleccionado;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
 
-    ledRef.update({
-        color: nuevoColor,
-        timestamp: new Date().toISOString()
+    ledRef.once('value').then(snap => {
+        const estado = snap.val() || {};
+        const tarimaId = estado.tarimaId || "N/D";
+
+        // Actualizar color
+        ledRef.update({
+            color: nuevoColor,
+            timestamp: new Date().toISOString()
+        });
+
+        // Registrar historial
+        db.ref('historial').push({
+            usuario: usuarioSeleccionado,
+            grupo,
+            led: `${linea}-${idx+1}`,
+            accion: nuevoColor === 'verde' ? 'liberada' : 'otro',
+            tarimaId,
+            timestamp: new Date().toISOString()
+        });
+
+        // 🔥 Incrementar contador
+        if (nuevoColor === 'verde') {
+            db.ref('contadores/calidad/liberadas').transaction(val => (val || 0) + 1);
+        }
+
+        cerrarModalCalidad();
     });
-
-    // Registrar en historial
-    db.ref('historial').push({
-        usuario: usuarioSeleccionado,
-        grupo,
-        led: `${linea}-${idx+1}`,
-        accion: nuevoColor === 'verde' ? 'liberada' : 'otro',
-        tarimaId,
-        timestamp: new Date().toISOString()
-    });
-
-    // 🔥 Incrementar contador
-    if (nuevoColor === 'verde') {
-        db.ref('contadores/calidad/liberadas').transaction(val => (val || 0) + 1);
-    }
-
-    cerrarModalCalidad();
 }
 
   let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
 
-function abrirModalCalidad(grupo, idx, linea, tarimaId) {
+function abrirModalCalidad(grupo, idx, linea) {
+    ledSeleccionado = { grupo, idx, linea };
+
     const modal = document.getElementById('modalCalidad');
     modal.classList.add('visible');
 
-    // Guardamos el LED seleccionado
-    ledSeleccionado = { grupo, idx, linea, tarimaId };
-
-    // Asignar acciones a los botones
     modal.querySelectorAll('.opcion-btn').forEach(btn => {
         btn.onclick = () => {
             const color = btn.dataset.color;
             if (color === 'rojo') {
-                // Mostrar formulario de rechazo
-                cerrarModalCalidad();
+                modal.classList.remove('visible');
                 document.getElementById('modalRechazo').classList.add('visible');
-                document.getElementById('formularioRechazo').onsubmit = e => {
-                    e.preventDefault();
-                    guardarRechazo();
-                };
             } else {
                 actualizarEstadoLED(color);
+                modal.classList.remove('visible'); // 🔥 cerrar inmediatamente
             }
         };
     });
 
-    // Botón cerrar
-    modal.querySelector('.cerrar-btn').onclick = cerrarModalCalidad;
+    modal.querySelector('.cerrar-btn').onclick = () => {
+        modal.classList.remove('visible');
+    };
 }
+
 
 function cerrarModalCalidad() {
     document.getElementById('modalCalidad').classList.remove('visible');
@@ -2190,45 +2188,49 @@ function mostrarFormularioRechazo() {
 function guardarRechazo() {
     if (!ledSeleccionado.grupo) return;
 
-    const { grupo, idx, linea, tarimaId } = ledSeleccionado;
+    const { grupo, idx, linea } = ledSeleccionado;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
 
-    const form = document.getElementById('formularioRechazo');
-    const data = {
-        empleado: form.empleado.value,
-        linea: form.linea.value,
-        parte: form.parte.value,
-        descripcionParte: form.descripcionParte.value,
-        problema: form.problema.value,
-        causa: form.causa.value,
-        accion: form.accion.value,
-        timestamp: new Date().toISOString()
-    };
+    ledRef.once('value').then(snap => {
+        const estado = snap.val() || {};
+        const tarimaId = estado.tarimaId || "N/D";
 
-    ledRef.update({
-        color: 'rojo',
-        tarimaId,
-        rechazo: data,
-        usuario: usuarioSeleccionado
+        const form = document.getElementById('formularioRechazo');
+        const data = {
+            empleado: form.empleado.value,
+            linea: form.linea.value,
+            parte: form.parte.value,
+            descripcionParte: form.descripcionParte.value,
+            problema: form.problema.value,
+            causa: form.causa.value,
+            accion: form.accion.value,
+            timestamp: new Date().toISOString()
+        };
+
+        ledRef.update({
+            color: 'rojo',
+            tarimaId,
+            rechazo: data,
+            usuario: usuarioSeleccionado
+        });
+
+        db.ref('historial').push({
+            usuario: usuarioSeleccionado,
+            grupo,
+            led: `${linea}-${idx+1}`,
+            accion: 'rechazada',
+            tarimaId,
+            timestamp: new Date().toISOString(),
+            detalles: data
+        });
+
+        // 🔥 Incrementar contador
+        db.ref('contadores/calidad/rechazadas').transaction(val => (val || 0) + 1);
+
+        alert(`❌ Tarima ${tarimaId} rechazada.`);
+        cerrarModalCalidad();
     });
-
-    db.ref('historial').push({
-        usuario: usuarioSeleccionado,
-        grupo,
-        led: `${linea}-${idx+1}`,
-        accion: 'rechazada',
-        tarimaId,
-        timestamp: new Date().toISOString(),
-        detalles: data
-    });
-
-    // 🔥 Incrementar contador
-    db.ref('contadores/calidad/rechazadas').transaction(val => (val || 0) + 1);
-
-    alert(`❌ Tarima ${tarimaId} rechazada.`);
-    cerrarModalCalidad();
 }
-
 
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function activarPantalla(id){
