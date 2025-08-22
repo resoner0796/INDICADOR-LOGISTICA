@@ -232,63 +232,67 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(10, 10, 10, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   visibility: hidden;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 .modal-calidad.visible {
   visibility: visible;
   opacity: 1;
 }
 .modal-content {
-  background-color: #222;
-  padding: 30px;
-  border-radius: 10px;
+  background-color: #1c1c1c;
+  padding: 25px 35px;
+  border-radius: 12px;
   text-align: center;
-  max-width: 90%;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  max-width: 450px;
+  width: 90%;
+  color: #eee;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
 }
 .modal-content h3 {
-  margin-top: 0;
-  font-size: 24px;
+  font-size: 20px;
   margin-bottom: 20px;
+  color: #f0f0f0;
 }
 .opciones {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 .opcion-btn {
-  padding: 15px 25px;
-  font-size: 18px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.15s ease;
 }
-.opcion-btn[data-color="naranja"] { background-color: #ff9800; color: #fff; }
-.opcion-btn[data-color="rojo"] { background-color: #f44336; color: #fff; }
-.opcion-btn[data-color="verde"] { background-color: #4caf50; color: #fff; }
-.opcion-btn:hover {
-  filter: brightness(1.2);
+.opcion-btn[data-color="rojo"] { background: #d32f2f; color: #fff; }
+.opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
+.opcion-btn[data-color="rojo"]:hover,
+.opcion-btn[data-color="verde"]:hover {
+  transform: scale(1.05);
 }
 .cerrar-btn {
-  background-color: #555;
+  background-color: #444;
   color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 5px;
   cursor: pointer;
 }
 .cerrar-btn:hover {
-  background-color: #777;
+  background-color: #666;
 }
+
 /* Nuevo CSS para el formulario de rechazo */
 #modalRechazo .modal-content {
   text-align: left;
@@ -1401,23 +1405,23 @@ function renderTarimaEncontrada(tarima) {
 
 // Carga todos los LEDs disponibles directamente en el dropdown del panel.
 // Carga todos los LEDs disponibles directamente en el dropdown del panel.
+  
 function cargarLedsDisponibles() {
     const sel = MT.ui.asignacion.select;
     sel.innerHTML = '';
 
-    // 💡 Paso 1: Obtener la lista de tarimas ya asignadas
-    database.ref('tarimasAsignadas').once('value').then(snap => {
-        const asignados = snap.val() || {};
-        const ledsAsignados = Object.values(asignados).map(val => val.ledId);
-
-        const grupo = 'CALIDAD_MULTIPORT';
-        const linea = 'linea1';
-        const totalLeds = 5; // Asegúrate de que este número sea el correcto.
+    // Escuchar en tiempo real los LEDs asignados
+    db.ref('estadoLEDs/CALIDAD_MULTIPORT/linea1').on('value', snap => {
+        sel.innerHTML = ''; // limpiar cada vez
+        const ledsEstado = snap.val() || {};
+        const totalLeds = 5; // ajusta según corresponda
 
         for (let i = 0; i < totalLeds; i++) {
-            const ledId = `${linea}-${i+1}`;
-            // 💡 Paso 2: Solo agrega el LED si no está en la lista de asignados
-            if (!ledsAsignados.includes(ledId)) {
+            const estado = ledsEstado[i] || {};
+            const ledId = `linea1-${i+1}`;
+
+            // Solo mostrar los disponibles (sin tarimaId asignada)
+            if (!estado.tarimaId) {
                 const opt = document.createElement('option');
                 opt.value = ledId;
                 opt.textContent = ledId;
@@ -1426,6 +1430,7 @@ function cargarLedsDisponibles() {
         }
     });
 }
+
 
 // Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
 // Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
@@ -1976,15 +1981,31 @@ function togglearLED(grupo, idx, linea = 'linea1') {
 }
   
 function actualizarEstadoLED(nuevoColor) {
-    if (!ledSeleccionado.grupo) {
-        return;
-    }
-    const { grupo, idx, linea } = ledSeleccionado;
+    if (!ledSeleccionado.grupo) return;
+
+    const { grupo, idx, linea, tarimaId } = ledSeleccionado;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+
     ledRef.update({
         color: nuevoColor,
         timestamp: new Date().toISOString()
     });
+
+    // Registrar en historial
+    db.ref('historial').push({
+        usuario: usuarioSeleccionado,
+        grupo,
+        led: `${linea}-${idx+1}`,
+        accion: nuevoColor === 'verde' ? 'liberada' : 'otro',
+        tarimaId,
+        timestamp: new Date().toISOString()
+    });
+
+    // 🔥 Incrementar contador
+    if (nuevoColor === 'verde') {
+        db.ref('contadores/calidad/liberadas').transaction(val => (val || 0) + 1);
+    }
+
     cerrarModalCalidad();
 }
 
@@ -2172,7 +2193,6 @@ function guardarRechazo() {
     const { grupo, idx, linea, tarimaId } = ledSeleccionado;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
 
-    // Tomamos datos del form
     const form = document.getElementById('formularioRechazo');
     const data = {
         empleado: form.empleado.value,
@@ -2187,7 +2207,7 @@ function guardarRechazo() {
 
     ledRef.update({
         color: 'rojo',
-        tarimaId: tarimaId,
+        tarimaId,
         rechazo: data,
         usuario: usuarioSeleccionado
     });
@@ -2202,9 +2222,13 @@ function guardarRechazo() {
         detalles: data
     });
 
+    // 🔥 Incrementar contador
+    db.ref('contadores/calidad/rechazadas').transaction(val => (val || 0) + 1);
+
     alert(`❌ Tarima ${tarimaId} rechazada.`);
     cerrarModalCalidad();
 }
+
 
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function activarPantalla(id){
