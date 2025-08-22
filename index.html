@@ -1864,15 +1864,35 @@ function puedeControlar(grupo){
     return grupoBaseUsuario === grupoBaseLed;
 }
     
-// Variable global para mantener el contexto del LED que se está tocando
-let ledSeleccionado = {};
+// Este bloque de código maneja los clics en los LEDs y se asegura de que el usuario actual se pase a la función.
+document.querySelectorAll('.leds .led').forEach(led => {
+    led.addEventListener('click', () => {
+        const grupo = led.parentElement.dataset.grupo;
+        const index = Array.from(led.parentElement.children).indexOf(led);
+        const linea = led.parentElement.dataset.linea;
 
-function togglearLED(grupo, idx, linea, usuarioActual) {
+        // Aquí capturamos el usuario actual y lo pasamos directamente a la función.
+        const usuarioActual = window.__usuarioActual;
+
+        togglearLED(grupo, index, linea, usuarioActual);
+    });
+});
+
+// A continuación está la versión más reciente y corregida de togglearLED().
+// Esta función ahora recibe el usuario como un parámetro, asegurando que siempre tenga un valor.
+function togglearLED(grupo, idx, linea = 'linea1', usuarioActual) {
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
     const ledPath = `${linea}-${idx+1}`;
 
     ledRef.once('value', snapshot => {
         const estadoActual = snapshot.val() || {};
+
+        // Verificamos si el usuarioActual está definido. Si no, no hacemos nada.
+        if (!usuarioActual) {
+            console.error('Error: El usuario actual no está definido.');
+            alert('No se pudo verificar tu permiso. Por favor, reinicia la página.');
+            return;
+        }
 
         // --- LÓGICA DE CALIDAD ---
         if (usuarioActual.startsWith('CALIDAD_') && grupo.startsWith('CALIDAD_')) {
@@ -1880,14 +1900,16 @@ function togglearLED(grupo, idx, linea, usuarioActual) {
                 return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
             }
             if (estadoActual.color === 'naranja') {
+                // Abre el modal para cambiar el estado.
                 abrirModalCalidad(grupo, idx, linea);
             } else {
                 alert('La tarima debe estar en revisión (naranja) para cambiar su estado.');
             }
         }
 
-        // --- PRODUCCIÓN ---
+        // --- LÓGICA DE PRODUCCIÓN ---
         else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('CALIDAD_')) {
+            // Recibir tarima de Calidad (cuando el LED está en verde)
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
                 if (!confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`)) return;
 
@@ -1897,8 +1919,7 @@ function togglearLED(grupo, idx, linea, usuarioActual) {
                     recibidoEn: new Date().toISOString(),
                     ledOrigen: ledPath
                 });
-
-                ledRef.set(null);
+                ledRef.set(null); // Apagar el LED de Calidad
 
                 db.ref('historial').push({
                     usuario: usuarioActual, grupo: grupo, led: ledPath,
@@ -1910,6 +1931,7 @@ function togglearLED(grupo, idx, linea, usuarioActual) {
             }
         }
         else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('PRODUCCION_')) {
+            // Asignar una tarima a un LED de Producción que está libre
             if (!estadoActual.encendido && estadoActual.tarimaId === undefined) {
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
@@ -1917,7 +1939,7 @@ function togglearLED(grupo, idx, linea, usuarioActual) {
             }
         }
 
-        // --- LOGÍSTICA ---
+        // --- LÓGICA DE LOGÍSTICA ---
         else if (usuarioActual === 'LOGÍSTICA') {
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`)) return;
@@ -1933,37 +1955,12 @@ function togglearLED(grupo, idx, linea, usuarioActual) {
                 alert('LOGÍSTICA solo puede apagar LEDs con tarima asignada.');
             }
         }
-
         // --- SIN PERMISOS ---
         else {
             alert('No tienes permiso para controlar estos LEDs.');
         }
     });
 }
-
-// NUEVAS FUNCIONES PARA EL MODAL DE CALIDAD
-
-function abrirModalCalidad(grupo, idx, linea) {
-    // Guarda el contexto del LED para usarlo después
-    ledSeleccionado = { grupo, idx, linea };
-    const modal = document.getElementById('modalCalidad');
-    modal.classList.add('visible');
-}
-
-function cerrarModalCalidad() {
-    const modal = document.getElementById('modalCalidad');
-    modal.classList.remove('visible');
-}
-
-// Lógica para manejar los clics en los botones del modal
-document.querySelectorAll('#modalCalidad .opcion-btn').forEach(btn => {
-    btn.addEventListener('click', (event) => {
-        const nuevoColor = event.target.dataset.color;
-        actualizarEstadoLED(nuevoColor);
-    });
-});
-
-document.querySelector('#modalCalidad .cerrar-btn').addEventListener('click', cerrarModalCalidad);
 
 function actualizarEstadoLED(nuevoColor) {
     if (!ledSeleccionado.grupo) {
