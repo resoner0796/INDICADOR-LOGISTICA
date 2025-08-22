@@ -1058,41 +1058,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   width: 90%; max-width: 400px;
   border-radius: 10px;
 }
-</style>
-  
-  <!-- Botón flotante para abrir el panel de Tarimas -->
-<button class="mt-fab" id="mtOpenBtn" style="display:none;">TARIMAS</button>
-
-<!-- Panel lateral de identificación de tarima -->
-<div id="mtPanel" class="mt-panel">
-  <div class="mt-panel-content">
-    <span id="mtCloseBtn" class="mt-close">&times;</span>
-    <h2>Identificación de Tarima</h2>
-    <p>Escanea un código BX para identificar la tarima</p>
-    <input type="text" id="bxInput" placeholder="Escanear BX..." />
-    <button id="buscarTarimaBtn">Buscar</button>
-
-    <!-- Resultados -->
-    <div id="tarimaInfo" style="margin-top:20px; display:none;">
-      <h3>Tarima encontrada</h3>
-      <p><b>ID:</b> <span id="tarimaId"></span></p>
-      <p><b>Empleado:</b> <span id="empleado"></span></p>
-      <p><b>Turno:</b> <span id="turno"></span></p>
-      <p><b>Total cajas:</b> <span id="totalCajas"></span></p>
-      <p><b>Total piezas:</b> <span id="totalPiezas"></span></p>
-
-      <h4>Cajas:</h4>
-      <ul id="listaCajas"></ul>
-
-      <!-- Dropdown solo para CALIDAD -->
-      <div id="ledAssignment" style="display:none; margin-top:20px;">
-        <label for="ledSelect">Asignar LED:</label>
-        <select id="ledSelect"></select>
-        <button id="asignarLedBtn">Asignar LED</button>
-      </div>
-    </div>
-  </div>
-</div>
   
 <script>
 // ================= CONFIG Y ESTADO =================
