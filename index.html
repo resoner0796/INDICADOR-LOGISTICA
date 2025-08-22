@@ -1885,55 +1885,31 @@ function puedeControlar(grupo){
 function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
     const ledPath = `${linea}-${idx+1}`;
-    const usuarioActual = usuarioSeleccionado || ''; // 🔑
+    const usuarioActual = usuarioSeleccionado || '';
 
     ledRef.once('value', snapshot => {
         const estadoActual = snapshot.val() || {};
 
-        // --- LÓGICA DE CALIDAD ---
+        // --- CALIDAD ---
         if (usuarioActual.startsWith('CALIDAD_') && grupo.startsWith('CALIDAD_')) {
             if (!estadoActual.tarimaId) {
                 return alert('Este LED no tiene ninguna tarima asignada.');
             }
 
-            // 🔥 Ajuste: si no tiene color pero sí tiene tarima, tratamos como "naranja"
-            let color = estadoActual.color || 'naranja';
+            const color = estadoActual.color || 'naranja';
 
             if (color === 'verde') {
                 return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
             }
 
-            if (color === 'naranja') {
-                // Tarima en revisión → abrir modal de Calidad
-                ledSeleccionado = { grupo, idx, linea };
+            if (color === 'naranja' || color === 'rojo') {
+                // 👉 Ahora sí abre el modal real
                 abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
-                return;
-            }
-
-            if (color === 'rojo') {
-                // Tarima rechazada → permitir liberarla
-                if (confirm('¿Deseas liberar esta tarima rechazada y marcarla como verde?')) {
-                    ledRef.update({
-                        color: 'verde',
-                        timestamp: new Date().toISOString()
-                    });
-
-                    db.ref('historial').push({
-                        usuario: usuarioActual,
-                        grupo: grupo,
-                        led: ledPath,
-                        accion: 'liberada_desde_rechazo',
-                        tarimaId: estadoActual.tarimaId,
-                        timestamp: new Date().toISOString()
-                    });
-
-                    alert(`✅ Tarima ${estadoActual.tarimaId} liberada correctamente.`);
-                }
                 return;
             }
         }
 
-        // --- LÓGICA DE PRODUCCIÓN (recibir de Calidad) ---
+        // --- PRODUCCIÓN ---
         else if (
             (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
             && grupo.startsWith('CALIDAD_')
@@ -1948,7 +1924,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     ledOrigen: ledPath
                 });
 
-                ledRef.set(null); // Apagar LED de Calidad
+                ledRef.set(null);
 
                 db.ref('historial').push({
                     usuario: usuarioActual,
@@ -1963,7 +1939,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
 
-        // --- LÓGICA DE PRODUCCIÓN (manejo de sus propios LEDs) ---
+        // --- LEDs de PRODUCCIÓN ---
         else if (
             (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
             && grupo === usuarioActual
@@ -1975,12 +1951,12 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
 
-        // --- LÓGICA DE LOGÍSTICA ---
+        // --- LOGÍSTICA ---
         else if (usuarioActual === 'LOGÍSTICA') {
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`)) return;
 
-                ledRef.set(null); // Liberar LED
+                ledRef.set(null);
 
                 db.ref('historial').push({
                     usuario: usuarioActual,
@@ -1993,10 +1969,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             } else {
                 alert('LOGÍSTICA solo puede apagar LEDs con tarima asignada.');
             }
-        }
-
-        // --- SIN PERMISOS ---
-        else {
+        } else {
             alert('No tienes permiso para controlar estos LEDs.');
         }
     });
@@ -2015,6 +1988,41 @@ function actualizarEstadoLED(nuevoColor) {
     cerrarModalCalidad();
 }
 
+  let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
+
+function abrirModalCalidad(grupo, idx, linea, tarimaId) {
+    const modal = document.getElementById('modalCalidad');
+    modal.classList.add('visible');
+
+    // Guardamos el LED seleccionado
+    ledSeleccionado = { grupo, idx, linea, tarimaId };
+
+    // Asignar acciones a los botones
+    modal.querySelectorAll('.opcion-btn').forEach(btn => {
+        btn.onclick = () => {
+            const color = btn.dataset.color;
+            if (color === 'rojo') {
+                // Mostrar formulario de rechazo
+                cerrarModalCalidad();
+                document.getElementById('modalRechazo').classList.add('visible');
+                document.getElementById('formularioRechazo').onsubmit = e => {
+                    e.preventDefault();
+                    guardarRechazo();
+                };
+            } else {
+                actualizarEstadoLED(color);
+            }
+        };
+    });
+
+    // Botón cerrar
+    modal.querySelector('.cerrar-btn').onclick = cerrarModalCalidad;
+}
+
+function cerrarModalCalidad() {
+    document.getElementById('modalCalidad').classList.remove('visible');
+    document.getElementById('modalRechazo').classList.remove('visible');
+}
   
 // ================= LÓGICA DE CALIDAD MODAL =================
 function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
@@ -2158,31 +2166,44 @@ function mostrarFormularioRechazo() {
     document.getElementById('modalRechazo').classList.add('visible');
 }
 
-function guardarRechazo(datos) {
-    const ahora = new Date();
-    const fecha = ahora.toLocaleDateString('es-MX');
-    const hora = ahora.toLocaleTimeString('es-MX', {hour: '2-digit', minute: '2-digit'});
+function guardarRechazo() {
+    if (!ledSeleccionado.grupo) return;
 
-    const datosCompletos = {
-        ...datos,
-        fecha: fecha,
-        hora: hora,
-        timestamp: ahora.toISOString(),
-        areaRechazo: ledActivoParaFormulario.grupo // Agregado para el filtro
+    const { grupo, idx, linea, tarimaId } = ledSeleccionado;
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+
+    // Tomamos datos del form
+    const form = document.getElementById('formularioRechazo');
+    const data = {
+        empleado: form.empleado.value,
+        linea: form.linea.value,
+        parte: form.parte.value,
+        descripcionParte: form.descripcionParte.value,
+        problema: form.problema.value,
+        causa: form.causa.value,
+        accion: form.accion.value,
+        timestamp: new Date().toISOString()
     };
 
-    rechazosDetalladosRef.push(datosCompletos)
-        .then(() => {
-            console.log("Rechazo guardado exitosamente:", datosCompletos);
-            aplicarEstadoCalidad('rojo');
-        })
-        .catch(error => {
-            console.error("Error guardando rechazo:", error);
-            alert("Hubo un error al guardar el rechazo.");
-        })
-        .finally(() => {
-            document.getElementById('modalRechazo').classList.remove('visible');
-        });
+    ledRef.update({
+        color: 'rojo',
+        tarimaId: tarimaId,
+        rechazo: data,
+        usuario: usuarioSeleccionado
+    });
+
+    db.ref('historial').push({
+        usuario: usuarioSeleccionado,
+        grupo,
+        led: `${linea}-${idx+1}`,
+        accion: 'rechazada',
+        tarimaId,
+        timestamp: new Date().toISOString(),
+        detalles: data
+    });
+
+    alert(`❌ Tarima ${tarimaId} rechazada.`);
+    cerrarModalCalidad();
 }
 
 // ================= NAVEGACIÓN Y ARRANQUE =================
