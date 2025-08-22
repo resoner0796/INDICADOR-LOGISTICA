@@ -1872,40 +1872,49 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     const ledPath = `${linea}-${idx+1}`;
     const usuarioActual = window.__usuarioActual || '';
 
-    // Lógica para usuarios de CALIDAD
+    // --- CALIDAD ---
     if (usuarioActual.startsWith('CALIDAD_')) {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
-            // El usuario de Calidad solo puede interactuar con LEDs en proceso (naranja)
+            // La lógica de Calidad debe interactuar con los LEDs asignados
+            if (estadoActual.color === 'verde') {
+                return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
+            }
             if (estadoActual.color === 'naranja') {
+                // 💡 CAMBIO CLAVE AQUÍ: Llama al modal para cambiar el estado
                 abrirModalCalidad(grupo, idx, linea);
-            } else if (estadoActual.color === 'verde' || estadoActual.color === 'rojo') {
-                alert('Este LED ya ha sido procesado por Calidad. No se puede modificar.');
             } else {
-                alert('El LED no tiene una tarima en proceso.');
+                alert('La tarima debe estar en revisión (naranja) para cambiar su estado.');
             }
         });
     }
 
-    // Lógica para usuarios de PRODUCCIÓN
+    // --- PRODUCCIÓN ---
     else if (usuarioActual.startsWith('PRODUCCION_')) {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
                 if (!confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`)) return;
+
                 const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual);
                 recibidasRef.push({
                     tarimaId: estadoActual.tarimaId,
                     recibidoEn: new Date().toISOString(),
                     ledOrigen: ledPath
                 });
-                ledRef.set(null);
+
+                ledRef.set(null); // Apagar el LED de Calidad
+
                 db.ref('historial').push({
-                    usuario: usuarioActual, grupo: grupo, led: ledPath,
-                    accion: 'recibida_de_calidad', tarimaId: estadoActual.tarimaId,
+                    usuario: usuarioActual,
+                    grupo: grupo,
+                    led: ledPath,
+                    accion: 'recibida_de_calidad',
+                    tarimaId: estadoActual.tarimaId,
                     timestamp: new Date().toISOString()
                 });
             } else if (!estadoActual.encendido && estadoActual.tarimaId === undefined) {
+                // Si el LED está libre, se abre el modal para asignar una tarima
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
                 alert('Solo puedes recibir tarimas liberadas (verdes) o asignar una a un LED libre.');
@@ -1913,16 +1922,21 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         });
     }
 
-    // Lógica para LOGÍSTICA
+    // --- LOGÍSTICA ---
     else if (usuarioActual === 'LOGÍSTICA') {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`)) return;
+
                 ledRef.set(null);
+
                 db.ref('historial').push({
-                    usuario: usuarioActual, grupo: grupo, led: ledPath,
-                    accion: 'recolectada', tarimaId: estadoActual.tarimaId,
+                    usuario: usuarioActual,
+                    grupo: grupo,
+                    led: ledPath,
+                    accion: 'recolectada',
+                    tarimaId: estadoActual.tarimaId,
                     timestamp: new Date().toISOString()
                 });
             } else {
@@ -1931,7 +1945,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         });
     }
 
-    // Si el usuario no tiene rol o el LED no pertenece a su flujo
+    // Si no es un usuario de Calidad, Producción o Logística
     else {
         alert('No tienes permiso para controlar estos LEDs.');
     }
