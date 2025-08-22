@@ -1400,21 +1400,27 @@ function renderTarimaEncontrada(tarima) {
   MT.ui.infoBox.style.display = 'block';
 }
 
-// Carga todos los LEDs definidos en /estadoLEDs
+// Carga todos los LEDs disponibles directamente en el dropdown del panel.
 function cargarLedsDisponibles() {
-  const sel = MT.ui.asignacion.select;
-  sel.innerHTML = '';
-  database.ref('estadoLEDs').once('value').then(snap => {
-    const ledIds = [];
-    snap.forEach(ch => ledIds.push(ch.key));
-    ledIds.sort((a,b)=> a.localeCompare(b, 'es', {numeric:true}));
-    ledIds.forEach(id => {
-      const opt = document.createElement('option');
-      opt.value = id; opt.textContent = id;
-      sel.appendChild(opt);
-    });
-  });
+    const sel = MT.ui.asignacion.select;
+    sel.innerHTML = ''; // Limpia las opciones anteriores.
+
+    // Asumimos que el usuario de calidad pertenece a un grupo, por ejemplo 'CALIDAD_MULTIPORT'.
+    // Puedes obtener el nombre del grupo de calidad dinámicamente si es necesario.
+    const grupo = 'CALIDAD_MULTIPORT';
+    const linea = 'linea1';
+
+    // Generamos la lista de LEDs de forma dinámica (ej. linea1-1, linea1-2, etc.).
+    // Esto evita leer nombres incorrectos de la base de datos.
+    const totalLeds = 5; // Reemplaza esto con una variable de configuración si la tienes (ej. CONFIG.LEDS_POR_GRUPO[grupo]).
+    for (let i = 0; i < totalLeds; i++) {
+        const opt = document.createElement('option');
+        opt.value = `${linea}-${i+1}`;
+        opt.textContent = `${linea}-${i+1}`;
+        sel.appendChild(opt);
+    }
 }
+
 
 // Escribe el vínculo LED ↔ Tarima en /ledsAsignados/{ledId}
 function asignarLedATarima(ledId, tarimaId) {
