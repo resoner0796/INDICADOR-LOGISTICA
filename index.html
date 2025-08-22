@@ -1045,6 +1045,55 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <button type="submit">Guardar Rechazo</button>
     </form>
 </div>
+
+<!-- Modales para panel final de Calidad y Producción (agregados automáticamente) -->
+<style>
+.modal-calidad, .modal-produccion {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.modal-calidad .modal-overlay, .modal-produccion .modal-overlay {
+  position: absolute; left:0; top:0; right:0; bottom:0; background: rgba(0,0,0,0.5);
+}
+.modal-calidad .modal-content, .modal-produccion .modal-content {
+  position: relative; background: #fff; padding: 16px; border-radius: 6px; max-width: 420px; width: 90%;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+}
+.modal-calidad .botones, .modal-produccion .botones { display:flex; gap:8px; justify-content:center; margin-top:12px; }
+</style>
+
+<!-- Modal para Calidad -->
+<div id="modalFinalCalidad" class="modal-calidad" style="display:none;">
+  <div class="modal-overlay" onclick="document.getElementById('modalFinalCalidad').style.display='none'"></div>
+  <div class="modal-content">
+    <h3>Panel Final - Calidad</h3>
+    <p id="modalCalidadInfo">Selecciona LED y resultado</p>
+    <label for="modalCalidadLed">LED:</label>
+    <select id="modalCalidadLed"></select>
+    <div class="botones">
+      <button type="button" onclick="aplicarResultadoCalidad('naranja')">Naranja</button>
+      <button type="button" onclick="aplicarResultadoCalidad('rojo')">Rojo</button>
+      <button type="button" onclick="aplicarResultadoCalidad('verde')">Verde</button>
+      <button type="button" onclick="document.getElementById('modalFinalCalidad').style.display='none'">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Producción -->
+<div id="modalFinalProduccion" class="modal-produccion" style="display:none;">
+  <div class="modal-overlay" onclick="document.getElementById('modalFinalProduccion').style.display='none'"></div>
+  <div class="modal-content">
+    <h3>Panel Final - Producción</h3>
+    <p id="modalProduccionInfo">Acciones para producción</p>
+    <div class="botones">
+      <button type="button" onclick="confirmarProduccion()">Confirmar</button>
+      <button type="button" onclick="document.getElementById('modalFinalProduccion').style.display='none'">Cerrar</button>
+    </div>
+  </div>
+</div>
+  
 </div>
   <!-- Botón flotante para abrir el panel de Tarimas -->
 <button class="mt-fab" id="mtOpenBtn" style="display:none;">TARIMAS</button>
@@ -3212,54 +3261,5 @@ function confirmarProduccion() {
     if (modal) modal.style.display = 'none';
 }
 </script>
-
-<!-- Modales para panel final de Calidad y Producción (agregados automáticamente) -->
-<style>
-.modal-calidad, .modal-produccion {
-  position: fixed;
-  left: 0; top: 0; right: 0; bottom: 0;
-  display: flex; align-items: center; justify-content: center;
-  z-index: 9999;
-}
-.modal-calidad .modal-overlay, .modal-produccion .modal-overlay {
-  position: absolute; left:0; top:0; right:0; bottom:0; background: rgba(0,0,0,0.5);
-}
-.modal-calidad .modal-content, .modal-produccion .modal-content {
-  position: relative; background: #fff; padding: 16px; border-radius: 6px; max-width: 420px; width: 90%;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-}
-.modal-calidad .botones, .modal-produccion .botones { display:flex; gap:8px; justify-content:center; margin-top:12px; }
-</style>
-
-<!-- Modal para Calidad -->
-<div id="modalFinalCalidad" class="modal-calidad" style="display:none;">
-  <div class="modal-overlay" onclick="document.getElementById('modalFinalCalidad').style.display='none'"></div>
-  <div class="modal-content">
-    <h3>Panel Final - Calidad</h3>
-    <p id="modalCalidadInfo">Selecciona LED y resultado</p>
-    <label for="modalCalidadLed">LED:</label>
-    <select id="modalCalidadLed"></select>
-    <div class="botones">
-      <button type="button" onclick="aplicarResultadoCalidad('naranja')">Naranja</button>
-      <button type="button" onclick="aplicarResultadoCalidad('rojo')">Rojo</button>
-      <button type="button" onclick="aplicarResultadoCalidad('verde')">Verde</button>
-      <button type="button" onclick="document.getElementById('modalFinalCalidad').style.display='none'">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para Producción -->
-<div id="modalFinalProduccion" class="modal-produccion" style="display:none;">
-  <div class="modal-overlay" onclick="document.getElementById('modalFinalProduccion').style.display='none'"></div>
-  <div class="modal-content">
-    <h3>Panel Final - Producción</h3>
-    <p id="modalProduccionInfo">Acciones para producción</p>
-    <div class="botones">
-      <button type="button" onclick="confirmarProduccion()">Confirmar</button>
-      <button type="button" onclick="document.getElementById('modalFinalProduccion').style.display='none'">Cerrar</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
