@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -238,10 +238,19 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   box-shadow: 0 8px 20px rgba(0,0,0,0.6);
 }
 #modalCalidad h3,
+#modalRechazo h3 {
   color: #f0f0f0 !important;
 }
 #modalCalidad .opcion-btn,
-
+#modalRechazo .opcion-btn {
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
 #modalCalidad .opcion-btn[data-color="rojo"] { background: #d32f2f; color: #fff; }
 #modalCalidad .opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
 #modalCalidad .opcion-btn:hover { transform: scale(1.05); }
@@ -639,54 +648,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       grid-column: span 1;
   }
 }
-</style>
-  <button class="mt-fab" id="mtOpenBtn" style="display:none;" title="Identificación de Tarima">TARIMAS</button>
 
-<!-- === NUEVO: Panel lateral de Identificación de Tarima === -->
-<div id="mtPanel" class="mt-panel" aria-hidden="true">
-  <div class="mt-panel-content">
-    <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
-    <h2>Identificación de Tarima</h2>
-    <p>Escanea o ingresa un código <b>BX</b> para identificar la tarima:</p>
-
-    <div class="mt-row">
-      <input type="text" id="bxInput" placeholder="Escanear/pegar código BX..." autocomplete="off" />
-      <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
-    </div>
-
-    <!-- Resultado de búsqueda -->
-    <div id="tarimaInfo" class="mt-card" style="display:none;">
-      <h3>Tarima encontrada</h3>
-      <div class="mt-grid">
-        <div><b>ID:</b> <span id="tarimaId">—</span></div>
-        <div><b>Empleado:</b> <span id="empleado">—</span></div>
-        <div><b>Turno:</b> <span id="turno">—</span></div>
-        <div><b>Total cajas:</b> <span id="totalCajas">0</span></div>
-        <div><b>Total piezas:</b> <span id="totalPiezas">0</span></div>
-      </div>
-
-      <h4>Detalle de cajas (BX | piezas)</h4>
-      <ul id="listaCajas" class="mt-list"></ul>
- <div id="tarimasPendientesPanel">
-  <h3>Tarimas pendientes por inspección</h3>
-  <ul id="listaTarimasPendientes"></ul>
-</div>
-
-      <!-- Solo para CALIDAD: asignación de LED -->
-      <div id="ledAssignment" class="mt-assign" style="display:none;">
-        <label for="ledSelect">Asignar LED a esta tarima:</label>
-        <div class="mt-row">
-          <select id="ledSelect" class="mt-select"></select>
-          <button id="asignarLedBtn" class="mt-btn mt-success">Asignar LED</button>
-        </div>
-        <small>Nota: los LEDs solo podrán encenderse/apagarse si tienen tarima asignada.</small>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- === NUEVO: Estilos mínimos y tema oscuro para Calidad/Producción === -->
-<style>
   /* FAB */
   .mt-fab {
     position: fixed;
@@ -995,8 +957,28 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   </div>
 </div>
 
-</style>
-
+<style>
+/* --- estilos básicos para modal --- */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+}
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  margin: 10% auto;
+  width: 90%; max-width: 400px;
+  border-radius: 10px;
+}
+.modal-actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 </style>
   
 <div id="modalRechazo" class="modal-calidad">
@@ -1030,7 +1012,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 </div>
 
   <!-- =======================
-   MODAL: Asignar Tarima en Producción OJO AQUIIIII
+   MODAL: Asignar Tarima en Producción
 ========================= -->
 <div id="modalAsignarTarimaProduccion" class="modal">
   <div class="modal-content">
@@ -1058,6 +1040,51 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   width: 90%; max-width: 400px;
   border-radius: 10px;
 }
+</style>
+  <button class="mt-fab" id="mtOpenBtn" style="display:none;" title="Identificación de Tarima">TARIMAS</button>
+
+<!-- === NUEVO: Panel lateral de Identificación de Tarima === -->
+<div id="mtPanel" class="mt-panel" aria-hidden="true">
+  <div class="mt-panel-content">
+    <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
+    <h2>Identificación de Tarima</h2>
+    <p>Escanea o ingresa un código <b>BX</b> para identificar la tarima:</p>
+
+    <div class="mt-row">
+      <input type="text" id="bxInput" placeholder="Escanear/pegar código BX..." autocomplete="off" />
+      <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
+    </div>
+
+    <!-- Resultado de búsqueda -->
+    <div id="tarimaInfo" class="mt-card" style="display:none;">
+      <h3>Tarima encontrada</h3>
+      <div class="mt-grid">
+        <div><b>ID:</b> <span id="tarimaId">—</span></div>
+        <div><b>Empleado:</b> <span id="empleado">—</span></div>
+        <div><b>Turno:</b> <span id="turno">—</span></div>
+        <div><b>Total cajas:</b> <span id="totalCajas">0</span></div>
+        <div><b>Total piezas:</b> <span id="totalPiezas">0</span></div>
+      </div>
+
+      <h4>Detalle de cajas (BX | piezas)</h4>
+      <ul id="listaCajas" class="mt-list"></ul>
+ <div id="tarimasPendientesPanel">
+  <h3>Tarimas pendientes por inspección</h3>
+  <ul id="listaTarimasPendientes"></ul>
+</div>
+
+      <!-- Solo para CALIDAD: asignación de LED -->
+      <div id="ledAssignment" class="mt-assign" style="display:none;">
+        <label for="ledSelect">Asignar LED a esta tarima:</label>
+        <div class="mt-row">
+          <select id="ledSelect" class="mt-select"></select>
+          <button id="asignarLedBtn" class="mt-btn mt-success">Asignar LED</button>
+        </div>
+        <small>Nota: los LEDs solo podrán encenderse/apagarse si tienen tarima asignada.</small>
+      </div>
+    </div>
+  </div>
+</div>
   
 <script>
 // ================= CONFIG Y ESTADO =================
@@ -1126,6 +1153,35 @@ window.__usuarioActual = null;
 //           y muestra el FAB de Tarimas.
 // -------------------------------------------------------
 
+
+(function compatSeleccionarUsuario(){
+  const legacy = window.seleccionarUsuario; // por si ya existía
+  window._seleccionarUsuarioOriginal = (typeof legacy === 'function') ? legacy : null;
+
+  window.seleccionarUsuario = function(usuarioClave) {
+    try {
+      window.__usuarioActual = String(usuarioClave || '').toUpperCase();
+
+      // Tema oscuro solo para CALIDAD_* y PRODUCCION_*
+      const isDark = window.__usuarioActual.startsWith('CALIDAD') || window.__usuarioActual.startsWith('PRODUCCION');
+      document.body.classList.toggle('theme-dark', isDark);
+
+      // Mostrar FAB "TARIMAS" solo cuando ya hay usuario elegido
+      const fab = document.getElementById('mtOpenBtn');
+      if (fab) fab.style.display = 'block';
+
+      // Delegar a tu función original si existía:
+      if (window._seleccionarUsuarioOriginal) {
+        return window._seleccionarUsuarioOriginal(usuarioClave);
+      }
+
+      // Si no había original, al menos no tronamos:
+      console.info('[Compat] seleccionarUsuario activo (sin versión original). Usuario:', window.__usuarioActual);
+    } catch (e) {
+      console.error('Error en seleccionarUsuario compat:', e);
+    }
+  };
+})();
 
 // ==============ARRIBA ELIMINE ALGO=========================================
 //  🎯 NUEVO: Identificación de Tarimas y Amarre con LEDs
