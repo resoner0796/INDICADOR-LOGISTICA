@@ -1855,56 +1855,69 @@ function puedeControlar(grupo){
     
 function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
+    const ledPath = `${linea}-${idx+1}`;
 
     ledRef.once('value', snapshot => {
         const estadoActual = snapshot.val() || {};
+        const usuarioActual = window.__usuarioActual || '';
 
         // --- CALIDAD ---
-        if (grupo.startsWith('CALIDAD_')) {
-            const grupoBaseCalidad = grupo.replace('CALIDAD_', '');
-
-            if (usuarioSeleccionado.startsWith('CALIDAD_')) {
-                // Si el LED ya está en proceso, puedes cambiar su estado.
-                // En lugar de mostrar el modal, simplemente se actualiza el estado.
-                if (estadoActual.color === 'naranja') {
-                    // Aquí puedes cambiar el estado a 'rojo' (rechazado) o 'verde' (liberado)
-                    // Puedes usar un prompt o confirmación para la acción.
-                    // Ejemplo de un flujo simple de confirmación:
-                    if (confirm('¿Liberar esta tarima? (Verde)')) {
-                        ledRef.update({ color: 'verde' });
-                    } else if (confirm('¿Rechazar esta tarima? (Rojo)')) {
-                        ledRef.update({ color: 'rojo' });
-                    }
-                } else if (estadoActual.color === 'verde') {
-                    // Evita modificar LEDs ya liberados por Calidad.
-                    return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
+        if (usuarioActual.startsWith('CALIDAD_')) {
+            if (estadoActual.color === 'verde') {
+                return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
+            }
+            if (estadoActual.color === 'naranja') {
+                if (confirm('¿Liberar esta tarima? (Verde)')) {
+                    ledRef.update({ color: 'verde' });
+                } else if (confirm('¿Rechazar esta tarima? (Rojo)')) {
+                    ledRef.update({ color: 'rojo' });
                 }
-            } else if (esUsuarioProduccion() && usuarioSeleccionado === grupoBaseCalidad) {
-                // ... (el resto del código de Producción)
             } else {
-                alert('No tienes permiso para controlar estos LEDs.');
+                alert('La tarima debe estar en revisión (naranja) para cambiar su estado.');
             }
 
         // --- PRODUCCIÓN ---
-        } else if (esUsuarioProduccion() && usuarioSeleccionado === grupo) {
-            if (!estadoActual.encendido) {
-                // LED está libre → asignar una tarima recibida
+        } else if (esUsuarioProduccion() && usuarioActual.includes(grupo)) {
+            // Lógica para recibir una tarima liberada por Calidad (color verde)
+            if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
+                if (!confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`)) return;
+
+                const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual);
+                recibidasRef.push({
+                    tarimaId: estadoActual.tarimaId,
+                    recibidoEn: new Date().toISOString(),
+                    ledOrigen: ledPath
+                });
+
+                ledRef.set(null);
+
+                db.ref('historial').push({
+                    usuario: usuarioActual,
+                    grupo: grupo,
+                    led: ledPath,
+                    accion: 'recibida_de_calidad',
+                    tarimaId: estadoActual.tarimaId,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            // Lógica para asignar una tarima a un LED de Producción que está libre
+            else if (!estadoActual.encendido && estadoActual.tarimaId === undefined) {
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
-                alert('Este LED ya tiene una tarima asignada. Solo Logística puede liberarlo.');
+                alert('Solo puedes recibir tarimas liberadas (verdes) o asignar una a un LED libre.');
             }
 
         // --- LOGÍSTICA ---
-        } else if (usuarioSeleccionado === 'LOGÍSTICA') {
+        } else if (usuarioActual === 'LOGÍSTICA') {
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`)) return;
 
-                ledRef.set(null); // Liberar LED
+                ledRef.set(null);
 
-                historialRef.push({
-                    usuario: usuarioSeleccionado,
+                db.ref('historial').push({
+                    usuario: usuarioActual,
                     grupo: grupo,
-                    led: `${linea}-${idx+1}`,
+                    led: ledPath,
                     accion: 'recolectada',
                     tarimaId: estadoActual.tarimaId,
                     timestamp: new Date().toISOString()
@@ -1918,6 +1931,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         }
     });
 }
+
 // ================= LÓGICA DE CALIDAD MODAL =================
 function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
     const modal = document.getElementById('modalOpcionesCalidad');
