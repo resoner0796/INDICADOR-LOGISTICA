@@ -1357,31 +1357,31 @@ function asignarLedATarima(ledId, tarimaId) {
   });
 }
 
-  function mostrarOpcionesCalidad(grupo, idx, linea) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-calidad';
+  function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
+    const modal = document.getElementById('modalOpcionesCalidad');
+    const select = modal.querySelector('#selectLedCalidad');
+    select.innerHTML = ''; // limpia opciones anteriores
 
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h3>Asignar resultado de inspección</h3>
-            <p><b>Grupo:</b> ${grupo}</p>
-            <label for="ledSelector">Asignar LED:</label>
-            <select id="ledSelector">
-                ${[...Array(CONFIG.LEDS_POR_GRUPO[grupo.replace('CALIDAD_', '')] || 5).keys()]
-                    .map(i => `<option value="${linea}-${i+1}">${linea}-${i+1}</option>`)
-                    .join('')}
-            </select>
-            <div class="botones">
-                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'naranja')">Naranja</button>
-                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'rojo')">Rojo</button>
-                <button onclick="guardarEstadoCalidad('${grupo}', ${idx}, '${linea}', 'verde')">Verde</button>
-                <button onclick="cerrarModal(this)">Cancelar</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+    // ==============================
+    // Generamos lista de LEDs (ej. linea1-1, linea1-2, etc.)
+    // ==============================
+    const totalLeds = CONFIG.LEDS_POR_GRUPO[grupo] || 5; // por default 5
+    for (let i = 0; i < totalLeds; i++) {
+        const opt = document.createElement('option');
+        opt.value = `${linea}-${i+1}`;
+        opt.textContent = `${linea}-${i+1}`;
+        if (i === idx) opt.selected = true;
+        select.appendChild(opt);
+    }
+
+    // Guardamos contexto para cuando se confirme
+    select.dataset.grupo = grupo;
+    select.dataset.linea = linea;
+    select.dataset.idx = idx;
+
+    modal.style.display = 'block';
 }
-
+  
 function cerrarModal(btn) {
     btn.closest('.modal-calidad').remove();
 }
