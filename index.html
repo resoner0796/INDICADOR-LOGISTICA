@@ -1947,6 +1947,9 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             && grupo === usuarioActual
         ) {
             if (!estadoActual.encendido && !estadoActual.tarimaId) {
+                // 👉 AQUI ESTÁ EL CAMBIO CLAVE
+                // En lugar de usar el modal con un select, usamos la lógica para poblar el modal que ya tienes
+                // Y con el flujo que ya unificamos.
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
                 alert('Este LED ya tiene una tarima asignada.');
