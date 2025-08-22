@@ -1871,25 +1871,24 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
     const ledPath = `${linea}-${idx+1}`;
     const usuarioActual = window.__usuarioActual || '';
-    const grupoBaseUsuario = usuarioActual.split('_')[1] || '';
 
-    if (usuarioActual.startsWith('CALIDAD_') && grupo.startsWith('CALIDAD_')) {
+    // Lógica para usuarios de CALIDAD
+    if (usuarioActual.startsWith('CALIDAD_')) {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
+            // El usuario de Calidad solo puede interactuar con LEDs en proceso (naranja)
             if (estadoActual.color === 'naranja') {
-                // 💡 ¡CAMBIO CLAVE AQUÍ!
-                // En lugar de un confirm, abre el modal
                 abrirModalCalidad(grupo, idx, linea);
-            } else if (estadoActual.color === 'verde') {
-                return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
+            } else if (estadoActual.color === 'verde' || estadoActual.color === 'rojo') {
+                alert('Este LED ya ha sido procesado por Calidad. No se puede modificar.');
             } else {
-                alert('La tarima debe estar en revisión (naranja) para cambiar su estado.');
+                alert('El LED no tiene una tarima en proceso.');
             }
         });
     }
-    // ... (El resto de la lógica de Producción y Logística se mantiene igual)
-    else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('CALIDAD_')) {
-        // Lógica para recibir tarima de Calidad (si está en verde)
+
+    // Lógica para usuarios de PRODUCCIÓN
+    else if (usuarioActual.startsWith('PRODUCCION_')) {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
@@ -1906,22 +1905,16 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     accion: 'recibida_de_calidad', tarimaId: estadoActual.tarimaId,
                     timestamp: new Date().toISOString()
                 });
-            } else {
-                alert('Solo puedes recibir tarimas liberadas (verdes).');
-            }
-        });
-    } else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('PRODUCCION_')) {
-        // Lógica para asignar una tarima a un LED de Producción libre
-        ledRef.once('value', snapshot => {
-            const estadoActual = snapshot.val() || {};
-            if (!estadoActual.encendido && !estadoActual.tarimaId) {
+            } else if (!estadoActual.encendido && estadoActual.tarimaId === undefined) {
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
-                alert('Solo puedes asignar una tarima a un LED que está libre.');
+                alert('Solo puedes recibir tarimas liberadas (verdes) o asignar una a un LED libre.');
             }
         });
-    } else if (usuarioActual === 'LOGÍSTICA') {
-        // Lógica para Logística
+    }
+
+    // Lógica para LOGÍSTICA
+    else if (usuarioActual === 'LOGÍSTICA') {
         ledRef.once('value', snapshot => {
             const estadoActual = snapshot.val() || {};
             if (estadoActual.encendido && estadoActual.tarimaId) {
@@ -1936,7 +1929,10 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 alert('LOGÍSTICA solo puede apagar LEDs con tarima asignada.');
             }
         });
-    } else {
+    }
+
+    // Si el usuario no tiene rol o el LED no pertenece a su flujo
+    else {
         alert('No tienes permiso para controlar estos LEDs.');
     }
 }
