@@ -225,6 +225,48 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     box-shadow: 0 0 40px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
   }
 }
+
+/* Estilos base para ocultar los modales */
+.modal-calidad,
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  /* 💡 Estas dos líneas son la clave para ocultarlos */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Esta clase es la que tu JavaScript debe agregar para mostrar el modal */
+.modal-calidad.visible,
+.modal.visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Estilos de los contenedores de los modales (los que ya tenías) */
+#modalCalidad .modal-content,
+#modalRechazo .modal-content,
+#modalOpcionesCalidad .modal-content,
+#modalAsignarTarimaProduccion .modal-content {
+  background-color: #1c1c1c !important;
+  color: #eee !important;
+  padding: 25px 35px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
+  
 /* ================= CSS DEL MODAL DE CALIDAD ================= */
 #modalCalidad .modal-content,
 #modalRechazo .modal-content {
