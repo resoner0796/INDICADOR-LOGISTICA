@@ -1499,38 +1499,6 @@ function cerrarModal(btn) {
         console.error('renderTarimasRecibidas error:', e);
     }
 }
-  function asignarTarimaProduccion(grupo, idx, linea) {
-    const select = document.getElementById('tarimaSelect');
-    const key = select.value;
-
-    const recibidasRef = db.ref('tarimasRecibidas/' + grupo + '/' + key);
-    recibidasRef.once('value', snapshot => {
-        const tarima = snapshot.val();
-        if (!tarima) return alert("Tarima no encontrada.");
-
-        const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
-        ledRef.set({
-            encendido: true,
-            usuario: usuarioSeleccionado,
-            horaEncendido: new Date().toISOString(),
-            tarimaId: tarima.tarimaId
-        });
-
-        // eliminar de lista de recibidas
-        recibidasRef.remove();
-
-        historialRef.push({
-            usuario: usuarioSeleccionado,
-            grupo: grupo,
-            led: `${linea}-${idx+1}`,
-            accion: 'asignada_en_produccion',
-            tarimaId: tarima.tarimaId,
-            timestamp: new Date().toISOString()
-        });
-
-        cerrarModal(document.querySelector('.modal-produccion button'));
-    });
-}
   // =======================================================
 //  ✅ VALIDACIÓN DE ACCIONES SOBRE LEDs
 //  - Solo permite encender/apagar si hay tarima asignada.
