@@ -1883,9 +1883,9 @@ function puedeControlar(grupo){
 }
     
 function togglearLED(grupo, idx, linea = 'linea1') {
-    const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
     const ledPath = `${linea}-${idx+1}`;
-    const usuarioActual = window.__usuarioActual || '';
+    const usuarioActual = usuarioSeleccionado || ''; // 🔑 siempre usamos esta variable
 
     ledRef.once('value', snapshot => {
         const estadoActual = snapshot.val() || {};
@@ -1901,14 +1901,14 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
 
             if (estadoActual.color === 'naranja') {
-                // Tarima en revisión → abre modal (rechazada o liberada)
+                // Tarima en revisión → abrir modal Calidad (rechazo o liberación)
                 ledSeleccionado = { grupo, idx, linea };
                 abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
                 return;
             }
 
             if (estadoActual.color === 'rojo') {
-                // Tarima rechazada → permitir liberarla manualmente
+                // Tarima rechazada → permitir liberarla
                 if (confirm('¿Deseas liberar esta tarima rechazada y marcarla como verde?')) {
                     ledRef.update({
                         color: 'verde',
@@ -1930,8 +1930,11 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
 
-        // --- LÓGICA DE PRODUCCIÓN ---
-        else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('CALIDAD_')) {
+        // --- LÓGICA DE PRODUCCIÓN (recibir de Calidad) ---
+        else if (
+            (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
+            && grupo.startsWith('CALIDAD_')
+        ) {
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
                 if (!confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`)) return;
 
@@ -1942,7 +1945,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     ledOrigen: ledPath
                 });
 
-                ledRef.set(null); // Apagar el LED de Calidad
+                ledRef.set(null); // Apagar LED de Calidad
 
                 db.ref('historial').push({
                     usuario: usuarioActual,
@@ -1957,8 +1960,12 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
 
-        else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('PRODUCCION_')) {
-            if (!estadoActual.encendido && estadoActual.tarimaId === undefined) {
+        // --- LÓGICA DE PRODUCCIÓN (manejo de sus propios LEDs) ---
+        else if (
+            (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
+            && grupo === usuarioActual
+        ) {
+            if (!estadoActual.encendido && !estadoActual.tarimaId) {
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
                 alert('Este LED ya tiene una tarima asignada.');
@@ -1985,6 +1992,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
 
+        // --- SIN PERMISOS ---
         else {
             alert('No tienes permiso para controlar estos LEDs.');
         }
