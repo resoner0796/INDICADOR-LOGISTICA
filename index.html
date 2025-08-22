@@ -1532,6 +1532,24 @@ function asignarTarimaProduccion(grupo, idx, linea) {
         cerrarModal(document.querySelector('.modal-produccion button'));
     });
 }
+
+  function renderTarimasRecibidas(grupo) {
+    const panel = document.getElementById('listaTarimasRecibidas');
+    if (!panel) return;
+
+    const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
+    recibidasRef.on('value', snapshot => {
+        const recibidas = snapshot.val() || {};
+        panel.innerHTML = '';
+
+        Object.values(recibidas).forEach(t => {
+            const li = document.createElement('li');
+            li.textContent = `${t.tarimaId} (origen: ${t.ledOrigen})`;
+            panel.appendChild(li);
+        });
+    });
+}
+  
   function renderTarimaEncontrada(tarima) {
   // Rellena campos
   MT.ui.fields.id.textContent = tarima.id;
