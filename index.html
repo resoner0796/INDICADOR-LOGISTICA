@@ -1885,7 +1885,7 @@ function puedeControlar(grupo){
 function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
     const ledPath = `${linea}-${idx+1}`;
-    const usuarioActual = usuarioSeleccionado || ''; // 🔑 siempre usamos esta variable
+    const usuarioActual = usuarioSeleccionado || ''; // 🔑
 
     ledRef.once('value', snapshot => {
         const estadoActual = snapshot.val() || {};
@@ -1896,18 +1896,21 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 return alert('Este LED no tiene ninguna tarima asignada.');
             }
 
-            if (estadoActual.color === 'verde') {
+            // 🔥 Ajuste: si no tiene color pero sí tiene tarima, tratamos como "naranja"
+            let color = estadoActual.color || 'naranja';
+
+            if (color === 'verde') {
                 return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
             }
 
-            if (estadoActual.color === 'naranja') {
-                // Tarima en revisión → abrir modal Calidad (rechazo o liberación)
+            if (color === 'naranja') {
+                // Tarima en revisión → abrir modal de Calidad
                 ledSeleccionado = { grupo, idx, linea };
                 abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
                 return;
             }
 
-            if (estadoActual.color === 'rojo') {
+            if (color === 'rojo') {
                 // Tarima rechazada → permitir liberarla
                 if (confirm('¿Deseas liberar esta tarima rechazada y marcarla como verde?')) {
                     ledRef.update({
