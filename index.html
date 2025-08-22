@@ -1063,16 +1063,13 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     <label for="selectTarimaProduccion">Selecciona Tarima:</label>
     <select id="selectTarimaProduccion"></select>
 
-    <label for="selectLedProduccion">Selecciona LED:</label>
-    <select id="selectLedProduccion"></select>
-
     <div class="modal-actions">
       <button id="btnAsignarProduccion">Asignar</button>
       <button onclick="cerrarModalProduccion()">Cancelar</button>
     </div>
   </div>
 </div>
-
+  
 <style>
 /* Reutiliza el estilo del modal de calidad */
 #modalAsignarTarimaProduccion .modal-content {
@@ -1439,8 +1436,17 @@ function asignarLedATarima(ledId, tarimaId) {
  // ==========================
 // MODAL DE PRODUCCIÓN AQUI TAMBIEN ESTA EL DETALLEEEE
 // ==========================
+// La variable que guardará el contexto del LED que se está tocando.
+let ledProduccionSeleccionado = {};
+
 function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
-    const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
+    const usuarioActual = window.__usuarioActual || '';
+    if (!usuarioActual.startsWith('PRODUCCION_')) {
+        alert('No tienes permiso para realizar esta acción.');
+        return;
+    }
+
+    const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual);
     recibidasRef.once('value', snapshot => {
         const recibidas = snapshot.val() || {};
         const keys = Object.keys(recibidas);
@@ -1448,52 +1454,61 @@ function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
         if (keys.length === 0) {
             return alert("No hay tarimas recibidas de Calidad para asignar.");
         }
+        
+        // Guardamos el contexto del LED que se tocó
+        ledProduccionSeleccionado = { grupo, idx, linea };
 
-        const modal = document.createElement('div');
-        modal.className = 'modal-produccion';
+        // Abrimos y poblamos el modal preexistente
+        const modal = document.getElementById('modalAsignarTarimaProduccion');
+        const selectTarima = modal.querySelector('#selectTarimaProduccion');
 
-        modal.innerHTML = `
-            <div class="modal-content">
-                <h3>Asignar Tarima a LED</h3>
-                <label for="tarimaSelect">Tarimas disponibles:</label>
-                <select id="tarimaSelect">
-                    ${keys.map(k => {
-                        const t = recibidas[k];
-                        return `<option value="${k}">${t.tarimaId} (de ${t.ledOrigen})</option>`;
-                    }).join('')}
-                </select>
-                <div class="botones">
-                    <button onclick="asignarTarimaProduccion('${grupo}', ${idx}, '${linea}')">Asignar</button>
-                    <button onclick="cerrarModal(this)">Cancelar</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+        selectTarima.innerHTML = '';
+        keys.forEach(k => {
+            const t = recibidas[k];
+            const option = document.createElement('option');
+            option.value = k;
+            option.textContent = `${t.tarimaId} (de ${t.ledOrigen})`;
+            selectTarima.appendChild(option);
+        });
+
+        modal.classList.add('visible');
     });
 }
 
-function asignarTarimaProduccion(grupo, idx, linea) {
-    const select = document.getElementById('tarimaSelect');
-    const key = select.value;
+function asignarTarimaProduccion() {
+    const modal = document.getElementById('modalAsignarTarimaProduccion');
+    const select = modal.querySelector('#selectTarimaProduccion');
+    const tarimaKey = select.value;
 
-    const recibidasRef = db.ref('tarimasRecibidas/' + grupo + '/' + key);
+    if (!tarimaKey) {
+        alert('Debes seleccionar una tarima.');
+        return;
+    }
+    
+    // Obtenemos los datos del LED que guardamos al abrir el modal
+    const { grupo, idx, linea } = ledProduccionSeleccionado;
+
+    const recibidasRef = db.ref('tarimasRecibidas/' + window.__usuarioActual + '/' + tarimaKey);
     recibidasRef.once('value', snapshot => {
         const tarima = snapshot.val();
-        if (!tarima) return alert("Tarima no encontrada.");
+        if (!tarima) return alert("Tarima no encontrada o ya ha sido asignada.");
 
-        const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
+        // Asignar tarima al LED de Producción
+        const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
         ledRef.set({
             encendido: true,
-            usuario: usuarioSeleccionado,
+            usuario: window.__usuarioActual,
             horaEncendido: new Date().toISOString(),
-            tarimaId: tarima.tarimaId
+            tarimaId: tarima.tarimaId,
+            color: 'blanco' // O el color que desees para el estado "en uso" en Producción
         });
 
-        // Eliminar de lista de recibidas
+        // Eliminar la tarima de la lista de recibidas
         recibidasRef.remove();
 
-        historialRef.push({
-            usuario: usuarioSeleccionado,
+        // Registrar en el historial
+        db.ref('historial').push({
+            usuario: window.__usuarioActual,
             grupo: grupo,
             led: `${linea}-${idx+1}`,
             accion: 'asignada_en_produccion',
@@ -1501,9 +1516,18 @@ function asignarTarimaProduccion(grupo, idx, linea) {
             timestamp: new Date().toISOString()
         });
 
-        cerrarModal(document.querySelector('.modal-produccion button'));
+        cerrarModalProduccion();
+        alert(`✅ Tarima ${tarima.tarimaId} asignada al LED ${linea}-${idx+1}`);
     });
 }
+
+function cerrarModalProduccion() {
+    const modal = document.getElementById('modalAsignarTarimaProduccion');
+    modal.classList.remove('visible');
+}
+
+// Event Listeners para los botones del modal
+document.getElementById('btnAsignarProduccion').addEventListener('click', asignarTarimaProduccion);
 
   // --- !!TARIMAS RECIBIDAS POR CALIDAD !! ---
   
