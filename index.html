@@ -1377,7 +1377,7 @@ function renderTarimaEncontrada(tarima) {
   MT.ui.fields.listaCajas.innerHTML = '';
   tarima.cajas.forEach(c => {
     const li = document.createElement('li');
-    li.textContent = `${c.codigoCaja}  |  ${c.cantidadPiezas} pz`;
+    li.textContent = `${c.codigoCaja} | ${c.cantidadPiezas} pz`;
     MT.ui.fields.listaCajas.appendChild(li);
   });
 
@@ -1386,12 +1386,14 @@ function renderTarimaEncontrada(tarima) {
   MT.ui.asignacion.wrap.style.display = isCalidad ? 'block' : 'none';
 
   if (isCalidad) {
-    cargarLedsDisponibles();
-    // Click asignar
+    // 💡 Aquí está el cambio: llamamos a la función correcta para mostrar las opciones del LED
+    // Asumiendo que el grupo de calidad es 'CALIDAD_MULTIPORT' y la línea es 'linea1'
+    mostrarOpcionesCalidad('CALIDAD_MULTIPORT', 0, 'linea1');
+
+    // Desactivamos el clic en el botón del panel lateral
     MT.ui.asignacion.btn.onclick = () => {
-      const ledId = MT.ui.asignacion.select.value;
-      if (!ledId) return;
-      asignarLedATarima(ledId, tarima.id);
+        // La asignación ahora se maneja en el modal, por lo que este botón puede quedar sin acción
+        // o mostrar un mensaje para usar el modal.
     };
   }
 
