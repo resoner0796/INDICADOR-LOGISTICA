@@ -1906,13 +1906,12 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
 
             if (color === 'naranja' || color === 'rojo') {
-                // 👉 Ahora sí abre el modal real
                 abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
                 return;
             }
         }
 
-        // --- PRODUCCIÓN ---
+        // --- PRODUCCIÓN: Recibir tarima de Calidad ---
         else if (
             (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
             && grupo.startsWith('CALIDAD_')
@@ -1942,7 +1941,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
 
-        // --- LEDs de PRODUCCIÓN ---
+        // --- PRODUCCIÓN: Asignar tarima en LED de Producción ---
         else if (
             (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK')
             && grupo === usuarioActual
