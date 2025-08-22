@@ -1419,19 +1419,38 @@ function cargarLedsDisponibles() {
   }
 }
 
-// Escribe el vínculo LED ↔ Tarima en /ledsAsignados/{ledId}
+// Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
 function asignarLedATarima(ledId, tarimaId) {
-  const payload = {
-    tarimaId,
-    asignadoPor: window.__usuarioActual || 'N/D',
-    timestamp: Date.now()
-  };
-  database.ref('ledsAsignados/'+ledId).set(payload).then(() => {
-    alert(`Tarima ${tarimaId} asignada al LED ${ledId}`);
-  }).catch(err => {
-    console.error('Error asignando LED:', err);
-    alert('No se pudo asignar el LED. Intenta nuevamente.');
-  });
+    const payload = {
+        tarimaId,
+        asignadoPor: window.__usuarioActual || 'N/D',
+        timestamp: Date.now()
+    };
+
+    // 💡 Paso 1: Actualizar la referencia del LED para que se pinte en la interfaz.
+    // Esto es lo que falta en tu código actual.
+    // Necesitamos el grupo y la línea para la ruta. Asumimos 'CALIDAD_MULTIPORT' y 'linea1'.
+    const grupo = 'CALIDAD_MULTIPORT';
+    const linea = 'linea1';
+
+    // Parsear el índice del LED desde el ledId (ej. 'linea1-1' -> 0)
+    const ledIndex = parseInt(ledId.split('-')[1]) - 1;
+
+    // Actualiza la referencia 'estadoLEDs' con el nuevo estado
+    const ledEstadoRef = db.ref(`estadoLEDs/${grupo}/${linea}/${ledIndex}`);
+    ledEstadoRef.set({
+        color: 'naranja', // Estado inicial en revisión
+        tarimaId: tarimaId,
+        usuario: window.__usuarioActual || 'N/D',
+        timestamp: new Date().toISOString()
+    })
+    .then(() => {
+        alert(`Tarima ${tarimaId} asignada al LED ${ledId}`);
+    })
+    .catch(err => {
+        console.error('Error asignando LED:', err);
+        alert('No se pudo asignar el LED. Intenta nuevamente.');
+    });
 }
 
  // ==========================
