@@ -1440,8 +1440,11 @@ function asignarLedATarima(ledId, tarimaId) {
 let ledProduccionSeleccionado = {};
 
 function mostrarSelectorTarimaProduccion(grupo, idx, linea) {
-    const usuarioActual = window.__usuarioActual || '';
-    if (!usuarioActual.startsWith('PRODUCCION_')) {
+    // Usamos la misma variable y lógica de validación que en togglearLED
+    const usuarioActual = usuarioSeleccionado || '';
+
+    // Validamos usando la lista de usuarios, igual que en togglearLED
+    if (usuarioActual !== 'MULTIPORT' && usuarioActual !== 'DROPS' && usuarioActual !== 'BEDROCK') {
         alert('No tienes permiso para realizar esta acción.');
         return;
     }
