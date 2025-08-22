@@ -1401,55 +1401,67 @@ function renderTarimaEncontrada(tarima) {
 }
 
 // Carga todos los LEDs disponibles directamente en el dropdown del panel.
+// Carga todos los LEDs disponibles directamente en el dropdown del panel.
 function cargarLedsDisponibles() {
-  const sel = MT.ui.asignacion.select;
-  sel.innerHTML = ''; // Limpia las opciones anteriores.
+    const sel = MT.ui.asignacion.select;
+    sel.innerHTML = '';
 
-  // Asumimos que el usuario de calidad pertenece a un grupo, por ejemplo 'CALIDAD_MULTIPORT'.
-  const grupo = 'CALIDAD_MULTIPORT';
-  const linea = 'linea1';
+    // 💡 Paso 1: Obtener la lista de tarimas ya asignadas
+    database.ref('tarimasAsignadas').once('value').then(snap => {
+        const asignados = snap.val() || {};
+        const ledsAsignados = Object.values(asignados).map(val => val.ledId);
 
-  // Generamos la lista de LEDs de forma dinámica (ej. linea1-1, linea1-2, etc.).
-  const totalLeds = 5; // Asegúrate de que este número sea el correcto.
-  for (let i = 0; i < totalLeds; i++) {
-    const opt = document.createElement('option');
-    opt.value = `${linea}-${i+1}`;
-    opt.textContent = `${linea}-${i+1}`;
-    sel.appendChild(opt);
-  }
+        const grupo = 'CALIDAD_MULTIPORT';
+        const linea = 'linea1';
+        const totalLeds = 5; // Asegúrate de que este número sea el correcto.
+
+        for (let i = 0; i < totalLeds; i++) {
+            const ledId = `${linea}-${i+1}`;
+            // 💡 Paso 2: Solo agrega el LED si no está en la lista de asignados
+            if (!ledsAsignados.includes(ledId)) {
+                const opt = document.createElement('option');
+                opt.value = ledId;
+                opt.textContent = ledId;
+                sel.appendChild(opt);
+            }
+        }
+    });
 }
 
 // Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
+// Escribe el vínculo LED ↔ Tarima y actualiza el estado del LED
 function asignarLedATarima(ledId, tarimaId) {
-    const payload = {
-        tarimaId,
-        asignadoPor: window.__usuarioActual || 'N/D',
-        timestamp: Date.now()
-    };
+    // 💡 Paso 1: Verificar si la tarima ya está asignada en algún otro lugar
+    database.ref('tarimasAsignadas/' + tarimaId).once('value').then(snap => {
+        if (snap.exists()) {
+            return alert(`Error: La tarima ${tarimaId} ya ha sido asignada al LED ${snap.val().ledId}.`);
+        }
 
-    // 💡 Paso 1: Actualizar la referencia del LED para que se pinte en la interfaz.
-    // Esto es lo que falta en tu código actual.
-    // Necesitamos el grupo y la línea para la ruta. Asumimos 'CALIDAD_MULTIPORT' y 'linea1'.
-    const grupo = 'CALIDAD_MULTIPORT';
-    const linea = 'linea1';
+        // Si no está asignada, continuar con el proceso
+        const payload = {
+            tarimaId,
+            asignadoPor: window.__usuarioActual || 'N/D',
+            timestamp: Date.now()
+        };
 
-    // Parsear el índice del LED desde el ledId (ej. 'linea1-1' -> 0)
-    const ledIndex = parseInt(ledId.split('-')[1]) - 1;
+        const grupo = 'CALIDAD_MULTIPORT';
+        const linea = 'linea1';
+        const ledIndex = parseInt(ledId.split('-')[1]) - 1;
 
-    // Actualiza la referencia 'estadoLEDs' con el nuevo estado
-    const ledEstadoRef = db.ref(`estadoLEDs/${grupo}/${linea}/${ledIndex}`);
-    ledEstadoRef.set({
-        color: 'naranja', // Estado inicial en revisión
-        tarimaId: tarimaId,
-        usuario: window.__usuarioActual || 'N/D',
-        timestamp: new Date().toISOString()
-    })
-    .then(() => {
-        alert(`Tarima ${tarimaId} asignada al LED ${ledId}`);
-    })
-    .catch(err => {
-        console.error('Error asignando LED:', err);
-        alert('No se pudo asignar el LED. Intenta nuevamente.');
+        const ledEstadoRef = db.ref(`estadoLEDs/${grupo}/${linea}/${ledIndex}`);
+        ledEstadoRef.set({
+            color: 'naranja',
+            tarimaId: tarimaId,
+            usuario: window.__usuarioActual || 'N/D',
+            timestamp: new Date().toISOString()
+        }).then(() => {
+            // 💡 Paso 2: Registrar que la tarima ya fue asignada
+            database.ref('tarimasAsignadas/' + tarimaId).set({ ledId: ledId, timestamp: Date.now() });
+            alert(`✅ Tarima ${tarimaId} asignada al LED ${ledId}`);
+        }).catch(err => {
+            console.error('Error asignando LED:', err);
+            alert('No se pudo asignar el LED. Intenta nuevamente.');
+        });
     });
 }
 
@@ -1856,13 +1868,13 @@ function puedeControlar(grupo){
 function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
     const ledPath = `${linea}-${idx+1}`;
+    const usuarioActual = window.__usuarioActual || '';
 
-    ledRef.once('value', snapshot => {
-        const estadoActual = snapshot.val() || {};
-        const usuarioActual = window.__usuarioActual || '';
-
-        // --- CALIDAD ---
-        if (usuarioActual.startsWith('CALIDAD_')) {
+    // --- LÓGICA DE PERMISOS Y ACCIÓN ---
+    if (usuarioActual.startsWith('CALIDAD_') && grupo.startsWith('CALIDAD_')) {
+        // Lógica para usuarios de Calidad
+        ledRef.once('value', snapshot => {
+            const estadoActual = snapshot.val() || {};
             if (estadoActual.color === 'verde') {
                 return alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
             }
@@ -1875,10 +1887,11 @@ function togglearLED(grupo, idx, linea = 'linea1') {
             } else {
                 alert('La tarima debe estar en revisión (naranja) para cambiar su estado.');
             }
-
-        // --- PRODUCCIÓN ---
-        } else if (esUsuarioProduccion() && usuarioActual.includes(grupo)) {
-            // Lógica para recibir una tarima liberada por Calidad (color verde)
+        });
+    } else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('CALIDAD_')) {
+        // Lógica para recibir tarima de Calidad (si está en verde)
+        ledRef.once('value', snapshot => {
+            const estadoActual = snapshot.val() || {};
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
                 if (!confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`)) return;
 
@@ -1888,49 +1901,47 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     recibidoEn: new Date().toISOString(),
                     ledOrigen: ledPath
                 });
-
                 ledRef.set(null);
-
                 db.ref('historial').push({
-                    usuario: usuarioActual,
-                    grupo: grupo,
-                    led: ledPath,
-                    accion: 'recibida_de_calidad',
-                    tarimaId: estadoActual.tarimaId,
+                    usuario: usuarioActual, grupo: grupo, led: ledPath,
+                    accion: 'recibida_de_calidad', tarimaId: estadoActual.tarimaId,
                     timestamp: new Date().toISOString()
                 });
+            } else {
+                alert('Solo puedes recibir tarimas liberadas (verdes).');
             }
-            // Lógica para asignar una tarima a un LED de Producción que está libre
-            else if (!estadoActual.encendido && estadoActual.tarimaId === undefined) {
+        });
+    } else if (usuarioActual.startsWith('PRODUCCION_') && grupo.startsWith('PRODUCCION_')) {
+        // Lógica para asignar una tarima a un LED de Producción libre
+        ledRef.once('value', snapshot => {
+            const estadoActual = snapshot.val() || {};
+            if (!estadoActual.encendido && !estadoActual.tarimaId) {
                 mostrarSelectorTarimaProduccion(grupo, idx, linea);
             } else {
-                alert('Solo puedes recibir tarimas liberadas (verdes) o asignar una a un LED libre.');
+                alert('Solo puedes asignar una tarima a un LED que está libre.');
             }
-
-        // --- LOGÍSTICA ---
-        } else if (usuarioActual === 'LOGÍSTICA') {
+        });
+    } else if (usuarioActual === 'LOGÍSTICA') {
+        // Lógica para Logística
+        ledRef.once('value', snapshot => {
+            const estadoActual = snapshot.val() || {};
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`)) return;
-
                 ledRef.set(null);
-
                 db.ref('historial').push({
-                    usuario: usuarioActual,
-                    grupo: grupo,
-                    led: ledPath,
-                    accion: 'recolectada',
-                    tarimaId: estadoActual.tarimaId,
+                    usuario: usuarioActual, grupo: grupo, led: ledPath,
+                    accion: 'recolectada', tarimaId: estadoActual.tarimaId,
                     timestamp: new Date().toISOString()
                 });
             } else {
                 alert('LOGÍSTICA solo puede apagar LEDs con tarima asignada.');
             }
-
-        } else {
-            alert('No tienes permiso para controlar estos LEDs.');
-        }
-    });
+        });
+    } else {
+        alert('No tienes permiso para controlar estos LEDs.');
+    }
 }
+
 
 // ================= LÓGICA DE CALIDAD MODAL =================
 function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
