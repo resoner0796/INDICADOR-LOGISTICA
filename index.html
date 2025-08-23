@@ -343,6 +343,17 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 #modalRechazo button[type="submit"]:hover {
   background-color: var(--btn-bg-hover);
 }
+
+#modalRechazo .modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+#modalRechazo .modal-actions button {
+  flex: 1;
+  margin: 0 5px;
+}
+  
 .led.naranja {
   background: radial-gradient(circle at 48% 45%, #ff9800 40%, #c17500 100%);
   box-shadow: 0 0 22px #ff9800, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
@@ -848,7 +859,18 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         </div>
         <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
+  <div class="grupo" data-grupo="MULTIPORT">
+  <h4>MULTIPORT</h4>
+  <p>Asignadas: <span id="asignadas_MULTIPORT">0</span></p>
+  <p>Recolectadas: <span id="recolectadas_MULTIPORT">0</span></p>
+</div>
 
+<div class="grupo" data-grupo="CALIDAD_MULTIPORT">
+  <h4>Calidad MULTIPORT</h4>
+  <p>Liberadas: <span id="liberadas_CALIDAD_MULTIPORT">0</span></p>
+  <p>Rechazadas: <span id="rechazadas_CALIDAD_MULTIPORT">0</span></p>
+</div>
+  
     <div class="grupo" data-grupo="CALIDAD_DROPS">
         <div class="nombre">CALIDAD DROPS</div>
         <div class="tarimas">Tarimas: 0</div>
@@ -1024,7 +1046,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 </style>
   
 <div id="modalRechazo" class="modal-calidad">
-<div class="modal-content">
+  <div class="modal-content">
     <h3>Detalles del Rechazo</h3>
     <form id="formularioRechazo">
         <label for="empleado">Empleado Originador:</label>
@@ -1048,11 +1070,13 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <label for="accion">Acción correctiva:</label>
         <textarea id="accion" name="accion" required></textarea>
 
-        <button type="submit">Guardar Rechazo</button>
+        <div class="modal-actions">
+            <button type="submit">Guardar Rechazo</button>
+            <button type="button" onclick="cerrarModalRechazo()">Cancelar</button>
+        </div>
     </form>
+  </div>
 </div>
-</div>
-
   <!-- =======================
    MODAL: Asignar Tarima en Producción
 ========================= -->
@@ -1217,6 +1241,14 @@ let miGrafico;
 let graficosDashboard = {};
 let dashboardUpdateInterval;
 
+
+// -------------------------------------------------------
+//  ✅ Restauración/Compat: seleccionarUsuario()
+//  - Evita el error "seleccionarUsuario is not defined"
+//  - Si existía una versión anterior, la detecta y delega.
+//  - AÑADE: seteo de tema oscuro para Calidad/Producción,
+//           y muestra el FAB de Tarimas.
+// -------------------------------------------------------
 // ================= FIREBASE =================
 const firebaseConfig = {
     apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
@@ -1240,15 +1272,6 @@ window.database = window.database || firebase.database();
 
 // Guardaremos el usuario actual (texto del botón que usan)
 window.__usuarioActual = null;
-
-// -------------------------------------------------------
-//  ✅ Restauración/Compat: seleccionarUsuario()
-//  - Evita el error "seleccionarUsuario is not defined"
-//  - Si existía una versión anterior, la detecta y delega.
-//  - AÑADE: seteo de tema oscuro para Calidad/Producción,
-//           y muestra el FAB de Tarimas.
-// -------------------------------------------------------
-
 
 (function compatSeleccionarUsuario(){
   const legacy = window.seleccionarUsuario; // por si ya existía
@@ -1535,7 +1558,9 @@ function asignarTarimaProduccion() {
         alert(`✅ Tarima ${tarima.tarimaId} asignada al LED ${linea}-${idx+1}`);
     });
 }
-  // --- !!TARIMAS RECIBIDAS POR CALIDAD !! ---
+  // 🔥 Incrementar contador de tarimas asignadas en Producción
+db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/asignadas`)
+  .transaction(val => (val || 0) + 1);  // --- !!TARIMAS RECIBIDAS POR CALIDAD !! ---
   
   function renderTarimasRecibidas(grupo) {
     const panel = document.getElementById('listaTarimasRecibidas');
@@ -1853,6 +1878,40 @@ function obtenerTurnoActual() {
             contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
         });
     });
+
+// --- Escuchar contadores de tarimas en tiempo real ---
+const { fecha, turno } = obtenerTurnoActual();
+const contadoresTarimasRef = database.ref(`contadoresTarimas/${fecha}/${turno}`);
+
+contadoresTarimasRef.on('value', snapshot => {
+    const contadores = snapshot.val() || {};
+
+    // Grupos de producción
+    ["MULTIPORT", "DROPS", "BEDROCK"].forEach(grupo => {
+        const asignadas = contadores[grupo]?.asignadas || 0;
+        const recolectadas = contadores[grupo]?.recolectadas || 0;
+
+        const spanAsignadas = document.getElementById(`asignadas_${grupo}`);
+        const spanRecolectadas = document.getElementById(`recolectadas_${grupo}`);
+
+        if (spanAsignadas) spanAsignadas.textContent = asignadas;
+        if (spanRecolectadas) spanRecolectadas.textContent = recolectadas;
+    });
+
+    // Grupos de calidad
+    ["CALIDAD_MULTIPORT", "CALIDAD_DROPS", "CALIDAD_BEDROCK"].forEach(grupo => {
+        const liberadas = contadores[grupo]?.liberadas || 0;
+        const rechazadas = contadores[grupo]?.rechazadas || 0;
+
+        const spanLiberadas = document.getElementById(`liberadas_${grupo}`);
+        const spanRechazadas = document.getElementById(`rechazadas_${grupo}`);
+
+        if (spanLiberadas) spanLiberadas.textContent = liberadas;
+        if (spanRechazadas) spanRechazadas.textContent = rechazadas;
+    });
+});
+    
+    
     contadoresCalidadRef.on('value', (snapshot) => {
         const contadores = snapshot.val() || {};
         const gruposCalidad = ['CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
@@ -1864,9 +1923,35 @@ function obtenerTurnoActual() {
             const rechazadasSpan = document.getElementById(`rechazadas_${grupo}`);
             if (liberadasSpan) liberadasSpan.textContent = liberadas;
             if (rechazadasSpan) rechazadasSpan.textContent = rechazadas;
+      
+// --- Escuchar cambios en LEDs en tiempo real ---
+const ledsRef = database.ref('estadoLEDs');
+ledsRef.on('value', snapshot => {
+    const estados = snapshot.val() || {};
+    actualizarVistaLEDs(estados);
+});
+    });
+}
+
+function actualizarVistaLEDs(estados) {
+    Object.keys(estados).forEach(grupo => {
+        Object.keys(estados[grupo]).forEach(linea => {
+            estados[grupo][linea].forEach((estado, idx) => {
+                const ledElem = document.querySelector(
+                    `.led[data-grupo="${grupo}"][data-linea="${linea}"][data-idx="${idx}"]`
+                );
+                if (!ledElem) return;
+
+                if (estado && estado.encendido) {
+                    ledElem.classList.add(estado.color || 'naranja');
+                } else {
+                    ledElem.classList.remove('verde', 'rojo', 'naranja');
+                }
+            });
         });
     });
 }
+    
 // ================= PERMISOS Y LÓGICA =================
 function esUsuarioProduccion() {
     return CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado);
@@ -1974,6 +2059,10 @@ else if (
             }
         } else {
             alert('No tienes permiso para controlar estos LEDs.');
+
+          // 🔥 Incrementar contador de tarimas rechazadas
+db.ref(`contadoresTarimas/${fecha}/${turno}/CALIDAD_${grupo}/rechazadas`)
+  .transaction(val => (val || 0) + 1);
         }
     });
 }
@@ -2008,8 +2097,10 @@ function actualizarEstadoLED(nuevoColor) {
         if (nuevoColor === 'verde') {
             db.ref('contadores/calidad/liberadas').transaction(val => (val || 0) + 1);
         }
-
-        cerrarModalCalidad();
+// 🔥 Incrementar contador de tarimas asignadas en Producción
+db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/asignadas`)
+  .transaction(val => (val || 0) + 1);        cerrarModalCalidad();
+      
     });
 }
 
@@ -2091,7 +2182,7 @@ function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
 function cerrarModalCalidad() {
     document.getElementById('modalOpcionesCalidad').style.display = 'none';
 }
-// --- ATENCION AQUI ---
+// --- MODAL PRODUCCION ASIGNAR TARIMAS A LED ---
   
   function mostrarModalProduccion(grupo, linea = 'linea1') {
     const modal = document.getElementById('modalAsignarTarimaProduccion');
@@ -2202,6 +2293,7 @@ function aplicarEstadoCalidad(nuevoColor) {
     }
 }
 
+
 function mostrarFormularioRechazo() {
     document.getElementById('modalCalidad').classList.remove('visible');
     document.getElementById('modalRechazo').classList.add('visible');
@@ -2246,14 +2338,23 @@ function guardarRechazo() {
             detalles: data
         });
 
-        // 🔥 Incrementar contador
         db.ref('contadores/calidad/rechazadas').transaction(val => (val || 0) + 1);
 
-        alert(`❌ Tarima ${tarimaId} rechazada.`);
-        cerrarModalCalidad();
+      // 🔥 Incrementar contador de tarimas rechazadas
+db.ref(`contadoresTarimas/${fecha}/${turno}/CALIDAD_${grupo}/rechazadas`)
+  .transaction(val => (val || 0) + 1);        alert(`❌ Tarima ${tarimaId} rechazada.`);
+
+        // 🔥 Cerrar modal y limpiar formulario
+        cerrarModalRechazo();
+        form.reset();
     });
 }
+    
+function cerrarModalRechazo() {
+    document.getElementById('modalRechazo').classList.remove('visible');
+} 
 
+  
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function activarPantalla(id){
     document.querySelectorAll('.pantalla').forEach(p => {
