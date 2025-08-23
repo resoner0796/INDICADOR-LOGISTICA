@@ -1801,6 +1801,7 @@ function obtenerTurnoActual() {
 // --- !! SINCRONIZACION EN TIEMPO REAL  !! ---
   
   // --- !! SINCRONIZACION EN TIEMPO REAL CON TARIMAS !! ---
+// --- !! SINCRONIZACION EN TIEMPO REAL CON TARIMAS !! ---
 function iniciarListenersFirebase() {
     const { fecha, turno } = obtenerTurnoActual();
     document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
@@ -1915,7 +1916,7 @@ function iniciarListenersFirebase() {
             }
         });
     });
-}
+} // 👈 cierre de la función
   
 function actualizarVistaLEDs(estados) {
     Object.keys(estados).forEach(grupo => {
