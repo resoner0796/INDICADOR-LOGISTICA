@@ -1558,7 +1558,7 @@ function asignarTarimaProduccion(grupo, idx, linea) {
 // ========================
 function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
-    const tarimaRef = db.ref(`tarimas/${tarimaId}`);
+    const tarimaRef = db.ref(`tarimasRecibidas//${tarimaId}`);
 
     tarimaRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
@@ -1847,13 +1847,15 @@ function iniciarListenersFirebase() {
     const { fecha, turno } = obtenerTurnoActual();
     document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
 
-    // 🔄 Limpiar listeners anteriores
+    // 🔗 Referencias a la base de datos
+    const historialRef = db.ref(`historialLogs/${fecha}/${turno}`);
+    const contadoresTarimasRef = db.ref(`contadoresTarimas/${fecha}/${turno}`);
+    
+    // 🔄 Limpiar listeners anteriores (si están definidos)
+    // Nota: Aunque ya tienes variables globales, declararlas aquí dentro asegura
+    // que siempre tengas la referencia correcta para este turno.
     if (historialRef) historialRef.off();
     if (contadoresTarimasRef) contadoresTarimasRef.off();
-
-    // 🔗 Referencias a la base de datos
-    historialRef = db.ref(`historialLogs/${fecha}/${turno}`);
-    contadoresTarimasRef = db.ref(`contadoresTarimas/${fecha}/${turno}`);
 
     // --- Listener: historial en tiempo real ---
     historialRef.on('value', (snapshot) => {
