@@ -1515,6 +1515,7 @@ function asignarTarimaProduccion(grupo, idx, linea) {
     }
 
     const recibidaRef = db.ref(`tarimasRecibidas/${grupo}/${tarimaKey}`);
+
     recibidaRef.once('value', snapshot => {
         const tarima = snapshot.val();
         if (!tarima) {
@@ -1524,9 +1525,18 @@ function asignarTarimaProduccion(grupo, idx, linea) {
 
         const { fecha, turno } = obtenerTurnoActual();
 
-        // 🔥 Actualizamos nodo TARIMAS directamente
-        // Utiliza recibidaRef para actualizar la tarima correcta.
-        recibidaRef.update({
+        // 🔥 Guardar tarima en el LED de Producción
+        const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+        ledRef.set({
+            encendido: true,
+            tarimaId: tarima.tarimaId,
+            usuario: usuarioSeleccionado,
+            timestamp: new Date().toISOString(),
+            horaEncendido: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // 🔥 Actualizar estado de la tarima global
+        db.ref(`tarimas/${tarima.tarimaId}`).update({
             estado: 'asignada',
             grupo,
             linea,
@@ -1550,7 +1560,7 @@ function asignarTarimaProduccion(grupo, idx, linea) {
         // 🔥 Eliminar de recibidas
         recibidaRef.remove();
 
-        alert(`✅ Tarima ${tarima.tarimaId} asignada a ${grupo} en ${linea}-${idx+1}`);
+        alert(`✅ Tarima ${tarima.tarimaId} asignada a LED ${linea}-${idx+1}`);
         cerrarModalProduccion();
     });
 }
