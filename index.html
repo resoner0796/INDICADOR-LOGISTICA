@@ -1806,11 +1806,11 @@ function iniciarListenersFirebase() {
     const { fecha, turno } = obtenerTurnoActual();
     document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
 
-    // Limpiar listeners anteriores para evitar duplicados
+    // 🔄 Limpiar listeners anteriores
     if (historialRef) historialRef.off();
     if (contadoresTarimasRef) contadoresTarimasRef.off();
 
-    // Referencias a la base de datos
+    // 🔗 Referencias a la base de datos
     historialRef = db.ref(`historialLogs/${fecha}/${turno}`);
     contadoresTarimasRef = db.ref(`contadoresTarimas/${fecha}/${turno}`);
 
@@ -1820,7 +1820,7 @@ function iniciarListenersFirebase() {
         let tarimasTotales = 0;
         let tiempoTotalRecoleccion = 0;
 
-        // Contadores temporales para mostrar en UI
+        // 📊 Contadores por grupo
         const contadores = {
             MULTIPORT: { asignadas: 0, recolectadas: 0, rechazadas: 0, liberadas: 0 },
             BEDROCK:   { asignadas: 0, recolectadas: 0, rechazadas: 0, liberadas: 0 },
@@ -1832,30 +1832,30 @@ function iniciarListenersFirebase() {
 
         const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
+        // Procesar historial
         Object.values(logs).forEach(log => {
-            // Contabilizar según la acción registrada
             switch (log.accion) {
                 case 'asignada_en_produccion':
-                    contadores[log.grupo].asignadas++;
+                    if (contadores[log.grupo]) contadores[log.grupo].asignadas++;
                     break;
                 case 'recolectada':
-                    contadores[log.grupo].recolectadas++;
+                    if (contadores[log.grupo]) contadores[log.grupo].recolectadas++;
                     tarimasTotales++;
                     if (log.tiempoRecoleccion) {
-                        tiempos[log.grupo].push(log);
+                        tiempos[log.grupo]?.push(log);
                         tiempoTotalRecoleccion += log.tiempoRecoleccion;
                     }
                     break;
                 case 'rechazada':
-                    contadores[log.grupo].rechazadas++;
+                    if (contadores[log.grupo]) contadores[log.grupo].rechazadas++;
                     break;
                 case 'liberada':
-                    contadores[log.grupo].liberadas++;
+                    if (contadores[log.grupo]) contadores[log.grupo].liberadas++;
                     break;
             }
         });
 
-        // Calcular tiempo promedio de recolección
+        // 🕒 Calcular tiempo promedio
         const tiempoPromedio = tarimasTotales > 0
             ? Math.round(tiempoTotalRecoleccion / tarimasTotales)
             : 0;
@@ -1871,7 +1871,7 @@ function iniciarListenersFirebase() {
             resumenTurnoDiv.classList.add('oculto');
         }
 
-        // Mostrar métricos por grupo en la UI
+        // Actualizar métricos en UI
         Object.keys(contadores).forEach(grupo => {
             const c = contadores[grupo];
             const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`);
@@ -1881,7 +1881,7 @@ function iniciarListenersFirebase() {
             }
         });
 
-        // Mostrar tiempos detallados por grupo
+        // Mostrar tiempos por grupo
         Object.keys(tiempos).forEach(grupo => {
             const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
             if (!contenedorTiempos) return;
@@ -1898,7 +1898,7 @@ function iniciarListenersFirebase() {
         });
     });
 
-    // --- Listener: contadores de tarimas en tiempo real ---
+    // --- Listener: contadores globales en tiempo real ---
     contadoresTarimasRef.on('value', (snapshot) => {
         const contadores = snapshot.val() || {};
         const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS'];
@@ -1914,25 +1914,6 @@ function iniciarListenersFirebase() {
             if (target) {
                 target.textContent = `Asig: ${asig} | Rec: ${rec} | Lib: ${lib} | Rech: ${rech}`;
             }
-        });
-    });
-} // 👈 cierre de la función
-  
-function actualizarVistaLEDs(estados) {
-    Object.keys(estados).forEach(grupo => {
-        Object.keys(estados[grupo]).forEach(linea => {
-            estados[grupo][linea].forEach((estado, idx) => {
-                const ledElem = document.querySelector(
-                    `.led[data-grupo="${grupo}"][data-linea="${linea}"][data-idx="${idx}"]`
-                );
-                if (!ledElem) return;
-
-                if (estado && estado.encendido) {
-                    ledElem.classList.add(estado.color || 'naranja');
-                } else {
-                    ledElem.classList.remove('verde', 'rojo', 'naranja');
-                }
-            });
         });
     });
 }
