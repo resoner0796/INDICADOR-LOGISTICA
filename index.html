@@ -1569,20 +1569,33 @@ function asignarTarimaProduccion(grupo, idx, linea) {
 // ========================
 function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
-    const tarimaRef = db.ref(`tarimasRecibidas//${tarimaId}`);
+
+    // 🔥 Referencia a la tarima global
+    const tarimaRef = db.ref(`tarimas/${tarimaId}`);
 
     tarimaRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
-            alert(`❌ Tarima ${tarimaId} no encontrada.`);
+            alert(`❌ Tarima ${tarimaId} no encontrada en TARIMAS.`);
             return;
         }
 
+        // 🔥 Actualizar en tarimas global
         tarimaRef.update({
             estado: 'liberada',
             liberadaPor: usuarioSeleccionado,
             timestampLiberada: new Date().toISOString()
         });
 
+        // 🔥 Copiar a "recibidas" de Producción para que aparezca en su modal
+        db.ref(`tarimasRecibidas/${grupo}/${tarimaId}`).set({
+            tarimaId,
+            estado: 'recibida',
+            ledOrigen: snapshot.val().led || 'N/D',
+            recibidaDe: 'CALIDAD',
+            timestampRecibida: new Date().toISOString()
+        });
+
+        // 🔥 Registrar en historial
         db.ref(`historialLogs/${fecha}/${turno}`).push({
             usuario: usuarioSeleccionado,
             grupo,
@@ -1591,28 +1604,12 @@ function liberarTarima(tarimaId, grupo) {
             timestamp: new Date().toISOString()
         });
 
+        // 🔥 Incrementar contador
         db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/liberadas`)
             .transaction(val => (val || 0) + 1);
 
-        alert(`✅ Tarima ${tarimaId} liberada.`);
+        alert(`✅ Tarima ${tarimaId} liberada y enviada a ${grupo}.`);
         cerrarModalCalidad();
-    });
-}
-  
-  function renderTarimasRecibidas(grupo) {
-    const panel = document.getElementById('listaTarimasRecibidas');
-    if (!panel) return;
-
-    const recibidasRef = db.ref('tarimasRecibidas/' + grupo);
-    recibidasRef.on('value', snapshot => {
-        const recibidas = snapshot.val() || {};
-        panel.innerHTML = '';
-
-        Object.values(recibidas).forEach(t => {
-            const li = document.createElement('li');
-            li.textContent = `${t.tarimaId} (origen: ${t.ledOrigen})`;
-            panel.appendChild(li);
-        });
     });
 }
   // --- !!DESPLIEQUE DE TARIMA EN PANEL, AGREGA DOWNDROP A CALIDAD O !! ---
