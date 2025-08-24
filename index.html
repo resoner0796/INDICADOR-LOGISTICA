@@ -1525,7 +1525,7 @@ function asignarTarimaProduccion(grupo, idx, linea) {
         const { fecha, turno } = obtenerTurnoActual();
 
         // 🔥 Actualizamos nodo TARIMAS directamente
-        db.ref(`tarimas/${tarima.tarimaId}`).update({
+        db.ref(`tarimasRecibidas/${tarima.tarimaId}`).update({
             estado: 'asignada',
             grupo,
             linea,
