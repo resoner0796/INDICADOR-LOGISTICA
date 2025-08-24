@@ -1960,8 +1960,7 @@ function puedeControlar(grupo){
 
     return grupoBaseUsuario === grupoBaseLed;
 }
-    
-<script>
+  
 // ===================== TOGGLE LED (CORREGIDO) =====================
 function togglearLED(grupo, idx, linea = 'linea1') {
   const ledRef   = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
