@@ -1502,48 +1502,94 @@ function asignarLedATarima(ledId, tarimaId) {
     });
 }
 
- // ==========================
-// MODAL DE PRODUCCIÓN AQUI TAMBIEN ESTA EL DETALLEEEE
-// =========================
-
+// ========================
+// PRODUCCIÓN: Asignar Tarima
+// ========================
 function asignarTarimaProduccion(grupo, idx, linea) {
-    const select = document.getElementById('tarimaSelect');
-    const key = select.value;
+    const select = document.getElementById('selectTarimaProduccion');
+    const tarimaKey = select.value;
 
-    const recibidasRef = db.ref('tarimasRecibidas/' + grupo + '/' + key);
+    if (!tarimaKey) {
+        alert("❌ Debes seleccionar una tarima.");
+        return;
+    }
 
-    recibidasRef.once('value', snapshot => {
+    const recibidaRef = db.ref(`tarimasRecibidas/${grupo}/${tarimaKey}`);
+    recibidaRef.once('value', snapshot => {
         const tarima = snapshot.val();
-        if (!tarima) return alert("Tarima no encontrada.");
+        if (!tarima) {
+            alert("❌ Tarima no encontrada en recibidas.");
+            return;
+        }
 
-        const ledRef = db.ref('estadoLEDs/' + grupo + '/' + linea + '/' + idx);
+        const { fecha, turno } = obtenerTurnoActual();
 
-        ledRef.set({
-            encendido: true,
-            usuario: usuarioSeleccionado,
-            horaEncendido: new Date().toISOString(),
-            tarimaId: tarima.tarimaId
+        // 🔥 Actualizamos nodo TARIMAS directamente
+        db.ref(`tarimas/${tarima.tarimaId}`).update({
+            estado: 'asignada',
+            grupo,
+            linea,
+            asignadaPor: usuarioSeleccionado,
+            timestampAsignada: new Date().toISOString()
         });
 
-        // Eliminar de lista de recibidas
-        recibidasRef.remove();
-
-        // Guardar en historial
-        historialRef.push({
+        // 🔥 Guardar en historialLogs
+        db.ref(`historialLogs/${fecha}/${turno}`).push({
             usuario: usuarioSeleccionado,
-            grupo: grupo,
-            led: `${linea}-${idx+1}`,
+            grupo,
             accion: 'asignada_en_produccion',
             tarimaId: tarima.tarimaId,
             timestamp: new Date().toISOString()
         });
 
-        // 🔥 Incrementar contador de tarimas asignadas en este turno
-        const { fecha, turno } = obtenerTurnoActual();
+        // 🔥 Incrementar contador
         db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/asignadas`)
-          .transaction(val => (val || 0) + 1);
+            .transaction(val => (val || 0) + 1);
+
+        // 🔥 Eliminar de recibidas
+        recibidaRef.remove();
+
+        alert(`✅ Tarima ${tarima.tarimaId} asignada a ${grupo} en ${linea}-${idx+1}`);
+        cerrarModalProduccion();
+    });
+}
 
         cerrarModal(document.querySelector('.modal-produccion button'));
+    });
+}
+
+  // ========================
+// CALIDAD: Liberar Tarima
+// ========================
+function liberarTarima(tarimaId, grupo) {
+    const { fecha, turno } = obtenerTurnoActual();
+    const tarimaRef = db.ref(`tarimas/${tarimaId}`);
+
+    tarimaRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+            alert(`❌ Tarima ${tarimaId} no encontrada.`);
+            return;
+        }
+
+        tarimaRef.update({
+            estado: 'liberada',
+            liberadaPor: usuarioSeleccionado,
+            timestampLiberada: new Date().toISOString()
+        });
+
+        db.ref(`historialLogs/${fecha}/${turno}`).push({
+            usuario: usuarioSeleccionado,
+            grupo,
+            accion: 'liberada',
+            tarimaId,
+            timestamp: new Date().toISOString()
+        });
+
+        db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/liberadas`)
+            .transaction(val => (val || 0) + 1);
+
+        alert(`✅ Tarima ${tarimaId} liberada.`);
+        cerrarModalCalidad();
     });
 }
   
@@ -1917,7 +1963,30 @@ function iniciarListenersFirebase() {
         });
     });
 }
-    
+
+// --- Actualizar contadores de tarimas ---
+function actualizarContadoresTarimas(grupo, accion) {
+    const { fecha, turno } = obtenerTurnoActual();
+    const contadorRef = db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}`);
+
+    switch (accion) {
+        case 'asignada_en_produccion':
+            contadorRef.child('asignadas').transaction(val => (val || 0) + 1);
+            break;
+        case 'recolectada':
+            contadorRef.child('recolectadas').transaction(val => (val || 0) + 1);
+            break;
+        case 'rechazada':
+            contadorRef.child('rechazadas').transaction(val => (val || 0) + 1);
+            break;
+        case 'liberada':
+            contadorRef.child('liberadas').transaction(val => (val || 0) + 1);
+            break;
+    }
+}
+
+
+  
 // ================= PERMISOS Y LÓGICA =================
 function esUsuarioProduccion() {
     return CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado);
@@ -2160,9 +2229,10 @@ function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
 function cerrarModalCalidad() {
     document.getElementById('modalOpcionesCalidad').style.display = 'none';
 }
-// --- MODAL PRODUCCION ASIGNAR TARIMAS A LED ---
-  
-  function mostrarModalProduccion(grupo, linea = 'linea1') {
+// ========================
+// PRODUCCIÓN: Modal de Asignación
+// ========================
+function mostrarModalProduccion(grupo, linea = 'linea1') {
     const modal = document.getElementById('modalAsignarTarimaProduccion');
     const selectTarima = modal.querySelector('#selectTarimaProduccion');
     const selectLed = modal.querySelector('#selectLedProduccion');
@@ -2187,7 +2257,7 @@ function cerrarModalCalidad() {
             selectTarima.appendChild(opt);
         });
 
-        // Poblar LEDs → solo el LED que tocaste
+        // Poblar LEDs → solo el LED seleccionado
         selectLed.innerHTML = '';
         const opt = document.createElement('option');
         opt.value = ledSeleccionado.idx;
@@ -2199,51 +2269,14 @@ function cerrarModalCalidad() {
 }
 
 document.getElementById('btnAsignarProduccion').addEventListener('click', () => {
-    const tarimaKey = document.getElementById('selectTarimaProduccion').value;
-    if (!tarimaKey) {
-        alert('Debes seleccionar una tarima.');
-        return;
-    }
-
     const { grupo, idx, linea } = ledSeleccionado;
-
-    // Obtener tarima seleccionada
-    const recibidaRef = db.ref(`tarimasRecibidas/${grupo}/${tarimaKey}`);
-    recibidaRef.once('value', snapshot => {
-        const tarima = snapshot.val();
-        if (!tarima) return alert("Tarima no encontrada.");
-
-        // Guardamos tarima en LED de Producción
-        const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
-        ledRef.set({
-            encendido: true,
-            tarimaId: tarima.tarimaId,
-            usuario: usuarioSeleccionado,
-            timestamp: new Date().toISOString(),
-            horaEncendido: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        // Eliminamos de recibidas
-        recibidaRef.remove();
-
-        // Guardamos en historial
-        historialRef.push({
-            usuario: usuarioSeleccionado,
-            grupo,
-            led: `${linea}-${idx+1}`,
-            accion: 'asignada_en_produccion',
-            tarimaId: tarima.tarimaId,
-            timestamp: new Date().toISOString()
-        });
-
-        alert(`✅ Tarima ${tarima.tarimaId} asignada a LED ${linea}-${idx+1}`);
-        cerrarModalProduccion();
-    });
+    asignarTarimaProduccion(grupo, idx, linea);
 });
-  
+
 function cerrarModalProduccion() {
     document.getElementById('modalAsignarTarimaProduccion').style.display = 'none';
 }
+  
 function aplicarEstadoCalidad(nuevoColor) {
     const { grupo, idx, linea } = ledActivoParaFormulario;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
@@ -2277,59 +2310,58 @@ function mostrarFormularioRechazo() {
     document.getElementById('modalRechazo').classList.add('visible');
 }
 
+// ========================
+// CALIDAD: Rechazar Tarima
+// ========================
 function guardarRechazo() {
     if (!ledSeleccionado.grupo) return;
 
-    const { grupo, idx, linea } = ledSeleccionado;
-    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    const { grupo } = ledSeleccionado;
+    const tarimaId = document.getElementById('parte').value; // 👈 debe contener ID real de tarima
 
-    ledRef.once('value').then(snap => {
-        const estado = snap.val() || {};
-        const tarimaId = estado.tarimaId || "N/D";
+    const form = document.getElementById('formularioRechazo');
+    const data = {
+        empleado: form.empleado.value,
+        linea: form.linea.value,
+        parte: form.parte.value,
+        descripcionParte: form.descripcionParte.value,
+        problema: form.problema.value,
+        causa: form.causa.value,
+        accion: form.accion.value,
+        timestamp: new Date().toISOString()
+    };
 
-        const form = document.getElementById('formularioRechazo');
-        const data = {
-            empleado: form.empleado.value,
-            linea: form.linea.value,
-            parte: form.parte.value,
-            descripcionParte: form.descripcionParte.value,
-            problema: form.problema.value,
-            causa: form.causa.value,
-            accion: form.accion.value,
-            timestamp: new Date().toISOString()
-        };
-
-        ledRef.update({
-            color: 'rojo',
-            tarimaId,
-            rechazo: data,
-            usuario: usuarioSeleccionado
-        });
-
-        db.ref('historial').push({
-            usuario: usuarioSeleccionado,
-            grupo,
-            led: `${linea}-${idx+1}`,
-            accion: 'rechazada',
-            tarimaId,
-            timestamp: new Date().toISOString(),
-            detalles: data
-        });
-
-        // 🔥 Incrementar contador de tarimas rechazadas
-        const { fecha, turno } = obtenerTurnoActual();
-        db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/rechazadas`)
-          .transaction(val => (val || 0) + 1);
-
-        alert(`❌ Tarima ${tarimaId} rechazada.`);
-        cerrarModalCalidad();
-        cerrarModalRechazo(); // 🔥 para que cierre el modal después de guardar
+    // 🔥 Actualizamos nodo tarimas
+    db.ref(`tarimas/${tarimaId}`).update({
+        estado: 'rechazada',
+        rechazo: data,
+        rechazadoPor: usuarioSeleccionado,
+        timestampRechazo: new Date().toISOString()
     });
+
+    // 🔥 Guardamos en historialLogs
+    const { fecha, turno } = obtenerTurnoActual();
+    db.ref(`historialLogs/${fecha}/${turno}`).push({
+        usuario: usuarioSeleccionado,
+        grupo,
+        accion: 'rechazada',
+        tarimaId,
+        timestamp: new Date().toISOString(),
+        detalles: data
+    });
+
+    // 🔥 Incrementar contador
+    db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/rechazadas`)
+        .transaction(val => (val || 0) + 1);
+
+    alert(`❌ Tarima ${tarimaId} rechazada.`);
+    cerrarModalCalidad();
+    cerrarModalRechazo();
 }
-    
+
 function cerrarModalRechazo() {
     document.getElementById('modalRechazo').classList.remove('visible');
-} 
+}
 
   
 // ================= NAVEGACIÓN Y ARRANQUE =================
