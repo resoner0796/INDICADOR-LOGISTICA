@@ -2071,32 +2071,36 @@ function togglearLED(grupo, idx, linea = 'linea1') {
     }
 
     // ===== PRODUCCIÓN recibiendo desde CALIDAD (clic en LED de CALIDAD) =====
-    if (
-      (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK') &&
-      grupo.startsWith('CALIDAD_')
-    ) {
-      if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
-        const ok = confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`);
-        if (!ok) return;
+if (
+  (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK') &&
+  grupo.startsWith('CALIDAD_')
+) {
+  if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
+    const ok = confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`);
+    if (!ok) return;
 
-        // Guardar SIEMPRE por clave = tarimaId, en el grupo de producción (usuarioActual)
-        const tarimaId = estadoActual.tarimaId;
-        db.ref(`tarimasRecibidas/${usuarioActual}/${tarimaId}`).set({
-          tarimaId,
-          recibidoEn: nowISO(),
-          ledOrigen:  ledPath,
-          recibidaDe: grupo
-        });
+    const tarimaId = estadoActual.tarimaId;
 
-        pushWorkflow(tarimaId, 'recibida_por_produccion', { grupoOrigen: grupo, grupoDestino: usuarioActual });
+    // Guardar en recibidas de Producción
+    db.ref(`tarimasRecibidas/${usuarioActual}/${tarimaId}`).set({
+      tarimaId,
+      recibidoEn: nowISO(),
+      ledOrigen: `${linea}-${idx+1}`,
+      recibidaDe: grupo
+    });
 
-        alert(`✅ Tarima ${tarimaId} recibida por ${usuarioActual}`);
-      } else {
-        alert('Solo puedes recibir tarimas liberadas (verdes).');
-      }
-      return;
-    }
+    // Limpiar el LED de Calidad para liberarlo
+    const ledRefCalidad = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    ledRefCalidad.set(null);
 
+    // Workflow + historial
+    pushWorkflow(tarimaId, 'recibida_por_produccion', { grupoOrigen: grupo, grupoDestino: usuarioActual });
+    alert(`✅ Tarima ${tarimaId} recibida por ${usuarioActual}`);
+  } else {
+    alert('Solo puedes recibir tarimas liberadas (verdes).');
+  }
+  return;
+}
     // ===== PRODUCCIÓN sobre sus propios LEDs (asignar) =====
     if (
       (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK') &&
@@ -2345,50 +2349,49 @@ function mostrarFormularioRechazo() {
 // ========================
 // CALIDAD: Rechazar Tarima
 // ========================
-function guardarRechazo() {
-    if (!ledSeleccionado.grupo) return;
+function guardarRechazo(tarimaId, grupoCalidad) {
+  const { fecha, turno } = obtenerTurnoActual();
+  const tarimaRef = db.ref(`tarimas/${tarimaId}`);
 
-    const { grupo } = ledSeleccionado;
-    const tarimaId = document.getElementById('parte').value; // 👈 debe contener ID real de tarima
+  tarimaRef.once('value').then(snap => {
+    if (!snap.exists()) {
+      alert(`❌ Tarima ${tarimaId} no encontrada.`);
+      return;
+    }
 
-    const form = document.getElementById('formularioRechazo');
-    const data = {
-        empleado: form.empleado.value,
-        linea: form.linea.value,
-        parte: form.parte.value,
-        descripcionParte: form.descripcionParte.value,
-        problema: form.problema.value,
-        causa: form.causa.value,
-        accion: form.accion.value,
-        timestamp: new Date().toISOString()
-    };
-
-    // 🔥 Actualizamos nodo tarimas
-    db.ref(`tarimas/${tarimaId}`).update({
-        estado: 'rechazada',
-        rechazo: data,
-        rechazadoPor: usuarioSeleccionado,
-        timestampRechazo: new Date().toISOString()
+    // 1) Estado global
+    tarimaRef.update({
+      estado: 'rechazada',
+      rechazadaPor: usuarioSeleccionado,
+      timestampRechazada: nowISO()
     });
 
-    // 🔥 Guardamos en historialLogs
-    const { fecha, turno } = obtenerTurnoActual();
+    // 2) Workflow + historial + contador (Calidad)
+    pushWorkflow(tarimaId, 'rechazada', { grupoCalidad });
     db.ref(`historialLogs/${fecha}/${turno}`).push({
-        usuario: usuarioSeleccionado,
-        grupo,
-        accion: 'rechazada',
-        tarimaId,
-        timestamp: new Date().toISOString(),
-        detalles: data
+      usuario: usuarioSeleccionado,
+      grupo: grupoCalidad,
+      accion: 'rechazada',
+      tarimaId,
+      timestamp: nowISO()
     });
+    db.ref(`contadoresTarimas/${fecha}/${turno}/${grupoCalidad}/rechazadas`)
+      .transaction(v => (v || 0) + 1);
 
-    // 🔥 Incrementar contador
-    db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/rechazadas`)
-        .transaction(val => (val || 0) + 1);
+    // 3) Visual: LED en rojo
+    if (ledSeleccionado.grupo === grupoCalidad) {
+      const { idx, linea } = ledSeleccionado;
+      const ledRef = db.ref(`estadoLEDs/${grupoCalidad}/${linea}/${idx}`);
+      ledRef.update({
+        color: 'rojo',
+        tarimaId: tarimaId,
+        timestamp: nowISO()
+      });
+    }
 
     alert(`❌ Tarima ${tarimaId} rechazada.`);
-    cerrarModalCalidad();
-    cerrarModalRechazo();
+    cerrarModalCalidad && cerrarModalCalidad();
+  });
 }
 
 function cerrarModalRechazo() {
