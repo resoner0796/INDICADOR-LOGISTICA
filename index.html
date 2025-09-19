@@ -82,7 +82,7 @@ html, body {
 .brand-title {
   font-family: 'Times New Roman', Times, serif;
   color: white;
-  font-size: clamp(60px, 3vw, 28px);
+  font-size: clamp(40px, 3vw, 28px);
   font-weight: normal;
   text-align: center;
   width: 100%;
@@ -194,7 +194,7 @@ html, body {
 .btn-rojo { background: rgba(239, 68, 68, 0.25); }
 .btn-rojo:hover { background: rgba(239, 68, 68, 0.4); }
 
-/* === NUEVO: Botones de Administración/Reportes === */
+/* === Botones de Administración/Reportes === */
 .usuario-btn.btn-management {
   background: rgba(107, 114, 128, 0.25); /* Equivalente a --bg-light con transparencia */
   border-color: rgba(107, 114, 128, 0.4);
@@ -857,6 +857,45 @@ html, body {
   .reporte-calidad-mobile { display: none; }
 }
 
+/* === AJUSTES PARA VISTA HORIZONTAL EN MÓVILES === */
+@media (max-height: 500px) and (orientation: landscape) {
+    #pantalla2 .zona-centro {
+        margin-top: 5px;
+        gap: 15px;
+        padding-bottom: 15px;
+    }
+    #pantalla2 .header {
+        padding: 0 10px;
+    }
+    #pantalla2 #tituloFijo {
+        font-size: clamp(28px, 5vw, 40px);
+    }
+    #pantalla2 .grupo-contenedor {
+        flex-direction: row;
+        align-items: flex-start;
+        flex-wrap: nowrap;
+        gap: 15px;
+    }
+    #pantalla2 .grupo {
+        padding: 15px;
+        min-width: 0; /* Permitir que flexbox controle el tamaño */
+        flex: 1;
+    }
+    #pantalla2 .leds {
+        gap: 10px;
+    }
+    #pantalla2 .led {
+        --led-size: 40px;
+    }
+    .brand-title {
+        display: none; /* Ocultar el título de la marca para ahorrar espacio */
+    }
+    .footer {
+        padding: 10px 0 0;
+    }
+}
+
+
 </style>
 </head>
 <body>
@@ -865,7 +904,7 @@ html, body {
     <div class="splash-content">
         <p class="brand-title">CORNING</p>
         <div class="splash-logo-container">
-              <img src="https://i.imgur.com/JzWf27s.png" alt="Logo de Logística" class="splash-logo">
+             <img src="iconolog-512.PNG" alt="Logo de Logística" class="splash-logo">
         </div>
         <p class="splash-loading">Cargando<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></p>
     </div>
@@ -1554,7 +1593,7 @@ function pintarEstado() {
 
                     if (grupoLeds.startsWith('CALIDAD_') && estado.color) {
                         led.classList.add(estado.color);
-                        if (tarimaIdDisplay) led.innerHTML = `<span>${tarimaIdDisplay}</span>`;
+                        if (tarimaIdDisplay) led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span>`;
                     } else if (estado.encendido) {
                         led.classList.add('on');
                         if (esGrupoDeTarimas(grupoLeds)) { // Es MULTIPORT, muestra ID
