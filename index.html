@@ -516,6 +516,16 @@ body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
     font-size: 16px;
     font-weight: bold;
 }
+.custom-modal-actions input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background-color: #333;
+    color: #fff;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
 .modal-btn-confirm {
     background-color: var(--btn-bg);
     color: white;
@@ -882,6 +892,18 @@ body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
     </div>
 </div>
 
+<div id="modalContraseña" class="custom-modal-overlay">
+    <div class="custom-modal">
+        <h3 id="contraseñaTitulo">Acceso Requerido</h3>
+        <p id="contraseñaMensaje"></p>
+        <input type="password" id="contraseñaInput" placeholder="Introduce la contraseña...">
+        <div class="custom-modal-actions">
+            <button id="contraseñaBotonCancelar" class="modal-btn-cancel">Cancelar</button>
+            <button id="contraseñaBotonOk" class="modal-btn-confirm">Aceptar</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ================= CONFIG Y ESTADO =================
 const CONFIG = {
@@ -945,6 +967,7 @@ window.__usuarioActual = null;
 // ================= MODALES PERSONALIZADOS =================
 const modalAlerta = document.getElementById('modalAlerta');
 const modalConfirmacion = document.getElementById('modalConfirmacion');
+const modalContraseña = document.getElementById('modalContraseña');
 
 function mostrarAlerta(mensaje, titulo = "Notificación") {
     document.getElementById('alertaTitulo').textContent = titulo;
@@ -973,6 +996,32 @@ function mostrarConfirmacion(mensaje, titulo = "Confirmación") {
         };
     });
 }
+
+function mostrarPromptContraseña(mensaje, titulo = "Acceso Requerido") {
+    document.getElementById('contraseñaTitulo').textContent = titulo;
+    document.getElementById('contraseñaMensaje').textContent = mensaje;
+    const input = document.getElementById('contraseñaInput');
+    input.value = '';
+    modalContraseña.classList.add('visible');
+    input.focus();
+
+    return new Promise(resolve => {
+        const resolver = (value) => {
+            modalContraseña.classList.remove('visible');
+            document.getElementById('contraseñaBotonOk').onclick = null;
+            document.getElementById('contraseñaBotonCancelar').onclick = null;
+            input.onkeypress = null;
+            resolve(value);
+        };
+        
+        document.getElementById('contraseñaBotonOk').onclick = () => resolver(input.value);
+        document.getElementById('contraseñaBotonCancelar').onclick = () => resolver(null);
+        input.onkeypress = (e) => {
+            if (e.key === 'Enter') resolver(input.value);
+        };
+    });
+}
+
 
 // ================= Panel de Identificación de Tarimas =================
 const MT = {
@@ -1105,32 +1154,35 @@ function renderTarimasPendientes() {
 db.ref('tarimas').on('value', renderTarimasPendientes);
 db.ref('tarimasAsignadas').on('value', renderTarimasPendientes);
 
-function asignarLedATarima(ledIndex, tarimaId) {
+async function asignarLedATarima(ledIndex, tarimaId) {
     const grupo = usuarioSeleccionado;
     if (!grupo || !tarimaId || ledIndex === null) return mostrarAlerta('Datos incompletos para asignar.');
     const ledId = `${grupo}-linea1-${ledIndex}`;
 
-    db.ref('tarimasAsignadas').orderByChild('tarimaId').equalTo(tarimaId).once('value', snap => {
-        if (snap.exists()) return mostrarAlerta(`Error: La tarima ${tarimaId} ya ha sido asignada a un LED.`);
-        
-        const ledEstadoRef = db.ref(`estadoLEDs/${grupo}/linea1/${ledIndex}`);
-        ledEstadoRef.set({
+    const snap = await db.ref('tarimasAsignadas').orderByChild('tarimaId').equalTo(tarimaId).once('value');
+    if (snap.exists()) {
+        return mostrarAlerta(`Error: La tarima ${tarimaId} ya ha sido asignada a un LED.`);
+    }
+
+    const ledEstadoRef = db.ref(`estadoLEDs/${grupo}/linea1/${ledIndex}`);
+    try {
+        await ledEstadoRef.set({
             color: 'naranja',
             tarimaId: tarimaId,
             usuario: usuarioSeleccionado,
             timestamp: new Date().toISOString()
-        }).then(() => {
-            db.ref('tarimasAsignadas').push({ ledId: ledId, tarimaId: tarimaId, timestamp: Date.now() });
-            mostrarAlerta(`✅ Tarima ${tarimaId} asignada al LED ${parseInt(ledIndex)+1}`);
-            MT.ui.panel.classList.remove('open');
-            MT.ui.infoBox.style.display = 'none';
-            MT.ui.bxInput.value = '';
-        }).catch(err => {
-            console.error('Error asignando LED:', err);
-            mostrarAlerta('No se pudo asignar el LED.');
         });
-    });
+        await db.ref('tarimasAsignadas').push({ ledId, tarimaId, timestamp: Date.now() });
+        await mostrarAlerta(`✅ Tarima ${tarimaId} asignada al LED ${parseInt(ledIndex) + 1}`);
+        MT.ui.panel.classList.remove('open');
+        MT.ui.infoBox.style.display = 'none';
+        MT.ui.bxInput.value = '';
+    } catch (err) {
+        console.error('Error asignando LED:', err);
+        await mostrarAlerta('No se pudo asignar el LED.');
+    }
 }
+
 
 function renderTarimaEncontrada(tarima) {
   MT.ui.fields.id.textContent = tarima.id;
@@ -1267,7 +1319,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                     tarimaId: tarimaId,
                     timestamp: new Date().toISOString()
                 });
-                ledRef.set(null); // Libera el LED de Calidad
+                ledRef.set(null);
                 await mostrarAlerta(`Tarima #${tarimaId} recibida. Ahora puedes confirmarla en uno de tus LEDs.`);
             }
         }
@@ -1313,18 +1365,26 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
 }
 
 // ================= LÓGICA DE PROCESOS Y MODALES =================
-function liberarTarima(tarimaId, grupo) {
+async function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
-    const grupoProduccion = grupo.replace('CALIDAD_', '');
+    
     db.ref(`tarimas/${tarimaId}`).update({ estado: 'liberada', liberadaPor: usuarioSeleccionado, timestampLiberada: new Date().toISOString() });
-    db.ref(`tarimasRecibidas/${grupoProduccion}`).push({ tarimaId, recibidaDe: grupo, timestampRecibida: new Date().toISOString() });
-    db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'liberada', tarimaId, timestamp: new Date().toISOString() });
+    
+    // NO SE ENVÍA A PRODUCCIÓN AQUÍ, SOLO SE REGISTRA EL EVENTO
+    
+    db.ref(`historialLogs/${fecha}/${turno}`).push({
+        usuario: usuarioSeleccionado,
+        grupo,
+        accion: 'liberada',
+        tarimaId,
+        timestamp: new Date().toISOString()
+    });
     actualizarContadoresTarimas(grupo, 'liberada');
-    mostrarAlerta(`✅ Tarima ${tarimaId} liberada y enviada a ${grupoProduccion}.`);
+    await mostrarAlerta(`✅ Tarima ${tarimaId} liberada. Producción ahora puede recibirla.`);
     cerrarModalCalidad();
 }
 
-function guardarRechazo() {
+async function guardarRechazo() {
     if (!ledSeleccionado.grupo) return;
     const { grupo, tarimaId, idx, linea } = ledSeleccionado;
     const form = document.getElementById('formularioRechazo');
@@ -1338,41 +1398,40 @@ function guardarRechazo() {
     db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, timestamp: new Date().toISOString(), detalles: data });
     actualizarContadoresTarimas(grupo, 'rechazada');
     db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
-    mostrarAlerta(`❌ Tarima ${tarimaId} rechazada.`);
+    await mostrarAlerta(`❌ Tarima ${tarimaId} rechazada.`);
     cerrarModalRechazo();
     form.reset();
 }
 
-function confirmarTarimaProduccion(grupo, idx, linea) {
+async function confirmarTarimaProduccion(grupo, idx, linea) {
     const select = document.getElementById('selectTarimaProduccion');
     const tarimaKey = select.value;
     if (!tarimaKey) return mostrarAlerta("Debes seleccionar una tarima.");
 
     const recibidaRef = db.ref(`tarimasRecibidas/${grupo}/${tarimaKey}`);
-    recibidaRef.once('value', snapshot => {
-        const tarima = snapshot.val();
-        if (!tarima) return mostrarAlerta("Tarima no encontrada.");
+    const snapshot = await recibidaRef.once('value');
+    const tarima = snapshot.val();
+    if (!tarima) return mostrarAlerta("Tarima no encontrada.");
 
-        const { fecha, turno } = obtenerTurnoActual();
-        db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).set({
-            encendido: true,
-            tarimaId: tarima.tarimaId,
-            usuario: usuarioSeleccionado,
-            timestamp: new Date().toISOString(),
-            horaEncendido: new Date().toISOString()
-        });
-        db.ref(`historialLogs/${fecha}/${turno}`).push({
-            usuario: usuarioSeleccionado,
-            grupo,
-            accion: 'confirmada_en_produccion',
-            tarimaId: tarima.tarimaId,
-            timestamp: new Date().toISOString()
-        });
-        actualizarContadoresTarimas(grupo, 'confirmadas');
-        recibidaRef.remove();
-        mostrarAlerta(`✅ Tarima ${tarima.tarimaId} confirmada en LED ${linea}-${idx+1}`);
-        cerrarModalProduccion();
+    const { fecha, turno } = obtenerTurnoActual();
+    db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).set({
+        encendido: true,
+        tarimaId: tarima.tarimaId,
+        usuario: usuarioSeleccionado,
+        timestamp: new Date().toISOString(),
+        horaEncendido: new Date().toISOString()
     });
+    db.ref(`historialLogs/${fecha}/${turno}`).push({
+        usuario: usuarioSeleccionado,
+        grupo,
+        accion: 'confirmada_en_produccion',
+        tarimaId: tarima.tarimaId,
+        timestamp: new Date().toISOString()
+    });
+    actualizarContadoresTarimas(grupo, 'confirmadas');
+    recibidaRef.remove();
+    await mostrarAlerta(`✅ Tarima ${tarima.tarimaId} confirmada en LED ${linea}-${idx+1}`);
+    cerrarModalProduccion();
 }
 
 let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
@@ -1403,25 +1462,25 @@ function cerrarModalCalidad() { document.getElementById('modalCalidad').classLis
 function cerrarModalRechazo() { document.getElementById('modalRechazo').classList.remove('visible'); }
 function cerrarModalProduccion() { document.getElementById('modalAsignarTarimaProduccion').style.display = 'none'; }
 
-function mostrarModalProduccion(grupo, idx, linea) {
+async function mostrarModalProduccion(grupo, idx, linea) {
     const modal = document.getElementById('modalAsignarTarimaProduccion');
     const selectTarima = modal.querySelector('#selectTarimaProduccion');
     const selectLed = modal.querySelector('#selectLedProduccion');
     ledSeleccionado = { grupo, idx, linea };
-    db.ref(`tarimasRecibidas/${grupo}`).once('value', snapshot => {
-        const recibidas = snapshot.val() || {};
-        selectTarima.innerHTML = '';
-        const keys = Object.keys(recibidas);
-        if (keys.length === 0) return mostrarAlerta("⚠️ No hay tarimas recibidas de Calidad para confirmar.");
-        keys.forEach(k => {
-            const opt = document.createElement('option');
-            opt.value = k;
-            opt.textContent = `Tarima #${recibidas[k].tarimaId}`;
-            selectTarima.appendChild(opt);
-        });
-        selectLed.innerHTML = `<option value="${idx}">${linea}-${idx+1}</option>`;
-        modal.style.display = 'flex';
+
+    const snapshot = await db.ref(`tarimasRecibidas/${grupo}`).once('value');
+    const recibidas = snapshot.val() || {};
+    selectTarima.innerHTML = '';
+    const keys = Object.keys(recibidas);
+    if (keys.length === 0) return mostrarAlerta("⚠️ No hay tarimas recibidas de Calidad para confirmar.");
+    keys.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = `Tarima #${recibidas[k].tarimaId}`;
+        selectTarima.appendChild(opt);
     });
+    selectLed.innerHTML = `<option value="${idx}">${linea}-${idx+1}</option>`;
+    modal.style.display = 'flex';
 }
 
 document.getElementById('btnAsignarProduccion').addEventListener('click', () => {
@@ -1430,115 +1489,18 @@ document.getElementById('btnAsignarProduccion').addEventListener('click', () => 
 });
 
 // ================= NAVEGACIÓN Y ARRANQUE =================
-function formatoHora(isoString) {
-    if (!isoString) return 'N/A';
-    const date = new Date(isoString);
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function obtenerTurnoActual() {
-    const ahora = new Date();
-    let fecha = new Date(ahora);
-    let turno = (ahora.getHours() > 6 || (ahora.getHours() === 6 && ahora.getMinutes() >= 30)) && (ahora.getHours() < 18 || (ahora.getHours() === 18 && ahora.getMinutes() < 30)) ? 'Turno 1' : 'Turno 2';
-    if (turno === 'Turno 2' && ahora.getHours() < 6) fecha.setDate(ahora.getDate() - 1);
-    const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
-    return { fecha: fechaFormateada, turno };
-}
-
-function iniciarListenersFirebase() {
-    const { fecha, turno: turnoActualString } = obtenerTurnoActual();
-    document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`;
-    const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`;
-    if (historialRef) historialRef.off();
-    historialRef = db.ref(rutaHistorialTurno);
-
-    historialRef.on('value', (snapshot) => {
-        const logs = snapshot.val() || {};
-        let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0;
-        const contadores = {};
-        const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS'];
-        grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 }; });
-        const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
-
-        Object.values(logs).forEach(log => {
-            if (!log.grupo || !contadores[log.grupo]) return;
-            switch (log.accion) {
-                case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break;
-                case 'recolectada':
-                    contadores[log.grupo].recolectadas++;
-                    tarimasRecolectadasTotales++;
-                    if (log.tiempoRecoleccion != null) {
-                        tiempos[log.grupo]?.push(log);
-                        tiempoTotalRecoleccion += log.tiempoRecoleccion;
-                    }
-                    break;
-                case 'rechazada': contadores[log.grupo].rechazadas++; break;
-                case 'liberada': contadores[log.grupo].liberadas++; break;
-            }
-        });
-
-        const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0;
-        document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales;
-        document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
-        document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR'));
-
-        Object.keys(contadores).forEach(grupo => {
-            const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`);
-            if (el) {
-                const c = contadores[grupo];
-                el.textContent = grupo.startsWith('CALIDAD_')
-                    ? `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}`
-                    : `Confirmadas: ${c.confirmadas} | Recolectadas: ${c.recolectadas}`;
-            }
-        });
-
-        Object.keys(tiempos).forEach(grupo => {
-            const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-            if (!contenedorTiempos) return;
-            contenedorTiempos.innerHTML = '<h4>Últimas recolecciones:</h4>';
-            tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => {
-                const p = document.createElement('p');
-                p.textContent = `Tarima ...${(log.tarimaId || '').slice(-4)}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`;
-                contenedorTiempos.appendChild(p);
-            });
-        });
-    });
-}
-
-function actualizarContadoresTarimas(grupo, accion) {
-    const { fecha, turno } = obtenerTurnoActual();
-    db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1);
-}
-
-function activarPantalla(id){
-    document.querySelectorAll('.pantalla').forEach(p => {
-        p.style.display = 'none';
-        p.classList.remove('activa');
-    });
-    const pantalla = document.getElementById(id);
-    if(pantalla) {
-        pantalla.style.display = 'flex';
-        pantalla.classList.add('activa');
-    }
-}
-
-function volverAPantalla1(){
-    usuarioSeleccionado = null;
-    if (historialRef) historialRef.off();
-    limpiarDashboardListeners();
-    activarPantalla('pantalla1');
-}
-
+function formatoHora(isoString) { if (!isoString) return 'N/A'; const date = new Date(isoString); return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; }
+function obtenerTurnoActual() { const ahora = new Date(); let fecha = new Date(ahora); let turno = (ahora.getHours() > 6 || (ahora.getHours() === 6 && ahora.getMinutes() >= 30)) && (ahora.getHours() < 18 || (ahora.getHours() === 18 && ahora.getMinutes() < 30)) ? 'Turno 1' : 'Turno 2'; if (turno === 'Turno 2' && ahora.getHours() < 6) fecha.setDate(ahora.getDate() - 1); const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`; return { fecha: fechaFormateada, turno }; }
+function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': contadores[log.grupo].rechazadas++; break; case 'liberada': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; el.textContent = grupo.startsWith('CALIDAD_') ? `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}` : `Confirmadas: ${c.confirmadas} | Recolectadas: ${c.recolectadas}`; } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = '<h4>Últimas recolecciones:</h4>'; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => { const p = document.createElement('p'); p.textContent = `Tarima ...${(log.tarimaId || '').slice(-4)}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`; contenedorTiempos.appendChild(p); }); }); }); }
+function actualizarContadoresTarimas(grupo, accion) { const { fecha, turno } = obtenerTurnoActual(); db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1); }
+function activarPantalla(id){ document.querySelectorAll('.pantalla').forEach(p => { p.style.display = 'none'; p.classList.remove('activa'); }); const pantalla = document.getElementById(id); if(pantalla) { pantalla.style.display = 'flex'; pantalla.classList.add('activa'); } }
+function volverAPantalla1(){ usuarioSeleccionado = null; if (historialRef) historialRef.off(); limpiarDashboardListeners(); activarPantalla('pantalla1'); }
 async function seleccionarUsuario(usuario) {
     let targetUser = usuario;
-    let password = await mostrarConfirmacion(`Introduce la contraseña para ${usuario}:`, "Acceso");
-    if (!password) return; // Simplified password prompt replacement
-
-    let isValid = false;
-    // This is a placeholder for real password input logic
-    password = prompt(`Introduce la contraseña para ${usuario}:`);
+    const password = await mostrarPromptContraseña(`Introduce la contraseña para ${usuario}`);
     if (password === null) return;
 
+    let isValid = false;
     if (usuario === 'CALIDAD') {
         if (password === CONFIG.PASSWORDS.CALIDAD_MULTIPORT) { targetUser = 'CALIDAD_MULTIPORT'; isValid = true; }
         else if (password === CONFIG.PASSWORDS.CALIDAD_DROPS) { targetUser = 'CALIDAD_DROPS'; isValid = true; }
@@ -1554,33 +1516,12 @@ async function seleccionarUsuario(usuario) {
         inyectaLEDs();
         pintarEstado();
         iniciarListenersFirebase();
-        await mostrarAlerta(`¡Bienvenido, ${targetUser.replace('_', ' ')}!`);
     } else {
         await mostrarAlerta('Contraseña incorrecta.');
     }
 }
-
-async function seleccionarReporte() {
-    const password = prompt('Introduce la contraseña para REPORTES:');
-    if (password === CONFIG.PASSWORDS.REPORTES) {
-        activarPantalla('pantalla3');
-        regresarASelectores();
-    } else if (password !== null) {
-        await mostrarAlerta('Contraseña incorrecta.');
-    }
-}
-
-async function seleccionarDashboard() {
-    const password = prompt('Introduce la contraseña para DASHBOARD:');
-    if (password === CONFIG.PASSWORDS.DASHBOARD) {
-        activarPantalla('pantalla4');
-        iniciarDashboard();
-    } else if (password !== null) {
-        await mostrarAlerta('Contraseña incorrecta.');
-    }
-}
-
-// ================= DASHBOARD & REPORTES =================
+async function seleccionarReporte() { const password = await mostrarPromptContraseña('Introduce la contraseña para REPORTES'); if (password === CONFIG.PASSWORDS.REPORTES) { activarPantalla('pantalla3'); regresarASelectores(); } else if (password !== null) { await mostrarAlerta('Contraseña incorrecta.'); } }
+async function seleccionarDashboard() { const password = await mostrarPromptContraseña('Introduce la contraseña para DASHBOARD'); if (password === CONFIG.PASSWORDS.DASHBOARD) { activarPantalla('pantalla4'); iniciarDashboard(); } else if (password !== null) { await mostrarAlerta('Contraseña incorrecta.'); } }
 function limpiarDashboardListeners(){ dashboardListeners.forEach(l => l.ref.off(l.eventType, l.callback)); dashboardListeners = []; }
 function iniciarDashboard(){ limpiarDashboardListeners(); const { fecha } = obtenerTurnoActual(); document.getElementById('fechaDashboard').value = fecha; document.getElementById('turnoDashboardSelect').value = 'todos'; const setup = () => setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value); setup(); document.getElementById('fechaDashboard').addEventListener('change', setup); document.getElementById('turnoDashboardSelect').addEventListener('change', setup); }
 function setupDashboardListeners(fecha, turno){ limpiarDashboardListeners(); const historialRefDash = db.ref(`historialLogs/${fecha}`); const ledsRefDash = db.ref('estadoLEDs'); const historialCallback = historialRefDash.on('value', snap => { const logsPorTurno = snap.val() || {}; let logsFiltrados = {}; if (turno === 'todos') Object.values(logsPorTurno).forEach(logs => Object.assign(logsFiltrados, logs)); else logsFiltrados = logsPorTurno[turno] || {}; actualizarDashboard(logsFiltrados, 'historial', null); }); dashboardListeners.push({ ref: historialRefDash, eventType: 'value', callback: historialCallback }); const ledsCallback = ledsRefDash.on('value', snap => actualizarDashboard(null, 'leds', snap.val() || {})); dashboardListeners.push({ ref: ledsRefDash, eventType: 'value', callback: ledsCallback }); }
@@ -1597,7 +1538,7 @@ function procesarReporteCalidad(e,t){datosFiltradosReporte=e.filter(e=>"rechazad
 function procesarReporteProduccion(e,t){datosFiltradosReporte=e.filter(e=>"confirmada_en_produccion"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Confirmadas</div></div></div>`,l="<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Usuario</th></tr></thead><tbody>",a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.usuario}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
 function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div><div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`,r="<table><thead><tr><th>Hora Recolección</th><th>Área</th><th>Tarima ID</th><th>Tiempo (min)</th><th>Hora Inicio</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${formatoHora(e.horaApagado)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.tiempoRecoleccion}</td><td>${formatoHora(e.horaEncendido)}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
 function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={confirmadas:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"confirmada_en_produccion":o[t].confirmadas++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":o[t].liberadas++;break;case"rechazada":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos"><div class="dato"><div class="valor">${t.confirmadas}</div><div class="etiqueta">Confirmadas</div></div><div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div><div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div><div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div><div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Recolección</div></div></div>`}),t.innerHTML=n}
-function exportarReporte(e){const t=document.querySelector("#contenidoReporte table");if(!t||!datosFiltradosReporte)return mostrarAlerta("No hay datos para exportar.");const o=`${reporteActual}_${document.getElementById("fechaReporte").value}`;"excel"===e?(()=>{const e=XLSX.utils.table_to_sheet(t),o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,e,"Reporte"),XLSX.writeFile(o,`${o}.xlsx`)})():"pdf"===e?exportarAPdf(t,miGrafico,o):"csv"===e&&exportarACsv(t,o)}
+async function exportarReporte(e){const t=document.querySelector("#contenidoReporte table");if(!t||!datosFiltradosReporte)return mostrarAlerta("No hay datos para exportar.");const o=`${reporteActual}_${document.getElementById("fechaReporte").value}`;"excel"===e?(()=>{const e=XLSX.utils.table_to_sheet(t),o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,e,"Reporte"),XLSX.writeFile(o,`${o}.xlsx`)})():"pdf"===e?exportarAPdf(t,miGrafico,o):"csv"===e&&exportarACsv(t,o)}
 function exportarACsv(e,t){let o=[];e.querySelectorAll("tr").forEach(e=>{let t=[];e.querySelectorAll("th, td").forEach(e=>{t.push(`"${e.textContent.trim().replace(/"/g,'""')}"`)}),o.push(t.join(","))});const n=new Blob([o.join("\n")],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(n),l.download=`${t}.csv`,l.click()}
 function exportarAPdf(e,t,o){const n=new window.jspdf.jsPDF({orientation:"landscape"});n.text(`Reporte de ${reporteActual}`,20,20),t&&n.addImage(t.toBase64Image(),"PNG",20,30,120,70),n.autoTable({html:e,startY:t?110:30}),n.save(`${o}.pdf`)}
 
