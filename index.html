@@ -123,6 +123,13 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   background: radial-gradient(circle at 45% 40%, var(--led-off-core) 40%, var(--led-off-edge) 100%);
   box-shadow: inset -4px -5px 8px rgba(0,0,0,.8), inset 4px 5px 6px rgba(255,255,255,.06), 0 1px 0 rgba(255,255,255,.05);
   transition: transform .1s ease, filter .2s ease, box-shadow .2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 3px #000;
 }
 .led:active{ transform: scale(.96); }
 .led.on{
@@ -766,8 +773,8 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   .mt-assign { margin-top: 14px; border-top: 1px dashed #2a2f36; padding-top: 12px; }
 
   /* === TEMA OSCURO SOLO PARA CALIDAD/PRODUCCIÓN ===
-     Le agregamos a <body> la clase .theme-dark cuando el usuario pertenece a esas áreas.
-     Logística queda igual (sin esta clase). */
+      Le agregamos a <body> la clase .theme-dark cuando el usuario pertenece a esas áreas.
+      Logística queda igual (sin esta clase). */
   body.theme-dark {
     background: #0b0d0f !important;
     color: #eaeaea !important;
@@ -821,11 +828,11 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
       <div class="tarimas-recibidas-panel" id="tarimasRecibidasPanel">
-       <h3>Tarimas recibidas de Calidad</h3>
-       <ul id="listaTarimasRecibidas"></ul>
+        <h3>Tarimas recibidas de Calidad</h3>
+        <ul id="listaTarimasRecibidas"></ul>
       </div>
-       <div class="tiempos" data-grupo="MULTIPORT"></div>
-        </div>
+        <div class="tiempos" data-grupo="MULTIPORT"></div>
+         </div>
 
     <div class="grupo" data-grupo="DROPS">
         <div class="nombre">DROPS</div>
@@ -962,7 +969,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
     </div>
     <div class="panel">
-        <h3>Evolución Tiempos de Recolección</h3>
+        <h3>Recolecciones por Hora</h3>
         <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
     </div>
 </div>
@@ -993,9 +1000,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     <button class="cerrar-btn">Cerrar</button>
   </div>
 </div>
-<!-- =======================
-   MODAL: Opciones de Calidad
-========================= -->
 <div id="modalOpcionesCalidad" class="modal">
   <div class="modal-content">
     <h3>Asignar tarima a LED de Calidad</h3>
@@ -1066,10 +1070,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     </form>
   </div>
 </div>
-  <!-- =======================
-   MODAL: Asignar Tarima en Producción
-========================= -->
-<div id="modalAsignarTarimaProduccion" class="modal-produccion">
+  <div id="modalAsignarTarimaProduccion" class="modal-produccion">
   <div class="modal-content">
     <h3>Asignar tarima recibida</h3>
 
@@ -1152,7 +1153,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 </style>
   <button class="mt-fab" id="mtOpenBtn" style="display:none;" title="Identificación de Tarima">TARIMAS</button>
 
-<!-- === NUEVO: Panel lateral de Identificación de Tarima === -->
 <div id="mtPanel" class="mt-panel" aria-hidden="true">
   <div class="mt-panel-content">
     <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
@@ -1164,7 +1164,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
       <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
     </div>
 
-    <!-- Resultado de búsqueda -->
     <div id="tarimaInfo" class="mt-card" style="display:none;">
       <h3>Tarima encontrada</h3>
       <div class="mt-grid">
@@ -1182,7 +1181,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   <ul id="listaTarimasPendientes"></ul>
 </div>
 
-      <!-- Solo para CALIDAD: asignación de LED -->
       <div id="ledAssignment" class="mt-assign" style="display:none;">
         <label for="ledSelect">Asignar LED a esta tarima:</label>
         <div class="mt-row">
@@ -1303,7 +1301,7 @@ window.__usuarioActual = null;
 // Helpers UI panel
 const MT = {
   ui: {
-    panel:   document.getElementById('mtPanel'),
+    panel:    document.getElementById('mtPanel'),
     openBtn: document.getElementById('mtOpenBtn'),
     closeBtn:document.getElementById('mtCloseBtn'),
     bxInput: document.getElementById('bxInput'),
@@ -1350,7 +1348,7 @@ if (MT.ui.bxInput) {
 /**
  * Lee /tarimas en estructura:
  * tarimas/{idTarima}/{
- *   empleadoId, turno, cajas:{ pushKey: {codigoCaja, cantidadPiezas, numeroOrden, ...} }
+ * empleadoId, turno, cajas:{ pushKey: {codigoCaja, cantidadPiezas, numeroOrden, ...} }
  * }
  */
 function buscarTarimaPorBX(bxCode) {
@@ -1532,7 +1530,7 @@ function asignarTarimaProduccion(grupo, idx, linea) {
             tarimaId: tarima.tarimaId,
             usuario: usuarioSeleccionado,
             timestamp: new Date().toISOString(),
-            horaEncendido: firebase.database.ServerValue.TIMESTAMP
+            horaEncendido: new Date().toISOString()
         });
 
         // 🔥 Actualizar estado de la tarima global
@@ -1554,8 +1552,7 @@ function asignarTarimaProduccion(grupo, idx, linea) {
         });
 
         // 🔥 Incrementar contador
-        db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/asignadas`)
-            .transaction(val => (val || 0) + 1);
+        actualizarContadoresTarimas(grupo, 'asignada_en_produccion');
 
         // 🔥 Eliminar de recibidas
         recibidaRef.remove();
@@ -1569,6 +1566,7 @@ function asignarTarimaProduccion(grupo, idx, linea) {
 // ========================
 function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
+    const grupoProduccion = grupo.replace('CALIDAD_', '');
 
     // 🔥 Referencia a la tarima global
     const tarimaRef = db.ref(`tarimas/${tarimaId}`);
@@ -1587,7 +1585,7 @@ function liberarTarima(tarimaId, grupo) {
         });
 
         // 🔥 Copiar a "recibidas" de Producción para que aparezca en su modal
-        db.ref(`tarimasRecibidas/${grupo}/${tarimaId}`).set({
+        db.ref(`tarimasRecibidas/${grupoProduccion}`).push({
             tarimaId,
             estado: 'recibida',
             ledOrigen: snapshot.val().led || 'N/D',
@@ -1605,10 +1603,9 @@ function liberarTarima(tarimaId, grupo) {
         });
 
         // 🔥 Incrementar contador
-        db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/liberadas`)
-            .transaction(val => (val || 0) + 1);
+        actualizarContadoresTarimas(grupo, 'liberada');
 
-        alert(`✅ Tarima ${tarimaId} liberada y enviada a ${grupo}.`);
+        alert(`✅ Tarima ${tarimaId} liberada y enviada a ${grupoProduccion}.`);
         cerrarModalCalidad();
     });
 }
@@ -1770,7 +1767,7 @@ function pintarEstado() {
                         let tarimaId = estado.tarimaId || "";
                         if (tarimaId.length > 6) {
                             // mostramos últimos 4 caracteres si es largo
-                            tarimaId = tarimaId.slice(-4);
+                            tarimaId = "..." + tarimaId.slice(-4);
                         }
 
                         if (grupoLeds.startsWith('CALIDAD_') && estado.color) {
@@ -1847,72 +1844,59 @@ function obtenerTurnoActual() {
     return { fecha: fechaFormateada, turno };
 }
 
-// --- !! SINCRONIZACION EN TIEMPO REAL  !! ---
-  
-  // --- !! SINCRONIZACION EN TIEMPO REAL CON TARIMAS !! ---
 // --- !! SINCRONIZACION EN TIEMPO REAL CON TARIMAS !! ---
 function iniciarListenersFirebase() {
-    const { fecha, turno } = obtenerTurnoActual();
-    document.getElementById('turnoActual').textContent = `Turno actual: ${turno}`;
+    const { fecha, turno: turnoActualString } = obtenerTurnoActual();
+    document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`;
 
-    // 🔗 Referencias a la base de datos
-    const historialRef = db.ref(`historialLogs/${fecha}/${turno}`);
-    const contadoresTarimasRef = db.ref(`contadoresTarimas/${fecha}/${turno}`);
+    const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`;
     
-    // 🔄 Limpiar listeners anteriores (si están definidos)
-    // Nota: Aunque ya tienes variables globales, declararlas aquí dentro asegura
-    // que siempre tengas la referencia correcta para este turno.
     if (historialRef) historialRef.off();
-    if (contadoresTarimasRef) contadoresTarimasRef.off();
+    historialRef = db.ref(rutaHistorialTurno);
 
-    // --- Listener: historial en tiempo real ---
     historialRef.on('value', (snapshot) => {
         const logs = snapshot.val() || {};
-        let tarimasTotales = 0;
+        
+        let tarimasRecolectadasTotales = 0;
         let tiempoTotalRecoleccion = 0;
 
-        // 📊 Contadores por grupo
-        const contadores = {
-            MULTIPORT: { asignadas: 0, recolectadas: 0, rechazadas: 0, liberadas: 0 },
-            BEDROCK:   { asignadas: 0, recolectadas: 0, rechazadas: 0, liberadas: 0 },
-            DROPS:     { asignadas: 0, recolectadas: 0, rechazadas: 0, liberadas: 0 },
-            CALIDAD_MULTIPORT: { rechazadas: 0, liberadas: 0 },
-            CALIDAD_BEDROCK:   { rechazadas: 0, liberadas: 0 },
-            CALIDAD_DROPS:     { rechazadas: 0, liberadas: 0 },
-        };
-
+        const contadores = {};
+        const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS'];
+        grupos.forEach(g => {
+            contadores[g] = { asignadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 };
+        });
+        
         const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
-        // Procesar historial
         Object.values(logs).forEach(log => {
+            if (!log.grupo || !contadores[log.grupo]) return;
+
             switch (log.accion) {
                 case 'asignada_en_produccion':
-                    if (contadores[log.grupo]) contadores[log.grupo].asignadas++;
+                    contadores[log.grupo].asignadas++;
                     break;
                 case 'recolectada':
-                    if (contadores[log.grupo]) contadores[log.grupo].recolectadas++;
-                    tarimasTotales++;
+                    contadores[log.grupo].recolectadas++;
+                    tarimasRecolectadasTotales++;
                     if (log.tiempoRecoleccion) {
                         tiempos[log.grupo]?.push(log);
                         tiempoTotalRecoleccion += log.tiempoRecoleccion;
                     }
                     break;
                 case 'rechazada':
-                    if (contadores[log.grupo]) contadores[log.grupo].rechazadas++;
+                    contadores[log.grupo].rechazadas++;
                     break;
                 case 'liberada':
-                    if (contadores[log.grupo]) contadores[log.grupo].liberadas++;
+                    contadores[log.grupo].liberadas++;
                     break;
             }
         });
 
-        // 🕒 Calcular tiempo promedio
-        const tiempoPromedio = tarimasTotales > 0
-            ? Math.round(tiempoTotalRecoleccion / tarimasTotales)
+        const tiempoPromedio = tarimasRecolectadasTotales > 0
+            ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales)
             : 0;
 
-        // Actualizar UI principal
-        document.getElementById('tarimasTotales').textContent = tarimasTotales;
+        document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales;
         document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
 
         const resumenTurnoDiv = document.getElementById('resumenTurno');
@@ -1922,49 +1906,32 @@ function iniciarListenersFirebase() {
             resumenTurnoDiv.classList.add('oculto');
         }
 
-        // Actualizar métricos en UI
         Object.keys(contadores).forEach(grupo => {
-            const c = contadores[grupo];
             const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`);
             if (el) {
-                el.textContent =
-                    `Asig: ${c.asignadas || 0} | Rec: ${c.recolectadas || 0} | Lib: ${c.liberadas || 0} | Rech: ${c.rechazadas || 0}`;
+                const c = contadores[grupo];
+                if (grupo.startsWith('CALIDAD_')) {
+                    el.textContent = `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}`;
+                } else {
+                    el.textContent = `Asignadas: ${c.asignadas} | Recolectadas: ${c.recolectadas}`;
+                }
             }
         });
 
-        // Mostrar tiempos por grupo
         Object.keys(tiempos).forEach(grupo => {
             const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
             if (!contenedorTiempos) return;
 
-            contenedorTiempos.innerHTML = '';
-            tiempos[grupo].forEach((logEntry, index) => {
-                const p = document.createElement('p');
-                const horaInicio = formatoHora(logEntry.horaEncendido);
-                const horaFin = formatoHora(logEntry.horaApagado);
-                p.textContent = `Tarima ${index + 1}: ${logEntry.tiempoRecoleccion} min (${horaInicio} - ${horaFin})`;
-                contenedorTiempos.appendChild(p);
-            });
-            contenedorTiempos.scrollTop = contenedorTiempos.scrollHeight;
-        });
-    });
-
-    // --- Listener: contadores globales en tiempo real ---
-    contadoresTarimasRef.on('value', (snapshot) => {
-        const contadores = snapshot.val() || {};
-        const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS'];
-
-        grupos.forEach(grupo => {
-            const g = contadores[grupo] || {};
-            const asig = g.asignadas || 0;
-            const rec = g.recolectadas || 0;
-            const lib = g.liberadas || 0;
-            const rech = g.rechazadas || 0;
-
-            const target = document.getElementById(`metricas_${grupo}`);
-            if (target) {
-                target.textContent = `Asig: ${asig} | Rec: ${rec} | Lib: ${lib} | Rech: ${rech}`;
-            }
+            contenedorTiempos.innerHTML = '<h4>Tiempos de recolección:</h4>';
+            tiempos[grupo]
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                .slice(0, 10) // Mostrar solo los últimos 10
+                .forEach(logEntry => {
+                    const p = document.createElement('p');
+                    const horaFin = formatoHora(logEntry.horaApagado);
+                    p.textContent = `Tarima #${logEntry.tarimaId.slice(-4)}: ${logEntry.tiempoRecoleccion} min (a las ${horaFin})`;
+                    contenedorTiempos.appendChild(p);
+                });
         });
     });
 }
@@ -1972,24 +1939,9 @@ function iniciarListenersFirebase() {
 // --- Actualizar contadores de tarimas ---
 function actualizarContadoresTarimas(grupo, accion) {
     const { fecha, turno } = obtenerTurnoActual();
-    const contadorRef = db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}`);
-
-    switch (accion) {
-        case 'asignada_en_produccion':
-            contadorRef.child('asignadas').transaction(val => (val || 0) + 1);
-            break;
-        case 'recolectada':
-            contadorRef.child('recolectadas').transaction(val => (val || 0) + 1);
-            break;
-        case 'rechazada':
-            contadorRef.child('rechazadas').transaction(val => (val || 0) + 1);
-            break;
-        case 'liberada':
-            contadorRef.child('liberadas').transaction(val => (val || 0) + 1);
-            break;
-    }
+    const contadorRef = db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`);
+    contadorRef.transaction(val => (val || 0) + 1);
 }
-
 
   
 // ================= PERMISOS Y LÓGICA =================
@@ -2016,166 +1968,113 @@ function puedeControlar(grupo){
     return grupoBaseUsuario === grupoBaseLed;
 }
   
-// ===================== TOGGLE LED (CORREGIDO) =====================
+// ===================== TOGGLE LED (CORREGIDO Y SINCRONIZADO) =====================
 function togglearLED(grupo, idx, linea = 'linea1') {
-  const ledRef   = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
-  const ledPath  = `${linea}-${idx + 1}`;
-  const usuarioActual = usuarioSeleccionado || '';
+    const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    const usuarioActual = usuarioSeleccionado || '';
+    
+    ledRef.once('value').then(snapshot => {
+        const estadoActual = snapshot.val() || {};
+        
+        // ===== CALIDAD sobre LEDs de CALIDAD =====
+        if (usuarioActual.startsWith('CALIDAD_') && grupo === usuarioActual) {
+            if (!estadoActual.tarimaId) {
+                return alert('Este LED no tiene ninguna tarima asignada. Usa el panel "TARIMAS" para asignar una.');
+            }
+            if (estadoActual.color === 'verde' || estadoActual.color === 'rojo') {
+                return alert('Esta tarima ya ha sido procesada (liberada o rechazada).');
+            }
+            abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
+            return;
+        }
 
-  ledRef.once('value').then(snapshot => {
-    const estadoActual = snapshot.val() || {};
+        // ===== PRODUCCIÓN sobre sus propios LEDs (asignar) =====
+        if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo === usuarioActual) {
+            if (!estadoActual.encendido) {
+                 mostrarModalProduccion(grupo, idx, linea);
+            } else {
+                alert('Este LED ya tiene una tarima en proceso.');
+            }
+            return;
+        }
 
-    // ===== CALIDAD sobre LEDs de CALIDAD =====
-    if (usuarioActual.startsWith('CALIDAD_') && grupo.startsWith('CALIDAD_')) {
-      if (!estadoActual.tarimaId) {
-        alert('Este LED no tiene ninguna tarima asignada.');
-        return;
-      }
-      const color = estadoActual.color || 'naranja';
-      if (color === 'verde') {
-        alert('Este LED ya está liberado y no puede ser modificado por Calidad.');
-        return;
-      }
-      // Abre modal de calidad (naranja/rojo)
-      abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
-      return;
-    }
+        // ===== LOGÍSTICA apaga LEDs de PRODUCCIÓN =====
+        if (usuarioActual === 'LOGÍSTICA' && CONFIG.PRODUCCION_GRUPOS.includes(grupo)) {
+            if (estadoActual.encendido && estadoActual.tarimaId) {
+                if (!confirm(`¿Confirmas la recolección de la tarima ${estadoActual.tarimaId}?`)) return;
 
-    // ===== PRODUCCIÓN recibiendo desde CALIDAD =====
-    if (
-      (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK') &&
-      grupo.startsWith('CALIDAD_')
-    ) {
-      if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
-        const ok = confirm(`¿Recibir tarima ${estadoActual.tarimaId} de Calidad?`);
-        if (!ok) return;
+                const { fecha, turno } = obtenerTurnoActual();
+                const horaEncendido = estadoActual.horaEncendido;
+                const horaApagado = new Date().toISOString();
+                const tiempoRecoleccion = Math.round((new Date(horaApagado).getTime() - new Date(horaEncendido).getTime()) / 60000);
 
-        const recibidasRef = db.ref('tarimasRecibidas/' + usuarioActual);
-        recibidasRef.push({
-          tarimaId:  estadoActual.tarimaId,
-          recibidoEn: new Date().toISOString(),
-          ledOrigen:  ledPath
-        });
+                db.ref(`historialLogs/${fecha}/${turno}`).push({
+                    usuario: usuarioActual,
+                    grupo: grupo,
+                    accion: 'recolectada',
+                    tarimaId: estadoActual.tarimaId,
+                    timestamp: horaApagado,
+                    horaEncendido: horaEncendido,
+                    horaApagado: horaApagado,
+                    tiempoRecoleccion: tiempoRecoleccion
+                });
 
-        // Limpia el LED en la zona de Calidad
-        ledRef.set(null);
-
-        // Log
-        db.ref('historial').push({
-          usuario:   usuarioActual,
-          grupo:     grupo,
-          led:       ledPath,
-          accion:    'recibida_de_calidad',
-          tarimaId:  estadoActual.tarimaId,
-          timestamp: new Date().toISOString()
-        });
-
-      } else {
-        alert('Solo puedes recibir tarimas liberadas (verdes).');
-      }
-      return;
-    }
-
-    // ===== PRODUCCIÓN sobre sus propios LEDs (asignar) =====
-    if (
-      (usuarioActual === 'MULTIPORT' || usuarioActual === 'DROPS' || usuarioActual === 'BEDROCK') &&
-      grupo === usuarioActual
-    ) {
-      // Solo si el LED está vacío/apagado abrimos el modal de asignación
-      if (!estadoActual.encendido && !estadoActual.tarimaId) {
-        // Abrimos el modal de producción para elegir tarima y LED
-        mostrarModalProduccion(grupo, linea);
-      } else {
-        alert('Este LED ya tiene una tarima asignada.');
-      }
-      return;
-    }
-
-    // ===== LOGÍSTICA apaga LEDs con tarima asignada =====
-    if (usuarioActual === 'LOGÍSTICA') {
-      if (estadoActual.encendido && estadoActual.tarimaId) {
-        const ok = confirm(`¿Recolectar tarima ${estadoActual.tarimaId}?`);
-        if (!ok) return;
-
-        ledRef.set(null);
-
-        db.ref('historial').push({
-          usuario:   usuarioActual,
-          grupo:     grupo,
-          led:       ledPath,
-          accion:    'recolectada',
-          tarimaId:  estadoActual.tarimaId,
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        alert('LOGÍSTICA solo puede apagar LEDs con tarima asignada.');
-      }
-      return;
-    }
-
-    // ===== Default =====
-    alert('No tienes permiso para controlar estos LEDs.');
-  });
+                actualizarContadoresTarimas(grupo, 'recolectada');
+                ledRef.set(null); // Limpia el LED
+                alert(`✅ Tarima ${estadoActual.tarimaId} recolectada en ${tiempoRecoleccion} minutos.`);
+            } else {
+                // No hacer nada si el LED está apagado
+            }
+            return;
+        }
+        
+        // Si no es ninguna de las anteriores, es probable que no tenga permiso
+        // console.log(`Acción no permitida para ${usuarioActual} en grupo ${grupo}`);
+    });
 }
 // =================== FIN TOGGLE LED (CORREGIDO) ===================
   
 function actualizarEstadoLED(nuevoColor) {
     if (!ledSeleccionado.grupo) return;
 
-    const { grupo, idx, linea } = ledSeleccionado;
+    const { grupo, idx, linea, tarimaId } = ledSeleccionado;
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
+    
+    // Cambiar color visual del LED
+    ledRef.update({ color: nuevoColor });
 
-    ledRef.once('value').then(snap => {
-        const estado = snap.val() || {};
-        const tarimaId = estado.tarimaId || "N/D";
-
-        // Actualizar color
-        ledRef.update({
-            color: nuevoColor,
-            timestamp: new Date().toISOString()
-        });
-
-        // Registrar historial
-        db.ref('historial').push({
-            usuario: usuarioSeleccionado,
-            grupo,
-            led: `${linea}-${idx+1}`,
-            accion: nuevoColor === 'verde' ? 'liberada' : 'otro',
-            tarimaId,
-            timestamp: new Date().toISOString()
-        });
-
-        // 🔥 Incrementar contador
-        if (nuevoColor === 'verde') {
-            db.ref('contadores/calidad/liberadas').transaction(val => (val || 0) + 1);
-        }
-// 🔥 Incrementar contador de tarimas asignadas en Producción
-db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/asignadas`)
-  .transaction(val => (val || 0) + 1);        cerrarModalCalidad();
-      
-    });
+    if (nuevoColor === 'verde') {
+        liberarTarima(tarimaId, grupo);
+    }
+    
+    cerrarModalCalidad();
 }
 
-  let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
+let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
 
-function abrirModalCalidad(grupo, idx, linea) {
-    ledSeleccionado = { grupo, idx, linea };
+function abrirModalCalidad(grupo, idx, linea, tarimaId) {
+    ledSeleccionado = { grupo, idx, linea, tarimaId };
 
     const modal = document.getElementById('modalCalidad');
     modal.classList.add('visible');
 
-    modal.querySelectorAll('.opcion-btn').forEach(btn => {
-        btn.onclick = () => {
-            const color = btn.dataset.color;
-            if (color === 'rojo') {
-                modal.classList.remove('visible');
-                document.getElementById('modalRechazo').classList.add('visible');
-            } else {
-                actualizarEstadoLED(color);
-                modal.classList.remove('visible'); // 🔥 cerrar inmediatamente
-            }
-        };
-    });
+    // Limpiamos listeners anteriores para evitar duplicados
+    const oldBtnRechazar = modal.querySelector('.opcion-btn[data-color="rojo"]');
+    const newBtnRechazar = oldBtnRechazar.cloneNode(true);
+    oldBtnRechazar.parentNode.replaceChild(newBtnRechazar, oldBtnRechazar);
+
+    const oldBtnLiberar = modal.querySelector('.opcion-btn[data-color="verde"]');
+    const newBtnLiberar = oldBtnLiberar.cloneNode(true);
+    oldBtnLiberar.parentNode.replaceChild(newBtnLiberar, oldBtnLiberar);
+
+    newBtnRechazar.onclick = () => {
+        modal.classList.remove('visible');
+        document.getElementById('modalRechazo').classList.add('visible');
+    };
+    
+    newBtnLiberar.onclick = () => {
+        actualizarEstadoLED('verde');
+    };
 
     modal.querySelector('.cerrar-btn').onclick = () => {
         modal.classList.remove('visible');
@@ -2185,7 +2084,6 @@ function abrirModalCalidad(grupo, idx, linea) {
 
 function cerrarModalCalidad() {
     document.getElementById('modalCalidad').classList.remove('visible');
-    document.getElementById('modalRechazo').classList.remove('visible');
 }
   
 // ================= LÓGICA DE CALIDAD MODAL =================
@@ -2231,47 +2129,44 @@ function mostrarOpcionesCalidad(grupo, idx, linea = 'linea1') {
     cerrarModalCalidad();
 });
 
-function cerrarModalCalidad() {
-    document.getElementById('modalOpcionesCalidad').style.display = 'none';
-}
 // ========================
 // PRODUCCIÓN: Modal de Asignación
 // ========================
-function mostrarModalProduccion(grupo, linea = 'linea1') {
+function mostrarModalProduccion(grupo, idx, linea = 'linea1') {
     const modal = document.getElementById('modalAsignarTarimaProduccion');
     const selectTarima = modal.querySelector('#selectTarimaProduccion');
     const selectLed = modal.querySelector('#selectLedProduccion');
+    
+    ledSeleccionado = { grupo, idx, linea };
 
-    // Poblar tarimas recibidas desde Firebase
     const recibidasRef = db.ref(`tarimasRecibidas/${grupo}`);
     recibidasRef.once('value', snapshot => {
         const recibidas = snapshot.val() || {};
         selectTarima.innerHTML = '';
-
         const keys = Object.keys(recibidas);
+
         if (keys.length === 0) {
-            alert("⚠️ No hay tarimas recibidas de Calidad para asignar.");
-            return;
+            return alert("⚠️ No hay tarimas recibidas de Calidad para asignar.");
         }
 
         keys.forEach(k => {
             const t = recibidas[k];
             const opt = document.createElement('option');
-            opt.value = k;
-            opt.textContent = `${t.tarimaId} (de ${t.ledOrigen})`;
+            opt.value = k; // Usamos el push key de Firebase
+            opt.textContent = `Tarima #${t.tarimaId}`;
             selectTarima.appendChild(opt);
         });
 
-        // Poblar LEDs → solo el LED seleccionado
         selectLed.innerHTML = '';
-        const opt = document.createElement('option');
-        opt.value = ledSeleccionado.idx;
-        opt.textContent = `${linea}-${ledSeleccionado.idx+1}`;
-        selectLed.appendChild(opt);
-
+        const optLed = document.createElement('option');
+        optLed.value = idx;
+        optLed.textContent = `${linea}-${idx+1}`;
+        selectLed.appendChild(optLed);
+        
         modal.style.display = 'flex';
     });
 }
+
 
 document.getElementById('btnAsignarProduccion').addEventListener('click', () => {
     const { grupo, idx, linea } = ledSeleccionado;
@@ -2321,9 +2216,7 @@ function mostrarFormularioRechazo() {
 function guardarRechazo() {
     if (!ledSeleccionado.grupo) return;
 
-    const { grupo } = ledSeleccionado;
-    const tarimaId = document.getElementById('parte').value; // 👈 debe contener ID real de tarima
-
+    const { grupo, tarimaId, idx, linea } = ledSeleccionado;
     const form = document.getElementById('formularioRechazo');
     const data = {
         empleado: form.empleado.value,
@@ -2356,12 +2249,14 @@ function guardarRechazo() {
     });
 
     // 🔥 Incrementar contador
-    db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/rechazadas`)
-        .transaction(val => (val || 0) + 1);
+    actualizarContadoresTarimas(grupo, 'rechazada');
+    
+    // 🔥 Actualizar estado visual del LED a rojo
+    db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
 
     alert(`❌ Tarima ${tarimaId} rechazada.`);
-    cerrarModalCalidad();
     cerrarModalRechazo();
+    form.reset();
 }
 
 function cerrarModalRechazo() {
@@ -2386,6 +2281,7 @@ function volverAPantalla1(){
     if (historialRef) historialRef.off();
     if (contadoresCalidadRef) contadoresCalidadRef.off();
     if (rechazosDetalladosRef) rechazosDetalladosRef.off();
+    limpiarDashboardListeners();
     clearInterval(dashboardUpdateInterval);
     activarPantalla('pantalla1');
 }
@@ -2447,7 +2343,7 @@ function seleccionarUsuario(usuario) {
 
             // ✅ Producción carga tarimas recibidas
             if (esUsuarioProduccion()) {
-                renderTarimasRecibidas(usuarioSeleccionado);
+                // La carga ahora se hace al abrir el modal para asegurar datos frescos
             }
 
             alert(`¡Bienvenido, ${usuario}!`);
@@ -2482,162 +2378,120 @@ function seleccionarDashboard() {
 }
 
 function limpiarDashboardListeners() {
-    dashboardListeners.forEach(listener => listener.off());
+    dashboardListeners.forEach(listener => {
+        if (listener.ref && listener.eventType && listener.callback) {
+            listener.ref.off(listener.eventType, listener.callback);
+        }
+    });
     dashboardListeners = [];
 }
 
 function iniciarDashboard() {
     limpiarDashboardListeners();
-    const { fecha, turno } = obtenerTurnoActual();
+    const { fecha } = obtenerTurnoActual();
     document.getElementById('fechaDashboard').value = fecha;
     document.getElementById('turnoDashboardSelect').value = 'todos';
     
-    setupDashboardListeners(fecha, turno);
-    
-    // Listeners para los filtros de fecha y turno
-    document.getElementById('fechaDashboard').addEventListener('change', () => {
-        setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value);
-    });
+    const setup = () => setupDashboardListeners(
+        document.getElementById('fechaDashboard').value,
+        document.getElementById('turnoDashboardSelect').value
+    );
 
-    document.getElementById('turnoDashboardSelect').addEventListener('change', () => {
-        setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value);
-    });
+    setup();
+    
+    document.getElementById('fechaDashboard').addEventListener('change', setup);
+    document.getElementById('turnoDashboardSelect').addEventListener('change', setup);
 }
 
 function setupDashboardListeners(fecha, turno) {
     limpiarDashboardListeners();
     
     const historialRefDash = db.ref(`historialLogs/${fecha}`);
-    const calidadRefDash = db.ref(`contadoresCalidad/${fecha}`);
     const ledsRefDash = db.ref('estadoLEDs');
 
-    const historialListener = historialRefDash.on('value', snapshot => {
+    const historialCallback = historialRefDash.on('value', snapshot => {
         const logsPorTurno = snapshot.val() || {};
         let logsFiltrados = {};
         if (turno === 'todos') {
             Object.values(logsPorTurno).forEach(logs => {
-                logsFiltrados = { ...logsFiltrados, ...logs };
+                Object.assign(logsFiltrados, logs);
             });
         } else {
             logsFiltrados = logsPorTurno[turno] || {};
         }
-        actualizarDashboard(logsFiltrados, 'historial', null, null);
+        actualizarDashboard(logsFiltrados, 'historial', null);
     });
-    dashboardListeners.push({ off: () => historialRefDash.off('value', historialListener) });
+    dashboardListeners.push({ ref: historialRefDash, eventType: 'value', callback: historialCallback });
 
-    const calidadListener = calidadRefDash.on('value', snapshot => {
-        const contadoresPorTurno = snapshot.val() || {};
-        let contadoresFiltrados = {};
-        if (turno === 'todos') {
-            for (const t in contadoresPorTurno) {
-                for (const g in contadoresPorTurno[t]) {
-                    contadoresFiltrados[g] = contadoresFiltrados[g] || { liberadas: 0, rechazadas: 0 };
-                    contadoresFiltrados[g].liberadas += contadoresPorTurno[t][g].liberadas || 0;
-                    contadoresFiltrados[g].rechazadas += contadoresPorTurno[t][g].rechazadas || 0;
-                }
-            }
-        } else {
-            contadoresFiltrados = contadoresPorTurno[turno] || {};
-        }
-        actualizarDashboard(null, 'calidad', contadoresFiltrados, null);
+    const ledsCallback = ledsRefDash.on('value', snapshot => {
+        actualizarDashboard(null, 'leds', snapshot.val() || {});
     });
-    dashboardListeners.push({ off: () => calidadRefDash.off('value', calidadListener) });
-    
-    const ledsListener = ledsRefDash.on('value', snapshot => {
-        const leds = snapshot.val() || {};
-        actualizarDashboard(null, 'leds', null, leds);
-    });
-    dashboardListeners.push({ off: () => ledsRefDash.off('value', ledsListener) });
+    dashboardListeners.push({ ref: ledsRefDash, eventType: 'value', callback: ledsCallback });
 }
 
+function actualizarDashboard(historialLogs, tipo, estadoLEDs) {
+    if (!document.getElementById('pantalla4').classList.contains('activa')) return;
 
-function actualizarDashboard(historialLogs, tipo, contadoresCalidad, estadoLEDs, filtroArea = 'TODAS') {
-    if (tipo === 'historial') {
-        const produccionPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
-        const tarimasPorHora = {};
-        let tarimasRecolectadas = 0;
-        let tiempoTotalRecoleccion = 0;
-        
-        for (const logKey in historialLogs) {
-            const log = historialLogs[logKey];
-            
-            // Nuevo filtro de área
-            if (filtroArea === 'TODAS' || log.grupo === filtroArea) {
-                if (log.accion === 'encendido' && produccionPorArea.hasOwnProperty(log.grupo)) {
-                    produccionPorArea[log.grupo]++;
-                } else if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'BEDROCK', 'DROPS'].includes(log.grupo)) {
-                    tarimasRecolectadas++;
-                    tiempoTotalRecoleccion += log.tiempoRecoleccion;
-                    
-                    const horaApagado = new Date(log.horaApagado);
-                    const horaRedondeada = horaApagado.getHours();
-                    tarimasPorHora[horaRedondeada] = (tarimasPorHora[horaRedondeada] || 0) + 1;
-                }
+    if (tipo === 'historial' && historialLogs) {
+        let confirmadas = 0, recolectadas = 0, liberadas = 0, rechazadas = 0;
+        let tiempoTotal = 0;
+        const prodPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+        const recoleccionesPorHora = {};
+
+        Object.values(historialLogs).forEach(log => {
+            switch(log.accion) {
+                case 'asignada_en_produccion':
+                    confirmadas++;
+                    if (prodPorArea[log.grupo] !== undefined) prodPorArea[log.grupo]++;
+                    break;
+                case 'recolectada':
+                    recolectadas++;
+                    tiempoTotal += log.tiempoRecoleccion || 0;
+                    const hora = new Date(log.timestamp).getHours();
+                    recoleccionesPorHora[hora] = (recoleccionesPorHora[hora] || 0) + 1;
+                    break;
+                case 'liberada':
+                    liberadas++;
+                    break;
+                case 'rechazada':
+                    rechazadas++;
+                    break;
             }
-        }
-        
-        const tiempoPromedio = tarimasRecolectadas > 0 ? (tiempoTotalRecoleccion / tarimasRecolectadas).toFixed(1) : 0;
-        
-        document.getElementById('dashTarimasConfirmadas').textContent = Object.values(produccionPorArea).reduce((a, b) => a + b, 0);
-        document.getElementById('dashTarimasRecolectadas').textContent = tarimasRecolectadas;
-        document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`;
-        
-        const kpiTiempoPromedio = document.getElementById('kpiTiempoPromedio');
-        if (tiempoPromedio > 10) {
-            kpiTiempoPromedio.classList.add('alerta');
-        } else {
-            kpiTiempoPromedio.classList.remove('alerta');
-        }
-        
-        generarGraficoProduccionDash(produccionPorArea);
-        generarGraficoLogisticaDash(tarimasPorHora);
-    }
-    
-    // El resto de la función para 'calidad' y 'leds' se mantiene igual y funciona de manera independiente
-    if (tipo === 'calidad') {
-        let liberadas = 0;
-        let rechazadas = 0;
-        for (const grupo in contadoresCalidad) {
-            liberadas += contadoresCalidad[grupo].liberadas || 0;
-            rechazadas += contadoresCalidad[grupo].rechazadas || 0;
-        }
+        });
+
+        const tiempoPromedio = recolectadas > 0 ? (tiempoTotal / recolectadas).toFixed(1) : 0;
         const totalCalidad = liberadas + rechazadas;
         const tasaRechazo = totalCalidad > 0 ? ((rechazadas / totalCalidad) * 100).toFixed(1) : 0;
-        
-        document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`;
 
-        const kpiTasaRechazo = document.getElementById('kpiTasaRechazo');
-        if (tasaRechazo > 5) {
-            kpiTasaRechazo.classList.add('alerta');
-        } else {
-            kpiTasaRechazo.classList.remove('alerta');
-        }
+        document.getElementById('dashTarimasConfirmadas').textContent = confirmadas;
+        document.getElementById('dashTarimasRecolectadas').textContent = recolectadas;
+        document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`;
+        document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`;
+        document.getElementById('kpiTiempoPromedio').classList.toggle('alerta', tiempoPromedio > 10);
+        document.getElementById('kpiTasaRechazo').classList.toggle('alerta', tasaRechazo > 5);
+
+        generarGraficoProduccionDash(prodPorArea);
         generarGraficoCalidadDash({ liberadas, rechazadas });
+        generarGraficoLogisticaDash(recoleccionesPorHora);
     }
 
-    if (tipo === 'leds') {
-        const pendientesPorArea = {};
-        
+    if (tipo === 'leds' && estadoLEDs) {
+        const pendientes = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
         CONFIG.PRODUCCION_GRUPOS.forEach(grupo => {
-            pendientesPorArea[grupo] = 0;
-            if (estadoLEDs.hasOwnProperty(grupo)) {
-                for (const linea in estadoLEDs[grupo]) {
-                    for (const led in estadoLEDs[grupo][linea]) {
-                        if (estadoLEDs[grupo][linea][led].encendido) {
-                            pendientesPorArea[grupo]++;
-                        }
-                    }
-                }
+            if(estadoLEDs[grupo]) {
+                Object.values(estadoLEDs[grupo]).forEach(linea => {
+                   Object.values(linea).forEach(led => {
+                       if(led && led.encendido) pendientes[grupo]++;
+                   });
+                });
             }
         });
         
-        const tablaPendientesBody = document.querySelector('#tablaPendientes tbody');
-        tablaPendientesBody.innerHTML = '';
-        for (const area in pendientesPorArea) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${area}</td><td>${pendientesPorArea[area]}</td>`;
-            tablaPendientesBody.appendChild(tr);
-        }
+        const tablaBody = document.querySelector('#tablaPendientes tbody');
+        tablaBody.innerHTML = '';
+        Object.keys(pendientes).forEach(area => {
+            tablaBody.innerHTML += `<tr><td>${area}</td><td>${pendientes[area]}</td></tr>`;
+        });
     }
 }
 function generarGraficoProduccionDash(datos) {
@@ -2645,30 +2499,17 @@ function generarGraficoProduccionDash(datos) {
         graficosDashboard.produccion.destroy();
     }
     const ctx = document.getElementById('graficoProduccionDash').getContext('2d');
-    const labels = Object.keys(datos);
-    const data = Object.values(datos);
     graficosDashboard.produccion = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: Object.keys(datos),
             datasets: [{
                 label: 'Tarimas Confirmadas',
-                data: data,
+                data: Object.values(datos),
                 backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56'],
-                borderColor: ['#4BC0C0', '#36A2EB', '#FFCE56'],
-                borderWidth: 1
             }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Tarimas' } }
-            },
-            plugins: {
-                legend: { display: false },
-                title: { display: false }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } }
     });
 }
 
@@ -2677,24 +2518,16 @@ function generarGraficoCalidadDash(datos) {
         graficosDashboard.calidad.destroy();
     }
     const ctx = document.getElementById('graficoCalidadDash').getContext('2d');
-    const labels = ['Liberadas', 'Rechazadas'];
-    const data = [datos.liberadas, datos.rechazadas];
     graficosDashboard.calidad = new Chart(ctx, {
         type: 'pie',
         data: {
-            labels: labels,
+            labels: ['Liberadas', 'Rechazadas'],
             datasets: [{
-                data: data,
+                data: [datos.liberadas, datos.rechazadas],
                 backgroundColor: ['#4caf50', '#f44336']
             }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' },
-                title: { display: false }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#fff' } } } }
     });
 }
 
@@ -2704,236 +2537,151 @@ function generarGraficoLogisticaDash(tarimasPorHora) {
     }
     const ctx = document.getElementById('graficoLogisticaDash').getContext('2d');
     
-    const horasOrdenadas = Object.keys(tarimasPorHora).sort((a, b) => a - b);
-    const labels = horasOrdenadas.map(hora => `${hora}:00 - ${parseInt(hora) + 1}:00`);
-    const data = horasOrdenadas.map(hora => tarimasPorHora[hora] || 0);
+    const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+    const data = labels.map((_, i) => tarimasPorHora[i] || 0);
 
     graficosDashboard.logistica = new Chart(ctx, {
-        type: 'bar', // Cambiado a gráfico de barras para mejor visualización de conteos
+        type: 'bar',
         data: {
             labels: labels, 
             datasets: [{
                 label: 'Tarimas Recolectadas por Hora',
                 data: data,
                 backgroundColor: '#36A2EB',
-                borderColor: '#36A2EB',
-                borderWidth: 1
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Tarimas Recolectadas' // Nueva etiqueta del eje Y
-                    },
-                    ticks: {
-                        stepSize: 1 // Asegura que las etiquetas sean números enteros
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Hora del Día'
-                    }
-                }
+                y: { beginAtZero: true, title: { display: true, text: 'Tarimas Recolectadas', color: '#fff' }, ticks: { stepSize: 1, color: '#fff' } },
+                x: { title: { display: true, text: 'Hora del Día', color: '#fff' }, ticks: { color: '#fff' } }
             },
-            plugins: {
-                legend: { display: false }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 }
 
 // --- !!AQUI EMPIEZAN FUNCIONES DE REPORTE!! ---
-    
-    
+  
+  
     function mostrarReporte(tipo) {
     reporteActual = tipo;
     document.getElementById('selectoresReportes').style.display = 'none';
     const contenedor = document.getElementById('contenedorReporte');
-    const { fecha: fechaActual, turno: turnoActual } = obtenerTurnoActual();
+    const { fecha: fechaActual, turno: turnoActualString } = obtenerTurnoActual();
 
     let areaFiltroHtml = '';
     const areas = ['TODAS', 'MULTIPORT', 'DROPS', 'BEDROCK', 'CALIDAD_MULTIPORT', 'CALIDAD_DROPS', 'CALIDAD_BEDROCK'];
-    areaFiltroHtml = `
-        <label for="areaFiltro">Área:</label>
-        <select id="areaFiltro">
-            ${areas.map(area => `<option value="${area}">${area.replace('CALIDAD_', 'Calidad ')}</option>`).join('')}
-        </select>
-    `;
-
-    let empleadoFiltroHtml = '';
-    if (tipo === 'calidad') {
-        empleadoFiltroHtml = `
-            <label for="empleadoFiltro">Empleado:</label>
-            <input type="text" id="empleadoFiltro" placeholder="Nombre de Empleado">
-        `;
-    }
-
-    let fechaFiltroHtml = '';
-    fechaFiltroHtml = `
-        <label for="fechaReporte">Fecha:</label>
-        <input type="date" id="fechaReporte" value="${fechaActual}">
-    `;
-
-    let turnoFiltroHtml = '';
-    turnoFiltroHtml = `
-        <label for="turnoFiltro">Turno:</label>
-        <select id="turnoFiltro">
-            <option value="todos">Todos</option>
-            <option value="Turno 1">Turno 1</option>
-            <option value="Turno 2">Turno 2</option>
-        </select>
-    `;
-
-    let exportButtons = `
-        <button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button>
-        <button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button>
-        <button class="usuario-btn" onclick="exportarReporte('csv')">Exportar a CSV</button>
-    `;
-
-    let graficoSelector = '';
     if (tipo !== 'resumen') {
-        graficoSelector = `
-            <div class="opciones-grafico">
-                <label>Tipo de Gráfico:</label>
-                <select id="tipoGrafico">
-                    <option value="bar">Barras</option>
-                    <option value="pie">Pastel</option>
-                    <option value="line">Línea</option>
-                </select>
-            </div>
+        areaFiltroHtml = `
+            <label for="areaFiltro">Área:</label>
+            <select id="areaFiltro">
+                ${areas.map(area => `<option value="${area}">${area.replace('CALIDAD_', 'Calidad ')}</option>`).join('')}
+            </select>
         `;
     }
-
-
+    
     contenedor.innerHTML = `
         <div class="header-reporte">
             <button onclick="regresarASelectores()" class="usuario-btn">Regresar</button>
             <div class="filtros">
-                ${fechaFiltroHtml}
-                ${turnoFiltroHtml}
-                ${tipo === 'resumen' ? '' : areaFiltroHtml}
-                ${empleadoFiltroHtml}
+                <label for="fechaReporte">Fecha:</label>
+                <input type="date" id="fechaReporte" value="${fechaActual}">
+                <label for="turnoFiltro">Turno:</label>
+                <select id="turnoFiltro">
+                    <option value="todos">Todos</option>
+                    <option value="Turno 1">Turno 1</option>
+                    <option value="Turno 2">Turno 2</option>
+                </select>
+                ${areaFiltroHtml}
                 <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>
             </div>
         </div>
         <h2 id="tituloReporteDinamico">Cargando...</h2>
-        ${graficoSelector}
+        <div id="opcionesGrafico" class="opciones-grafico" style="display:none;">
+            <label>Tipo de Gráfico:</label>
+            <select id="tipoGrafico">
+                <option value="bar">Barras</option>
+                <option value="pie">Pastel</option>
+                <option value="line">Línea</option>
+            </select>
+        </div>
         <div id="contenidoReporte"></div>
         <div class="botones-reporte">
-            ${exportButtons}
+            <button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button>
+            <button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button>
+            <button class="usuario-btn" onclick="exportarReporte('csv')">Exportar a CSV</button>
         </div>
     `;
 
-    if (document.getElementById('turnoFiltro')) {
-        document.getElementById('turnoFiltro').value = turnoActual;
-    }
-    if (document.getElementById('areaFiltro')) {
-        document.getElementById('areaFiltro').value = 'TODAS';
-    }
-    
-    // Listener para el cambio de tipo de gráfico
-    if (document.getElementById('tipoGrafico')) {
-        document.getElementById('tipoGrafico').addEventListener('change', actualizarGraficoReporte);
-    }
+    document.getElementById('turnoFiltro').value = "todos";
+    document.getElementById('tipoGrafico')?.addEventListener('change', actualizarGraficoReporte);
 
-    const fecha = document.getElementById('fechaReporte').value;
-    const turno = document.getElementById('turnoFiltro').value;
-    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
-    const empleado = document.getElementById('empleadoFiltro') ? document.getElementById('empleadoFiltro').value : null;
-
-    cargarDatosReporte(tipo, fecha, turno, area, empleado);
+    buscarReporte();
 }
 
 function actualizarGraficoReporte() {
+    if (!datosFiltradosReporte) return;
     const tipoGraficoSeleccionado = document.getElementById('tipoGrafico').value;
     const contenedorGrafico = document.querySelector('#grafico-contenedor');
     
     if (contenedorGrafico) {
         contenedorGrafico.innerHTML = '<canvas id="graficoDinamico"></canvas>';
+    } else {
+        return;
     }
 
-    if (datosFiltradosReporte) {
-        let labels, data, chartTitle;
-        if (reporteActual === 'produccion') {
-            const conteo = {};
-            datosFiltradosReporte.forEach(log => {
-                const area = log.grupo;
-                conteo[area] = (conteo[area] || 0) + 1;
-            });
-            labels = Object.keys(conteo);
-            data = Object.values(conteo);
-            chartTitle = 'Tarimas Producidas por Área';
-        } else if (reporteActual === 'logistica') {
-            const conteo = {};
-            datosFiltradosReporte.forEach(log => {
-                const area = log.grupo;
-                conteo[area] = (conteo[area] || 0) + 1;
-            });
-            labels = Object.keys(conteo);
-            data = Object.values(conteo);
-            chartTitle = 'Total de Tarimas Recolectadas por Área';
-        } else if (reporteActual === 'calidad') {
-            const conteo = {};
-            datosFiltradosReporte.forEach(rechazo => {
-                const problema = rechazo.problema;
-                conteo[problema] = (conteo[problema] || 0) + 1;
-            });
-            labels = Object.keys(conteo);
-            data = Object.values(conteo);
-            chartTitle = 'Causas de Rechazo';
-        }
+    let labels, data, chartTitle;
+    let datasetLabel = '';
 
-        if (miGrafico) {
-            miGrafico.destroy();
-        }
-
-        const ctx = document.getElementById('graficoDinamico').getContext('2d');
-        const backgroundColors = [
-            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED',
-            '#FF6361', '#5DADE2', '#F7DC6F', '#7DCEA0', '#AF7AC5', '#F5B041'
-        ];
-
-        miGrafico = new Chart(ctx, {
-            type: tipoGraficoSeleccionado,
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: chartTitle,
-                    data: data,
-                    backgroundColor: backgroundColors,
-                    borderColor: backgroundColors,
-                    borderWidth: 1,
-                    fill: tipoGraficoSeleccionado === 'line',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { font: { size: 14 } }
-                    },
-                    title: {
-                        display: true,
-                        text: chartTitle,
-                        font: { size: 20 }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
+    if (reporteActual === 'produccion') {
+        const conteo = datosFiltradosReporte.reduce((acc, log) => {
+            acc[log.grupo] = (acc[log.grupo] || 0) + 1;
+            return acc;
+        }, {});
+        labels = Object.keys(conteo);
+        data = Object.values(conteo);
+        chartTitle = 'Tarimas Asignadas por Área';
+        datasetLabel = 'Tarimas Asignadas';
+    } else if (reporteActual === 'logistica') {
+        const conteo = datosFiltradosReporte.reduce((acc, log) => {
+            acc[log.grupo] = (acc[log.grupo] || 0) + 1;
+            return acc;
+        }, {});
+        labels = Object.keys(conteo);
+        data = Object.values(conteo);
+        chartTitle = 'Tarimas Recolectadas por Área';
+        datasetLabel = 'Tarimas Recolectadas';
+    } else if (reporteActual === 'calidad') {
+        const conteo = datosFiltradosReporte.reduce((acc, log) => {
+            const problema = log.detalles?.problema || 'No especificado';
+            acc[problema] = (acc[problema] || 0) + 1;
+            return acc;
+        }, {});
+        labels = Object.keys(conteo);
+        data = Object.values(conteo);
+        chartTitle = 'Causas de Rechazo';
+        datasetLabel = 'Número de Rechazos';
     }
+
+    if (miGrafico) miGrafico.destroy();
+
+    const ctx = document.getElementById('graficoDinamico').getContext('2d');
+    miGrafico = new Chart(ctx, {
+        type: tipoGraficoSeleccionado,
+        data: {
+            labels,
+            datasets: [{
+                label: datasetLabel,
+                data,
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { title: { display: true, text: chartTitle, font: { size: 20 } } }
+        }
+    });
 }
 
 
@@ -2941,9 +2689,7 @@ function regresarASelectores() {
     document.getElementById('tituloReportes').textContent = 'REPORTES';
     document.getElementById('selectoresReportes').style.display = 'flex';
     document.getElementById('contenedorReporte').innerHTML = '<h2>Selecciona un reporte</h2>';
-    if (miGrafico) {
-        miGrafico.destroy();
-    }
+    if (miGrafico) miGrafico.destroy();
     datosFiltradosReporte = null;
 }
 
@@ -2951,395 +2697,158 @@ function buscarReporte() {
     const tipo = reporteActual;
     const fecha = document.getElementById('fechaReporte').value;
     const turno = document.getElementById('turnoFiltro').value;
-    const area = document.getElementById('areaFiltro') ? document.getElementById('areaFiltro').value : null;
-    const empleado = document.getElementById('empleadoFiltro') ? document.getElementById('empleadoFiltro').value : null;
-
-    cargarDatosReporte(tipo, fecha, turno, area, empleado);
+    const area = document.getElementById('areaFiltro')?.value || 'TODAS';
+    cargarDatosReporte(tipo, fecha, turno, area);
 }
 
 
-function cargarDatosReporte(tipo, fecha, turno, area, empleado) {
+function cargarDatosReporte(tipo, fecha, turno, area) {
     const contenedor = document.getElementById('contenidoReporte');
     const tituloReporte = document.getElementById('tituloReporteDinamico');
     contenedor.innerHTML = '<p>Cargando datos...</p>';
-    
-    if (miGrafico) {
-        miGrafico.destroy();
-    }
-    
-    const refHistorial = db.ref(`historialLogs`);
-    const refCalidad = db.ref(`contadoresCalidad`);
-    const refRechazos = db.ref(`rechazosDetallados`);
+    if (miGrafico) miGrafico.destroy();
 
-    Promise.all([
-        refHistorial.once('value').then(s => s.val()),
-        refCalidad.once('value').then(s => s.val()),
-        refRechazos.once('value').then(s => s.val())
-    ]).then(([historial, calidad, rechazos]) => {
-        const datosCompletos = { historial, calidad, rechazos };
+    const refHistorial = db.ref(`historialLogs/${fecha}`);
+    refHistorial.once('value').then(snapshot => {
+        const logsDelDia = snapshot.val() || {};
+        let todosLosLogs = [];
         
-        if (tipo === 'calidad') {
-            tituloReporte.textContent = `Reporte de Calidad - ${fecha}`;
-            procesarReporteCalidad(datosCompletos, contenedor, fecha, turno, area, empleado);
-        } else if (tipo === 'produccion') {
-            tituloReporte.textContent = `Reporte de Producción - ${fecha}`;
-            procesarReporteProduccion(datosCompletos, contenedor, fecha, turno, area);
-        } else if (tipo === 'logistica') {
-            tituloReporte.textContent = `Reporte de Logística - ${fecha}`;
-            procesarReporteLogistica(datosCompletos, contenedor, fecha, turno, area);
-        } else if (tipo === 'resumen') {
-            tituloReporte.textContent = `Resumen Ejecutivo`;
-            procesarReporteResumen(datosCompletos, contenedor, fecha, turno);
+        if (turno === 'todos') {
+            Object.values(logsDelDia).forEach(logsTurno => {
+                todosLosLogs.push(...Object.values(logsTurno));
+            });
+        } else if (logsDelDia[turno]) {
+            todosLosLogs = Object.values(logsDelDia[turno]);
+        }
+
+        const logsFiltradosPorArea = (area === 'TODAS')
+            ? todosLosLogs
+            : todosLosLogs.filter(log => log.grupo === area);
+        
+        tituloReporte.textContent = `Reporte de ${tipo} - ${fecha} - ${turno}`;
+
+        switch (tipo) {
+            case 'produccion':
+                procesarReporteProduccion(logsFiltradosPorArea, contenedor);
+                break;
+            case 'logistica':
+                procesarReporteLogistica(logsFiltradosPorArea, contenedor);
+                break;
+            case 'calidad':
+                procesarReporteCalidad(logsFiltradosPorArea, contenedor);
+                break;
+            case 'resumen':
+                procesarReporteResumen(todosLosLogs, contenedor);
+                break;
         }
     }).catch(error => {
-        console.error("Error al cargar los datos:", error);
+        console.error("Error al cargar datos:", error);
         contenedor.innerHTML = `<p>Error al cargar los datos. Intenta de nuevo.</p>`;
     });
 }
 
 
-function procesarReporteCalidad(datos, contenedor, fecha, turno, area, empleado) {
-    let rechazosFiltrados = [];
+function procesarReporteCalidad(logs, contenedor) {
+    datosFiltradosReporte = logs.filter(log => log.accion === 'rechazada');
+    const totalRechazos = datosFiltradosReporte.length;
     
-    for (const fechaKey in datos.rechazos) {
-        if (fecha !== fechaKey) continue;
-        
-        for (const turnoKey in datos.rechazos[fechaKey]) {
-            if (turno !== 'todos' && turnoKey !== turno) continue;
-            
-            for (const rechazoKey in datos.rechazos[fechaKey][turnoKey]) {
-                const rechazo = datos.rechazos[fechaKey][turnoKey][rechazoKey];
-                
-                if (
-                    (area === 'TODAS' || rechazo.areaRechazo === area) &&
-                    (!empleado || (rechazo.empleado && rechazo.empleado.toLowerCase().includes(empleado.toLowerCase())))
-                ) {
-                    rechazosFiltrados.push(rechazo);
-                }
-            }
-        }
-    }
-    
-    datosFiltradosReporte = rechazosFiltrados;
+    let kpisHtml = `<div class="resumen-datos"><div class="dato"><div class="valor">${totalRechazos}</div><div class="etiqueta">Total Rechazos</div></div></div>`;
+    let tablaHtml = '<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Empleado</th><th>No. Parte</th><th>Problema</th><th>Causa</th><th>Acción</th></tr></thead><tbody>';
+    let tablaMovilHtml = '<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';
 
-    const conteoProblemas = {};
-    rechazosFiltrados.forEach(rechazo => {
-        const problema = rechazo.problema || 'Desconocido';
-        conteoProblemas[problema] = (conteoProblemas[problema] || 0) + 1;
+    datosFiltradosReporte.forEach(log => {
+        const d = log.detalles || {};
+        tablaHtml += `<tr><td>${formatoHora(log.timestamp)}</td><td>${log.grupo}</td><td>${log.tarimaId}</td><td>${d.empleado}</td><td>${d.parte}</td><td>${d.problema}</td><td>${d.causa}</td><td>${d.accion}</td></tr>`;
+        tablaMovilHtml += `<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${log.tarimaId}</span><br/><span class="etiqueta">Problema:</span><span class="valor">${d.problema}</span></div>`;
     });
-
-    // KPIs
-    const kpisHtml = `
-        <div class="resumen-datos">
-            <div class="dato">
-                <div class="valor">${rechazosFiltrados.length}</div>
-                <div class="etiqueta">Tarimas Rechazadas</div>
-            </div>
-            <div class="dato">
-                <div class="valor">${Object.keys(conteoProblemas).length}</div>
-                <div class="etiqueta">Problemas Identificados</div>
-            </div>
-        </div>
-    `;
+    tablaHtml += '</tbody></table>';
+    tablaMovilHtml += '</div></div>';
     
-    let tablaHtml = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Área</th><th>Línea</th><th>Empleado</th><th>No. de Parte</th><th>Descripción de la Parte</th><th>Descripción del Problema</th><th>Causa Raíz</th><th>Acción Correctiva</th></tr></thead><tbody>`;
-    rechazosFiltrados.forEach(r => {
-        const areaRechazoFormateada = r.areaRechazo ? r.areaRechazo.replace('CALIDAD_', '') : 'N/A';
-        tablaHtml += `
-            <tr>
-                <td>${r.fecha}</td>
-                <td>${r.hora}</td>
-                <td>${areaRechazoFormateada}</td>
-                <td>${r.linea || 'N/A'}</td>
-                <td>${r.empleado || 'N/A'}</td>
-                <td>${r.parte || 'N/A'}</td>
-                <td>${r.descripcionParte || 'N/A'}</td>
-                <td>${r.problema || 'N/A'}</td>
-                <td>${r.causa || 'N/A'}</td>
-                <td>${r.accion || 'N/A'}</td>
-            </tr>
-        `;
-    });
-    tablaHtml += `</tbody></table>`;
-
-    // Versión para móvil
-    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
-    rechazosFiltrados.forEach(r => {
-        const areaRechazoFormateada = r.areaRechazo ? r.areaRechazo.replace('CALIDAD_', '') : 'N/A';
-        tablaMovilHtml += `
-            <div class="fila-dato">
-                <span class="etiqueta">Fecha:</span> <span class="valor">${r.fecha}</span><br>
-                <span class="etiqueta">Hora:</span> <span class="valor">${r.hora}</span><br>
-                <span class="etiqueta">Área:</span> <span class="valor">${areaRechazoFormateada}</span><br>
-                <span class="etiqueta">Línea:</span> <span class="valor">${r.linea || 'N/A'}</span><br>
-                <span class="etiqueta">Empleado:</span> <span class="valor">${r.empleado || 'N/A'}</span><br>
-                <span class="etiqueta">Problema:</span> <span class="valor">${r.problema || 'N/A'}</span>
-            </div>
-        `;
-    });
-    tablaMovilHtml += `</div></div>`;
-
-    let graficoHtml = '';
-    if (Object.keys(conteoProblemas).length > 0) {
-        graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
-    }
-    
-    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
-
-    if (Object.keys(conteoProblemas).length > 0) {
-        actualizarGraficoReporte();
-    }
+    document.getElementById('opcionesGrafico').style.display = 'block';
+    contenedor.innerHTML = kpisHtml + '<div id="grafico-contenedor" class="grafico-contenedor"></div>' + tablaHtml + tablaMovilHtml;
+    actualizarGraficoReporte();
 }
 
+function procesarReporteProduccion(logs, contenedor) {
+    datosFiltradosReporte = logs.filter(log => log.accion === 'asignada_en_produccion');
+    const totalAsignadas = datosFiltradosReporte.length;
 
-function procesarReporteProduccion(datos, contenedor, fecha, turno, area) {
-    let logsProduccion = [];
-    const conteo = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
+    let kpisHtml = `<div class="resumen-datos"><div class="dato"><div class="valor">${totalAsignadas}</div><div class="etiqueta">Total Asignadas</div></div></div>`;
+    let tablaHtml = '<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Usuario</th></tr></thead><tbody>';
+    let tablaMovilHtml = '<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';
     
-    for (const fechaKey in datos.historial) {
-        if (fecha !== fechaKey) continue;
-        
-        for (const turnoKey in datos.historial[fechaKey]) {
-            if (turno !== 'todos' && turnoKey !== turno) continue;
-
-            for (const logKey in datos.historial[fechaKey][turnoKey]) {
-                const log = datos.historial[fechaKey][turnoKey][logKey];
-                if (log.accion === 'encendido' && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
-                    if (area === 'TODAS' || log.grupo === area) {
-                        logsProduccion.push(log);
-                        conteo[log.grupo]++;
-                    }
-                }
-            }
-        }
-    }
-    
-    datosFiltradosReporte = logsProduccion;
-
-    const kpisHtml = `
-        <div class="resumen-datos">
-            <div class="dato">
-                <div class="valor">${logsProduccion.length}</div>
-                <div class="etiqueta">Tarimas Confirmadas</div>
-            </div>
-        </div>
-    `;
-
-    const graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
-
-    let tablaHtml = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Línea</th>
-                    <th>Tarima</th>
-                    <th>Hora de Confirmación</th>
-                    <th>Usuario</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-    logsProduccion.forEach(log => {
-        tablaHtml += `
-            <tr>
-                <td>${log.grupo}</td>
-                <td>${log.led}</td>
-                <td>${formatoHora(log.timestamp)}</td>
-                <td>${log.usuario}</td>
-            </tr>
-        `;
+    datosFiltradosReporte.forEach(log => {
+        tablaHtml += `<tr><td>${formatoHora(log.timestamp)}</td><td>${log.grupo}</td><td>${log.tarimaId}</td><td>${log.usuario}</td></tr>`;
+        tablaMovilHtml += `<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${log.tarimaId}</span><br/><span class="etiqueta">Área:</span><span class="valor">${log.grupo}</span></div>`;
     });
-    tablaHtml += `</tbody></table>`;
-    
-    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
-    logsProduccion.forEach(log => {
-        tablaMovilHtml += `
-            <div class="fila-dato">
-                <span class="etiqueta">Línea:</span> <span class="valor">${log.grupo}</span><br>
-                <span class="etiqueta">Tarima:</span> <span class="valor">${log.led}</span><br>
-                <span class="etiqueta">Hora:</span> <span class="valor">${formatoHora(log.timestamp)}</span><br>
-                <span class="etiqueta">Usuario:</span> <span class="valor">${log.usuario}</span>
-            </div>
-        `;
-    });
-    tablaMovilHtml += `</div></div>`;
+    tablaHtml += '</tbody></table>';
+    tablaMovilHtml += '</div></div>';
 
-    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
+    document.getElementById('opcionesGrafico').style.display = 'block';
+    contenedor.innerHTML = kpisHtml + '<div id="grafico-contenedor" class="grafico-contenedor"></div>' + tablaHtml + tablaMovilHtml;
+    actualizarGraficoReporte();
+}
+
+function procesarReporteLogistica(logs, contenedor) {
+    datosFiltradosReporte = logs.filter(log => log.accion === 'recolectada');
+    const totalRecolectadas = datosFiltradosReporte.length;
+    const tiempoTotal = datosFiltradosReporte.reduce((sum, log) => sum + (log.tiempoRecoleccion || 0), 0);
+    const tiempoPromedio = totalRecolectadas > 0 ? (tiempoTotal / totalRecolectadas).toFixed(1) : 0;
+
+    let kpisHtml = `<div class="resumen-datos">
+        <div class="dato"><div class="valor">${totalRecolectadas}</div><div class="etiqueta">Total Recolectadas</div></div>
+        <div class="dato"><div class="valor">${tiempoPromedio} min</div><div class="etiqueta">Tiempo Promedio</div></div>
+    </div>`;
+    let tablaHtml = '<table><thead><tr><th>Hora Recolección</th><th>Área</th><th>Tarima ID</th><th>Tiempo (min)</th><th>Hora Inicio</th></tr></thead><tbody>';
+    let tablaMovilHtml = '<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';
+    
+    datosFiltradosReporte.forEach(log => {
+        tablaHtml += `<tr><td>${formatoHora(log.horaApagado)}</td><td>${log.grupo}</td><td>${log.tarimaId}</td><td>${log.tiempoRecoleccion}</td><td>${formatoHora(log.horaEncendido)}</td></tr>`;
+        tablaMovilHtml += `<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${log.tarimaId}</span><br/><span class="etiqueta">Tiempo:</span><span class="valor">${log.tiempoRecoleccion} min</span></div>`;
+    });
+    tablaHtml += '</tbody></table>';
+    tablaMovilHtml += '</div></div>';
+
+    document.getElementById('opcionesGrafico').style.display = 'block';
+    contenedor.innerHTML = kpisHtml + '<div id="grafico-contenedor" class="grafico-contenedor"></div>' + tablaHtml + tablaMovilHtml;
     actualizarGraficoReporte();
 }
 
 
-function procesarReporteLogistica(datos, contenedor, fecha, turno, area) {
-    let logsRecoleccion = [];
-    let tiempoTotal = 0;
-    
-    for (const fechaKey in datos.historial) {
-        if (fecha !== fechaKey) continue;
-        
-        for (const turnoKey in datos.historial[fechaKey]) {
-            if (turno !== 'todos' && turnoKey !== turno) continue;
-            
-            for (const logKey in datos.historial[fechaKey][turnoKey]) {
-                const log = datos.historial[fechaKey][turnoKey][logKey];
-                if (log.accion === 'apagado' && log.tiempoRecoleccion && ['MULTIPORT', 'DROPS', 'BEDROCK'].includes(log.grupo)) {
-                    if (area === 'TODAS' || log.grupo === area) {
-                        logsRecoleccion.push(log);
-                        tiempoTotal += log.tiempoRecoleccion;
-                    }
-                }
-            }
-        }
-    }
-
-    datosFiltradosReporte = logsRecoleccion;
-    
-    const tiempoPromedio = logsRecoleccion.length > 0 ? (tiempoTotal / logsRecoleccion.length).toFixed(1) : 0;
-    
-    const conteoTarimasPorArea = {};
-    logsRecoleccion.forEach(log => {
-        const area = log.grupo;
-        conteoTarimasPorArea[area] = (conteoTarimasPorArea[area] || 0) + 1;
-    });
-
-    const kpisHtml = `
-        <div class="resumen-datos">
-            <div class="dato">
-                <div class="valor">${logsRecoleccion.length}</div>
-                <div class="etiqueta">Tarimas Recolectadas</div>
-            </div>
-            <div class="dato">
-                <div class="valor">${tiempoPromedio} min</div>
-                <div class="etiqueta">Tiempo Promedio</div>
-            </div>
-        </div>
-    `;
-
-    const graficoHtml = `<div id="grafico-contenedor" class="grafico-contenedor"><canvas id="graficoDinamico"></canvas></div>`;
-
-    let tablaHtml = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Línea</th>
-                    <th>Tarima</th>
-                    <th>Tiempo de Recolección (min)</th>
-                    <th>Hora de Encendido</th>
-                    <th>Hora de Apagado</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-    logsRecoleccion.forEach(log => {
-        tablaHtml += `
-            <tr>
-                <td>${log.grupo}</td>
-                <td>${log.led}</td>
-                <td>${log.tiempoRecoleccion}</td>
-                <td>${formatoHora(log.horaEncendido)}</td>
-                <td>${formatoHora(log.horaApagado)}</td>
-            </tr>
-        `;
-    });
-    tablaHtml += `</tbody></table>`;
-    
-    let tablaMovilHtml = `<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">`;
-    logsRecoleccion.forEach(log => {
-        tablaMovilHtml += `
-            <div class="fila-dato">
-                <span class="etiqueta">Línea:</span> <span class="valor">${log.grupo}</span><br>
-                <span class="etiqueta">Tarima:</span> <span class="valor">${log.led}</span><br>
-                <span class="etiqueta">Tiempo:</span> <span class="valor">${log.tiempoRecoleccion} min</span><br>
-                <span class="etiqueta">Hora de Recolección:</span> <span class="valor">${formatoHora(log.horaApagado)}</span>
-            </div>
-        `;
-    });
-    tablaMovilHtml += `</div></div>`;
-
-    contenedor.innerHTML = kpisHtml + graficoHtml + tablaHtml + tablaMovilHtml;
-    document.getElementById('tipoGrafico').value = 'bar'; // Establecer por defecto a barras
-    actualizarGraficoReporte();
-}
-
-function procesarReporteResumen(datos, contenedor, fecha, turno) {
-    const areas = ['MULTIPORT', 'DROPS', 'BEDROCK'];
+function procesarReporteResumen(logs, contenedor) {
     const resumen = {};
-    
-    areas.forEach(area => {
-        resumen[area] = {
-            produccion: 0,
-            liberadas: 0,
-            rechazadas: 0,
-            tiempoLogistica: { total: 0, count: 0, promedio: 0 }
-        };
+    const areas = ['MULTIPORT', 'DROPS', 'BEDROCK'];
+    areas.forEach(a => {
+        resumen[a] = { prod: 0, recolectadas: 0, liberadas: 0, rechazadas: 0, tiempoTotal: 0 };
     });
 
-    // Procesar historial (producción y logística)
-    for (const fechaKey in datos.historial) {
-        if (fechaKey !== fecha && fecha !== null) continue; // Si se elige una fecha, procesar solo esa
-        for (const turnoKey in datos.historial[fechaKey]) {
-            if (turnoKey !== turno && turno !== 'todos') continue; // Si se elige un turno, procesar solo ese
-            for (const logKey in datos.historial[fechaKey][turnoKey]) {
-                const log = datos.historial[fechaKey][turnoKey][logKey];
-                if (log.accion === 'encendido' && resumen.hasOwnProperty(log.grupo)) {
-                    resumen[log.grupo].produccion++;
-                } else if (log.accion === 'apagado' && log.tiempoRecoleccion && resumen.hasOwnProperty(log.grupo)) {
-                    resumen[log.grupo].tiempoLogistica.total += log.tiempoRecoleccion;
-                    resumen[log.grupo].tiempoLogistica.count++;
-                }
-            }
-        }
-    }
+    logs.forEach(log => {
+        const area = log.grupo?.replace('CALIDAD_', '');
+        if (!resumen[area]) return;
 
-    // Procesar contadores de calidad
-    for (const fechaKey in datos.calidad) {
-        if (fechaKey !== fecha && fecha !== null) continue;
-        for (const turnoKey in datos.calidad[fechaKey]) {
-            if (turnoKey !== turno && turno !== 'todos') continue;
-            for (const grupoKey in datos.calidad[fechaKey][turnoKey]) {
-                const grupoBase = grupoKey.replace('CALIDAD_', '');
-                if (resumen.hasOwnProperty(grupoBase)) {
-                    const contadores = datos.calidad[fechaKey][turnoKey][grupoKey];
-                    resumen[grupoBase].liberadas += contadores.liberadas || 0;
-                    resumen[grupoBase].rechazadas += contadores.rechazadas || 0;
-                }
-            }
+        switch(log.accion) {
+            case 'asignada_en_produccion': resumen[area].prod++; break;
+            case 'recolectada': 
+                resumen[area].recolectadas++;
+                resumen[area].tiempoTotal += log.tiempoRecoleccion || 0;
+                break;
+            case 'liberada': resumen[area].liberadas++; break;
+            case 'rechazada': resumen[area].rechazadas++; break;
         }
-    }
+    });
 
-    let html = ``;
+    let html = '';
     areas.forEach(area => {
-        const prod = resumen[area].produccion;
-        const liberadas = resumen[area].liberadas;
-        const rechazadas = resumen[area].rechazadas;
-        const totalCalidad = liberadas + rechazadas;
-        const tasaRechazo = totalCalidad > 0 ? ((rechazadas / totalCalidad) * 100).toFixed(1) : 0;
-        const tiempoPromedio = resumen[area].tiempoLogistica.count > 0 ? (resumen[area].tiempoLogistica.total / resumen[area].tiempoLogistica.count).toFixed(1) : 0;
-
-        html += `
-            <h3>${area}</h3>
-            <div class="resumen-datos">
-                <div class="dato">
-                    <div class="valor">${prod}</div>
-                    <div class="etiqueta">Tarimas Producidas</div>
-                </div>
-                <div class="dato">
-                    <div class="valor">${liberadas}</div>
-                    <div class="etiqueta">Tarimas Liberadas</div>
-                </div>
-                <div class="dato">
-                    <div class="valor">${rechazadas}</div>
-                    <div class="etiqueta">Tarimas Rechazadas</div>
-                </div>
-                <div class="dato">
-                    <div class="valor">${tasaRechazo}%</div>
-                    <div class="etiqueta">Tasa de Rechazo</div>
-                </div>
-                <div class="dato">
-                    <div class="valor">${tiempoPromedio} min</div>
-                    <div class="etiqueta">Tiempo Recolección</div>
-                </div>
-            </div>
-        `;
+        const r = resumen[area];
+        const tasaRechazo = (r.liberadas + r.rechazadas > 0) ? ((r.rechazadas / (r.liberadas + r.rechazadas)) * 100).toFixed(1) : 0;
+        const tiempoPromedio = r.recolectadas > 0 ? (r.tiempoTotal / r.recolectadas).toFixed(1) : 0;
+        html += `<h3>${area}</h3><div class="resumen-datos">
+            <div class="dato"><div class="valor">${r.prod}</div><div class="etiqueta">Producidas</div></div>
+            <div class="dato"><div class="valor">${r.liberadas}</div><div class="etiqueta">Liberadas</div></div>
+            <div class="dato"><div class="valor">${r.rechazadas}</div><div class="etiqueta">Rechazadas</div></div>
+            <div class="dato"><div class="valor">${tasaRechazo}%</div><div class="etiqueta">Tasa Rechazo</div></div>
+            <div class="dato"><div class="valor">${tiempoPromedio} min</div><div class="etiqueta">Tiempo Promedio</div></div>
+        </div>`;
     });
     contenedor.innerHTML = html;
 }
@@ -3454,23 +2963,18 @@ function generarGraficoProduccion(datos) {
 
 function exportarReporte(formato) {
     const tabla = document.querySelector('#contenidoReporte table');
-    const chart = miGrafico;
-    const tipo = reporteActual;
-
-    if (!tabla) {
-        alert('No hay datos para exportar. Por favor, genera un reporte primero.');
-        return;
+    if (!tabla || !datosFiltradosReporte) {
+        return alert('No hay datos para exportar.');
     }
-
-    const nombreArchivo = `${tipo}_${document.getElementById('fechaReporte').value}`;
+    const nombreArchivo = `${reporteActual}_${document.getElementById('fechaReporte').value}`;
 
     if (formato === 'excel') {
-        const data = XLSX.utils.table_to_sheet(tabla);
+        const ws = XLSX.utils.table_to_sheet(tabla);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, data, 'Reporte');
+        XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
         XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
     } else if (formato === 'pdf') {
-        exportarAPdf(tabla, chart, nombreArchivo);
+        exportarAPdf(tabla, miGrafico, nombreArchivo);
     } else if (formato === 'csv') {
         exportarACsv(tabla, nombreArchivo);
     }
@@ -3478,101 +2982,32 @@ function exportarReporte(formato) {
 
 function exportarACsv(tabla, nombreReporte) {
     let csv = [];
-    const filas = tabla.querySelectorAll('tr');
-
-    for (const fila of filas) {
+    tabla.querySelectorAll('tr').forEach(fila => {
         let filaDatos = [];
-        const celdas = fila.querySelectorAll('th, td');
-        for (const celda of celdas) {
-            filaDatos.push(`"${celda.textContent.trim().replace(/"/g, '""')}"`); // Escapar comillas dobles
-        }
+        fila.querySelectorAll('th, td').forEach(celda => {
+            filaDatos.push(`"${celda.textContent.trim().replace(/"/g, '""')}"`);
+        });
         csv.push(filaDatos.join(','));
-    }
-
-    const csvFinal = csv.join('\n');
-    const blob = new Blob([csvFinal], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    });
+    const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${nombreReporte}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `${nombreReporte}.csv`;
     link.click();
-    document.body.removeChild(link);
 }
 
 function exportarAPdf(tabla, chart, nombreArchivo) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'pt', 'letter');
-    const margin = 20;
-    let y = margin;
-    let pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-    let pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.text(`Reporte de ${reporteActual}`, 20, 20);
 
-    // Título del reporte
-    doc.setFontSize(22);
-    doc.text(`Reporte de ${reporteActual.toUpperCase()}`, pageWidth / 2, y, { align: 'center' });
-    y += 30;
-
-    // Agregar la fecha
-    doc.setFontSize(12);
-    doc.text(`Fecha: ${document.getElementById('fechaReporte').value}`, margin, y);
-    y += 20;
-
-    // Agregar resumen si existe
-    const resumenDiv = document.querySelector('#contenidoReporte .resumen-datos');
-    if (resumenDiv) {
-        const resumenText = Array.from(resumenDiv.children).map(dato => {
-            const etiqueta = dato.querySelector('.etiqueta').textContent;
-            const valor = dato.querySelector('.valor').textContent;
-            return `${etiqueta}: ${valor}`;
-        }).join('  |  ');
-        doc.text(resumenText, margin, y);
-        y += 30;
-    }
-
-    // Agregar gráfica como imagen
     if (chart) {
-        const chartDataURL = chart.toBase64Image();
-        const imgWidth = 500;
-        const imgHeight = 250;
-        const imgX = (pageWidth - imgWidth) / 2;
-
-        if (y + imgHeight + 30 > pageHeight) {
-            doc.addPage();
-            y = margin;
-        }
-
-        doc.addImage(chartDataURL, 'PNG', imgX, y, imgWidth, imgHeight);
-        y += imgHeight + 30;
+        doc.addImage(chart.toBase64Image(), 'PNG', 20, 30, 120, 70);
     }
 
-    // Agregar tabla
-    const tableHeaders = Array.from(tabla.querySelectorAll('thead th')).map(th => th.textContent.trim());
-    const tableData = Array.from(tabla.querySelectorAll('tbody tr')).map(tr =>
-        Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
-    );
-
-    const startY = y;
     doc.autoTable({
-        startY: startY,
-        head: [tableHeaders],
-        body: tableData,
-        theme: 'striped',
-        styles: { fontSize: 8, cellPadding: 5 },
-        columnStyles: {
-            0: { cellWidth: 50 },
-            1: { cellWidth: 50 },
-            2: { cellWidth: 50 },
-            3: { cellWidth: 60 },
-            4: { cellWidth: 60 },
-            5: { cellWidth: 70 },
-            6: { cellWidth: 70 },
-            7: { cellWidth: 70 },
-            8: { cellWidth: 70 },
-            9: { cellWidth: 70 },
-        },
-        margin: { top: y, left: margin, right: margin, bottom: margin }
+        html: tabla,
+        startY: chart ? 110 : 30,
     });
 
     doc.save(`${nombreArchivo}.pdf`);
@@ -3586,65 +3021,23 @@ window.addEventListener('load', ()=>{
     
     firebase.auth().onAuthStateChanged(user => {
         if (user) {
-            iniciarListenersFirebase(); 
             activarPantalla('pantalla1');
-        } else {
-            // Manejar el caso de no autenticación si es necesario
         }
     });
     
-    const modalCalidad = document.getElementById('modalCalidad');
-    modalCalidad.querySelector('.cerrar-btn').addEventListener('click', () => {
-        modalCalidad.classList.remove('visible');
-    });
-
-    modalCalidad.querySelectorAll('.opcion-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const nuevoColor = btn.dataset.color;
-            if (nuevoColor === 'rojo') {
-                mostrarFormularioRechazo();
-            } else {
-                aplicarEstadoCalidad(nuevoColor);
-                modalCalidad.classList.remove('visible');
-            }
-        });
-    });
-
-    const modalRechazo = document.getElementById('modalRechazo');
-    modalRechazo.querySelector('#formularioRechazo').addEventListener('submit', (e) => {
+    document.getElementById('modalRechazo').querySelector('form').addEventListener('submit', (e) => {
         e.preventDefault();
-        
-        const formulario = e.target;
-        const datos = {
-            empleado: formulario.empleado.value,
-            linea: formulario.linea.value,
-            parte: formulario.parte.value,
-            descripcionParte: formulario.descripcionParte.value,
-            problema: formulario.problema.value,
-            causa: formulario.causa.value,
-            accion: formulario.accion.value,
-        };
-        
-        guardarRechazo(datos);
-        formulario.reset();
+        guardarRechazo();
     });
 
-    const selectoresReportes = document.getElementById('selectoresReportes');
-    selectoresReportes.querySelectorAll('.usuario-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tipoReporte = btn.dataset.reporte;
-            mostrarReporte(tipoReporte);
-        });
+    document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn').forEach(btn => {
+        btn.addEventListener('click', () => mostrarReporte(btn.dataset.reporte));
     });
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => {
-                console.log("✅ Service Worker registrado:", reg);
-            })
-            .catch(err => {
-                console.error("❌ Error al registrar Service Worker:", err);
-            });
+            .then(reg => console.log("✅ Service Worker registrado:", reg))
+            .catch(err => console.error("❌ Error al registrar Service Worker:", err));
     }
 });
 </script>
