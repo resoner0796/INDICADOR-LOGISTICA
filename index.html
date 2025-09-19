@@ -216,8 +216,8 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   opacity: 0.8;
 }
 
-@media(max-width:720px){
-  .grupo-contenedor{
+@media(max-width:720px){ 
+  .grupo-contenedor{ 
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -246,20 +246,17 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  /* 💡 Estas dos líneas son la clave para ocultarlos */
   visibility: hidden;
   opacity: 0;
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-/* Esta clase es la que tu JavaScript debe agregar para mostrar el modal */
 .modal-calidad.visible,
 .modal.visible {
   visibility: visible;
   opacity: 1;
 }
 
-/* Estilos de los contenedores de los modales (los que ya tenías) */
 #modalCalidad .modal-content,
 #modalRechazo .modal-content,
 #modalOpcionesCalidad .modal-content,
@@ -273,19 +270,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   width: 90%;
   box-shadow: 0 8px 20px rgba(0,0,0,0.6);
 }
-
-/* ================= CSS DEL MODAL DE CALIDAD ================= */
-#modalCalidad .modal-content,
-#modalRechazo .modal-content {
-  background-color: #1c1c1c !important;
-  color: #eee !important;
-  padding: 25px 35px;
-  border-radius: 12px;
-  text-align: center;
-  max-width: 450px;
-  width: 90%;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
-}
+  
 #modalCalidad h3,
 #modalRechazo h3 {
   color: #f0f0f0 !important;
@@ -304,8 +289,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 #modalCalidad .opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
 #modalCalidad .opcion-btn:hover { transform: scale(1.05); }
 
-
-/* Nuevo CSS para el formulario de rechazo */
 #modalRechazo .modal-content {
   text-align: left;
 }
@@ -360,7 +343,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   flex: 1;
   margin: 0 5px;
 }
-
+  
 .led.naranja {
   background: radial-gradient(circle at 48% 45%, #ff9800 40%, #c17500 100%);
   box-shadow: 0 0 22px #ff9800, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
@@ -374,7 +357,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   box-shadow: 0 0 22px #4caf50, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
 }
 
-/* ================= CSS PARA PANTALLA 3 (REPORTES) ================= */
 #pantalla3 {
   background-color: #f5f5f5;
   color: #333;
@@ -553,19 +535,18 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         width: 100%;
     }
     #pantalla3 table {
-        display: none; /* Oculta la tabla normal en móviles */
+        display: none;
     }
     .reporte-calidad-mobile {
-        display: block; /* Muestra la tabla móvil */
+        display: block;
     }
 }
 @media (min-width: 769px) {
     .reporte-calidad-mobile {
-        display: none; /* Oculta la tabla móvil en desktop */
+        display: none;
     }
 }
 
-/* ================= CSS PARA PANTALLA 4 (DASHBOARD) ================= */
 #pantalla4 {
   background-color: #000;
   color: #fff;
@@ -709,7 +690,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   }
 }
 
-  /* FAB */
   .mt-fab {
     position: fixed;
     bottom: 20px;
@@ -728,7 +708,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   }
   .mt-fab:active { transform: translateY(1px); }
 
-  /* Panel lateral */
   .mt-panel {
     position: fixed;
     top: 0; right: -420px; width: 420px; max-width: 95vw; height: 100%;
@@ -744,7 +723,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   }
   .mt-close:hover { color: #fff; }
 
-  /* Controles */
   .mt-row { display: flex; gap: 10px; align-items: stretch; }
   .mt-btn {
     padding: 10px 14px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
@@ -772,9 +750,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   }
   .mt-assign { margin-top: 14px; border-top: 1px dashed #2a2f36; padding-top: 12px; }
 
-  /* === TEMA OSCURO SOLO PARA CALIDAD/PRODUCCIÓN ===
-      Le agregamos a <body> la clase .theme-dark cuando el usuario pertenece a esas áreas.
-      Logística queda igual (sin esta clase). */
   body.theme-dark {
     background: #0b0d0f !important;
     color: #eaeaea !important;
@@ -799,7 +774,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
     <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button>
+    <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button> 
     <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
     <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
 </div>
@@ -866,7 +841,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
         </div>
         <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
-
+  
     <div class="grupo" data-grupo="CALIDAD_DROPS">
         <div class="nombre">CALIDAD DROPS</div>
         <div class="tarimas">Tarimas: 0</div>
@@ -1015,7 +990,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 </div>
 
 <style>
-/* --- estilos básicos para modal --- */
 .modal {
   display: none;
   position: fixed;
@@ -1037,14 +1011,14 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   gap: 10px;
 }
 </style>
-
+  
 <div id="modalRechazo" class="modal-calidad">
   <div class="modal-content">
     <h3>Detalles del Rechazo</h3>
     <form id="formularioRechazo">
         <label for="empleado">Empleado Originador:</label>
         <input type="text" id="empleado" name="empleado" required>
-
+        
         <label for="linea">Línea afectada:</label>
         <input type="text" id="linea" name="linea" required>
 
@@ -1086,9 +1060,8 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     </div>
   </div>
 </div>
-
+  
 <style>
-  /* Modal Producción con estilo dark */
 .modal-produccion {
   position: fixed;
   top: 0; left: 0;
@@ -1123,26 +1096,11 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   border: none;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 15px;
-}
-
-.modal-actions button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
 #btnAsignarProduccion { background: #4caf50; color: #fff; }
 #btnAsignarProduccion:hover { filter: brightness(1.2); }
 .modal-actions button:last-child { background: #555; color: #fff; }
 .modal-actions button:last-child:hover { background: #777; }
-
-<style>
-/* Reutiliza el estilo del modal de calidad */
+  
 #modalAsignarTarimaProduccion .modal-content {
   background: #fff;
   padding: 20px;
@@ -1192,7 +1150,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
     </div>
   </div>
 </div>
-
+  
 <script>
 // ================= CONFIG Y ESTADO =================
 const CONFIG = {
@@ -1228,7 +1186,6 @@ let miGrafico;
 let graficosDashboard = {};
 let dashboardUpdateInterval;
 
-
 // ================= FIREBASE =================
 const firebaseConfig = {
     apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
@@ -1241,7 +1198,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-const db = database;
+const db = database; 
 const ledRef = database.ref('estadoLEDs');
 let historialRef;
 let contadoresCalidadRef;
@@ -1249,12 +1206,10 @@ let rechazosDetalladosRef;
 let dashboardListeners = [];
 
 window.database = window.database || firebase.database();
-
-// Guardaremos el usuario actual (texto del botón que usan)
 window.__usuarioActual = null;
 
 (function compatSeleccionarUsuario(){
-  const legacy = window.seleccionarUsuario; // por si ya existía
+  const legacy = window.seleccionarUsuario;
   window._seleccionarUsuarioOriginal = (typeof legacy === 'function') ? legacy : null;
 
   window.seleccionarUsuario = function(usuarioClave) {
@@ -1276,10 +1231,7 @@ window.__usuarioActual = null;
   };
 })();
 
-// =======================================================
-//  Panel de Identificación de Tarimas
-// =======================================================
-
+// ================= Panel de Identificación de Tarimas =================
 const MT = {
   ui: {
     panel:    document.getElementById('mtPanel'),
@@ -1317,7 +1269,6 @@ if (MT.ui.bxInput) MT.ui.bxInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') MT.ui.buscarBtn.click();
 });
 
-
 function buscarTarimaPorBX(bxCode) {
   database.ref('tarimas').once('value').then(snapshot => {
     let encontrada = null;
@@ -1330,7 +1281,7 @@ function buscarTarimaPorBX(bxCode) {
           break;
         }
       }
-      if (encontrada) return true; // corta forEach
+      if (encontrada) return true;
     });
 
     if (!encontrada) {
@@ -1375,7 +1326,7 @@ function cargarLedsDisponibles() {
     if (!grupoCalidad || !grupoCalidad.startsWith('CALIDAD_')) return;
 
     db.ref(`estadoLEDs/${grupoCalidad}/linea1`).on('value', snap => {
-        sel.innerHTML = '';
+        sel.innerHTML = '<option value="">Seleccione un LED...</option>';
         const ledsEstado = snap.val() || {};
         const totalLeds = CONFIG.LEDS_POR_GRUPO[grupoCalidad] || 5;
 
@@ -1383,7 +1334,7 @@ function cargarLedsDisponibles() {
             const estado = ledsEstado[i] || {};
             if (!estado.tarimaId) {
                 const opt = document.createElement('option');
-                opt.value = i; // Guardar el índice
+                opt.value = i;
                 opt.textContent = `LED ${i+1}`;
                 sel.appendChild(opt);
             }
@@ -1394,7 +1345,6 @@ function cargarLedsDisponibles() {
 function renderTarimasPendientes() {
     const lista = document.getElementById('listaTarimasPendientes');
     lista.innerHTML = '';
-
     db.ref('tarimas').once('value').then(snap => {
         const tarimas = snap.val() || {};
         db.ref('tarimasAsignadas').once('value').then(snap2 => {
@@ -1468,10 +1418,8 @@ function renderTarimaEncontrada(tarima) {
       asignarLedATarima(ledIndex, tarima.id);
     };
   }
-
   MT.ui.infoBox.style.display = 'block';
 }
-
 
 // ================= FUNCIONES DE RENDER Y ESTADO VISUAL =================
 function inyectaLEDs(){
@@ -1485,7 +1433,8 @@ function inyectaLEDs(){
         });
     } else if (usuarioSeleccionado.startsWith('CALIDAD_')) {
         document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
-    } else { // Producción
+    } else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado)) {
+        // Producción ve todos los grupos para poder interactuar con los de calidad
         document.querySelectorAll('.grupo').forEach(grupoDiv => {
             grupoDiv.classList.remove('oculto');
         });
@@ -1496,7 +1445,6 @@ function inyectaLEDs(){
         const linea = contenedor.dataset.linea;
         const ledsPorLinea = CONFIG.LEDS_POR_GRUPO[grupoLeds] || 5;
         contenedor.innerHTML = '';
-
         for(let i = 0; i < ledsPorLinea; i++){
             const led = document.createElement('div');
             led.className = 'led';
@@ -1513,16 +1461,14 @@ function pintarEstado() {
         document.querySelectorAll('.leds').forEach(contenedor => {
             const grupoLeds = contenedor.dataset.grupo;
             const linea = contenedor.dataset.linea;
-
             const ledsEstado = estados[grupoLeds]?.[linea] || {};
             contenedor.querySelectorAll('.led').forEach((led, index) => {
-                led.className = 'led'; // Reset classes
+                led.className = 'led';
                 led.innerHTML = '';
 
                 const estado = ledsEstado[index];
                 if (estado) {
                     let tarimaIdShort = estado.tarimaId ? "..." + estado.tarimaId.slice(-4) : "";
-
                     if (grupoLeds.startsWith('CALIDAD_') && estado.color) {
                         led.classList.add(estado.color);
                         if (tarimaIdShort) led.innerHTML = `<span>${tarimaIdShort}</span>`;
@@ -1536,22 +1482,17 @@ function pintarEstado() {
     });
 }
 
+function formatoHora(isoString) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
 function obtenerTurnoActual() {
     const ahora = new Date();
-    const hora = ahora.getHours();
-    const minutos = ahora.getMinutes();
     let fecha = new Date(ahora);
-    let turno;
-
-    if ((hora > 6 || (hora === 6 && minutos >= 30)) && (hora < 18 || (hora === 18 && minutos < 30))) {
-        turno = 'Turno 1';
-    } else {
-        turno = 'Turno 2';
-        if (hora < 6 || (hora === 6 && minutos < 30)) {
-            fecha.setDate(ahora.getDate() - 1);
-        }
-    }
-
+    let turno = (ahora.getHours() > 6 || (ahora.getHours() === 6 && ahora.getMinutes() >= 30)) && (ahora.getHours() < 18 || (ahora.getHours() === 18 && ahora.getMinutes() < 30)) ? 'Turno 1' : 'Turno 2';
+    if (turno === 'Turno 2' && ahora.getHours() < 6) fecha.setDate(ahora.getDate() - 1);
     const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
     return { fecha: fechaFormateada, turno };
 }
@@ -1560,20 +1501,16 @@ function obtenerTurnoActual() {
 function iniciarListenersFirebase() {
     const { fecha, turno: turnoActualString } = obtenerTurnoActual();
     document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`;
-
     const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`;
     if (historialRef) historialRef.off();
     historialRef = db.ref(rutaHistorialTurno);
 
     historialRef.on('value', (snapshot) => {
         const logs = snapshot.val() || {};
-        let tarimasRecolectadasTotales = 0;
-        let tiempoTotalRecoleccion = 0;
+        let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0;
         const contadores = {};
         const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS'];
-        grupos.forEach(g => {
-            contadores[g] = { asignadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 };
-        });
+        grupos.forEach(g => { contadores[g] = { asignadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 }; });
         const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
 
         Object.values(logs).forEach(log => {
@@ -1583,7 +1520,7 @@ function iniciarListenersFirebase() {
                 case 'recolectada':
                     contadores[log.grupo].recolectadas++;
                     tarimasRecolectadasTotales++;
-                    if (log.tiempoRecoleccion) {
+                    if (log.tiempoRecoleccion != null) {
                         tiempos[log.grupo]?.push(log);
                         tiempoTotalRecoleccion += log.tiempoRecoleccion;
                     }
@@ -1612,9 +1549,9 @@ function iniciarListenersFirebase() {
             const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
             if (!contenedorTiempos) return;
             contenedorTiempos.innerHTML = '<h4>Últimas recolecciones:</h4>';
-            tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(logEntry => {
+            tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => {
                 const p = document.createElement('p');
-                p.textContent = `Tarima ...${logEntry.tarimaId.slice(-4)}: ${logEntry.tiempoRecoleccion} min (a las ${formatoHora(logEntry.horaApagado)})`;
+                p.textContent = `Tarima ...${(log.tarimaId || '').slice(-4)}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`;
                 contenedorTiempos.appendChild(p);
             });
         });
@@ -1630,18 +1567,15 @@ function actualizarContadoresTarimas(grupo, accion) {
 function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
     const usuarioActual = usuarioSeleccionado || '';
-
+    
     ledRef.once('value').then(snapshot => {
         const estadoActual = snapshot.val() || {};
-
-        // ✅ FLUJO 1: CALIDAD interactúa con sus propios LEDs
+        
+        // FLUJO 1: CALIDAD interactúa con sus propios LEDs
         if (usuarioActual.startsWith('CALIDAD_') && grupo === usuarioActual) {
-            if (!estadoActual.tarimaId) {
-                return alert('Este LED está vacío. Usa el panel "TARIMAS" para asignar una.');
-            }
-            if (estadoActual.color === 'verde') {
-                return alert('Esta tarima ya ha sido liberada.');
-            }
+            if (!estadoActual.tarimaId) return alert('Este LED está vacío. Usa el panel "TARIMAS" para asignar una.');
+            if (estadoActual.color === 'verde') return alert('Esta tarima ya ha sido liberada.');
+            
             if (estadoActual.color === 'rojo') {
                 if (confirm('Esta tarima fue rechazada. ¿Confirmas que ha sido corregida y deseas liberarla ahora?')) {
                     liberarTarima(estadoActual.tarimaId, grupo);
@@ -1649,12 +1583,11 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                 }
                 return;
             }
-            // Si es naranja, abre el modal de decisión
             abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
             return;
         }
 
-        // ✅ FLUJO 2: PRODUCCIÓN recibe tarimas de CALIDAD
+        // FLUJO 2: PRODUCCIÓN recibe tarimas de CALIDAD
         if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo.startsWith('CALIDAD_')) {
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
                 if (confirm(`¿Recibir la tarima #${estadoActual.tarimaId} liberada por Calidad?`)) {
@@ -1826,7 +1759,6 @@ function asignarTarimaProduccion(grupo, idx, linea) {
     });
 }
 
-// --- Funciones de Modales ---
 let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
 
 function abrirModalCalidad(grupo, idx, linea, tarimaId) {
@@ -1889,8 +1821,15 @@ document.getElementById('btnAsignarProduccion').addEventListener('click', () => 
 
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function activarPantalla(id){
-    document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
-    document.getElementById(id).classList.add('activa');
+    document.querySelectorAll('.pantalla').forEach(p => {
+        p.style.display = 'none';
+        p.classList.remove('activa');
+    });
+    const pantalla = document.getElementById(id);
+    if(pantalla) {
+        pantalla.style.display = 'flex';
+        pantalla.classList.add('activa');
+    }
 }
 
 function volverAPantalla1(){
@@ -1901,8 +1840,8 @@ function volverAPantalla1(){
 }
 
 function seleccionarUsuario(usuario) {
-    const password = prompt(`Introduce la contraseña para ${usuario}:`);
     let targetUser = usuario;
+    let password = prompt(`Introduce la contraseña para ${usuario}:`);
     let isValid = false;
 
     if (usuario === 'CALIDAD') {
@@ -1921,11 +1860,11 @@ function seleccionarUsuario(usuario) {
         pintarEstado();
         iniciarListenersFirebase();
         alert(`¡Bienvenido, ${targetUser.replace('_', ' ')}!`);
-    } else {
+    } else if (password !== null) { // Only show alert if user didn't cancel prompt
         alert('Contraseña incorrecta.');
     }
 }
-
+  
 function seleccionarReporte() {
     if (prompt('Introduce la contraseña para REPORTES:') === CONFIG.PASSWORDS.REPORTES) {
         activarPantalla('pantalla3');
@@ -1944,87 +1883,23 @@ function seleccionarDashboard() {
     }
 }
 
-// ================= DASHBOARD =================
-// (El código del Dashboard no requiere cambios para estos flujos, se mantiene igual)
-function limpiarDashboardListeners(){
-    dashboardListeners.forEach(l => l.ref.off(l.eventType, l.callback));
-    dashboardListeners = [];
-}
-function iniciarDashboard(){
-    limpiarDashboardListeners();
-    const { fecha } = obtenerTurnoActual();
-    document.getElementById('fechaDashboard').value = fecha;
-    document.getElementById('turnoDashboardSelect').value = 'todos';
-    const setup = () => setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value);
-    setup();
-    document.getElementById('fechaDashboard').addEventListener('change', setup);
-    document.getElementById('turnoDashboardSelect').addEventListener('change', setup);
-}
-function setupDashboardListeners(fecha, turno){
-    limpiarDashboardListeners();
-    const historialRefDash = db.ref(`historialLogs/${fecha}`);
-    const ledsRefDash = db.ref('estadoLEDs');
-    const historialCallback = historialRefDash.on('value', snap => {
-        const logsPorTurno = snap.val() || {};
-        let logsFiltrados = {};
-        if (turno === 'todos') Object.values(logsPorTurno).forEach(logs => Object.assign(logsFiltrados, logs));
-        else logsFiltrados = logsPorTurno[turno] || {};
-        actualizarDashboard(logsFiltrados, 'historial', null);
-    });
-    dashboardListeners.push({ ref: historialRefDash, eventType: 'value', callback: historialCallback });
-    const ledsCallback = ledsRefDash.on('value', snap => actualizarDashboard(null, 'leds', snap.val() || {}));
-    dashboardListeners.push({ ref: ledsRefDash, eventType: 'value', callback: ledsCallback });
-}
-function actualizarDashboard(historialLogs, tipo, estadoLEDs){
-    if (!document.getElementById('pantalla4').classList.contains('activa')) return;
-    if (tipo === 'historial' && historialLogs) {
-        let confirmadas = 0, recolectadas = 0, liberadas = 0, rechazadas = 0, tiempoTotal = 0;
-        const prodPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
-        const recoleccionesPorHora = {};
-        Object.values(historialLogs).forEach(log => {
-            switch(log.accion) {
-                case 'asignada_en_produccion': confirmadas++; if (prodPorArea[log.grupo] !== undefined) prodPorArea[log.grupo]++; break;
-                case 'recolectada': recolectadas++; tiempoTotal += log.tiempoRecoleccion || 0; const hora = new Date(log.timestamp).getHours(); recoleccionesPorHora[hora] = (recoleccionesPorHora[hora] || 0) + 1; break;
-                case 'liberada': liberadas++; break;
-                case 'rechazada': rechazadas++; break;
-            }
-        });
-        const tiempoPromedio = recolectadas > 0 ? (tiempoTotal / recolectadas).toFixed(1) : 0;
-        const tasaRechazo = (liberadas + rechazadas) > 0 ? ((rechazadas / (liberadas + rechazadas)) * 100).toFixed(1) : 0;
-        document.getElementById('dashTarimasConfirmadas').textContent = confirmadas;
-        document.getElementById('dashTarimasRecolectadas').textContent = recolectadas;
-        document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`;
-        document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`;
-        document.getElementById('kpiTiempoPromedio').classList.toggle('alerta', tiempoPromedio > 10);
-        document.getElementById('kpiTasaRechazo').classList.toggle('alerta', tasaRechazo > 5);
-        generarGraficoProduccionDash(prodPorArea);
-        generarGraficoCalidadDash({ liberadas, rechazadas });
-        generarGraficoLogisticaDash(recoleccionesPorHora);
-    }
-    if (tipo === 'leds' && estadoLEDs) {
-        const pendientes = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 };
-        CONFIG.PRODUCCION_GRUPOS.forEach(grupo => {
-            if(estadoLEDs[grupo]) Object.values(estadoLEDs[grupo]).forEach(linea => Object.values(linea).forEach(led => { if(led?.encendido) pendientes[grupo]++; }));
-        });
-        const tablaBody = document.querySelector('#tablaPendientes tbody');
-        tablaBody.innerHTML = Object.entries(pendientes).map(([area, count]) => `<tr><td>${area}</td><td>${count}</td></tr>`).join('');
-    }
-}
+// ================= DASHBOARD & REPORTES (Sin cambios, se mantienen) =================
+function limpiarDashboardListeners(){ dashboardListeners.forEach(l => l.ref.off(l.eventType, l.callback)); dashboardListeners = []; }
+function iniciarDashboard(){ limpiarDashboardListeners(); const { fecha } = obtenerTurnoActual(); document.getElementById('fechaDashboard').value = fecha; document.getElementById('turnoDashboardSelect').value = 'todos'; const setup = () => setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value); setup(); document.getElementById('fechaDashboard').addEventListener('change', setup); document.getElementById('turnoDashboardSelect').addEventListener('change', setup); }
+function setupDashboardListeners(fecha, turno){ limpiarDashboardListeners(); const historialRefDash = db.ref(`historialLogs/${fecha}`); const ledsRefDash = db.ref('estadoLEDs'); const historialCallback = historialRefDash.on('value', snap => { const logsPorTurno = snap.val() || {}; let logsFiltrados = {}; if (turno === 'todos') Object.values(logsPorTurno).forEach(logs => Object.assign(logsFiltrados, logs)); else logsFiltrados = logsPorTurno[turno] || {}; actualizarDashboard(logsFiltrados, 'historial', null); }); dashboardListeners.push({ ref: historialRefDash, eventType: 'value', callback: historialCallback }); const ledsCallback = ledsRefDash.on('value', snap => actualizarDashboard(null, 'leds', snap.val() || {})); dashboardListeners.push({ ref: ledsRefDash, eventType: 'value', callback: ledsCallback }); }
+function actualizarDashboard(historialLogs, tipo, estadoLEDs){ if (!document.getElementById('pantalla4').classList.contains('activa')) return; if (tipo === 'historial' && historialLogs) { let confirmadas = 0, recolectadas = 0, liberadas = 0, rechazadas = 0, tiempoTotal = 0; const prodPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; const recoleccionesPorHora = {}; Object.values(historialLogs).forEach(log => { switch(log.accion) { case 'asignada_en_produccion': confirmadas++; if (prodPorArea[log.grupo] !== undefined) prodPorArea[log.grupo]++; break; case 'recolectada': recolectadas++; tiempoTotal += log.tiempoRecoleccion || 0; const hora = new Date(log.timestamp).getHours(); recoleccionesPorHora[hora] = (recoleccionesPorHora[hora] || 0) + 1; break; case 'liberada': liberadas++; break; case 'rechazada': rechazadas++; break; } }); const tiempoPromedio = recolectadas > 0 ? (tiempoTotal / recolectadas).toFixed(1) : 0; const tasaRechazo = (liberadas + rechazadas) > 0 ? ((rechazadas / (liberadas + rechazadas)) * 100).toFixed(1) : 0; document.getElementById('dashTarimasConfirmadas').textContent = confirmadas; document.getElementById('dashTarimasRecolectadas').textContent = recolectadas; document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`; document.getElementById('kpiTiempoPromedio').classList.toggle('alerta', tiempoPromedio > 10); document.getElementById('kpiTasaRechazo').classList.toggle('alerta', tasaRechazo > 5); generarGraficoProduccionDash(prodPorArea); generarGraficoCalidadDash({ liberadas, rechazadas }); generarGraficoLogisticaDash(recoleccionesPorHora); } if (tipo === 'leds' && estadoLEDs) { const pendientes = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; CONFIG.PRODUCCION_GRUPOS.forEach(grupo => { if(estadoLEDs[grupo]) Object.values(estadoLEDs[grupo]).forEach(linea => Object.values(linea).forEach(led => { if(led?.encendido) pendientes[grupo]++; })); }); const tablaBody = document.querySelector('#tablaPendientes tbody'); tablaBody.innerHTML = Object.entries(pendientes).map(([area, count]) => `<tr><td>${area}</td><td>${count}</td></tr>`).join(''); } }
 function generarGraficoProduccionDash(datos){ if (graficosDashboard.produccion) graficosDashboard.produccion.destroy(); const ctx = document.getElementById('graficoProduccionDash').getContext('2d'); graficosDashboard.produccion = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(datos), datasets: [{ label: 'Tarimas', data: Object.values(datos), backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56'] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#fff', stepSize: 1 } }, x: { ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
 function generarGraficoCalidadDash(datos){ if (graficosDashboard.calidad) graficosDashboard.calidad.destroy(); const ctx = document.getElementById('graficoCalidadDash').getContext('2d'); graficosDashboard.calidad = new Chart(ctx, { type: 'pie', data: { labels: ['Liberadas', 'Rechazadas'], datasets: [{ data: [datos.liberadas, datos.rechazadas], backgroundColor: ['#4caf50', '#f44336'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#fff' } } } } }); }
 function generarGraficoLogisticaDash(tarimasPorHora){ if (graficosDashboard.logistica) graficosDashboard.logistica.destroy(); const ctx = document.getElementById('graficoLogisticaDash').getContext('2d'); const labels = Array.from({length: 24}, (_, i) => `${i}:00`); const data = labels.map((_, i) => tarimasPorHora[i] || 0); graficosDashboard.logistica = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Tarimas Recolectadas', data, backgroundColor: '#36A2EB' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Tarimas', color: '#fff' }, ticks: { stepSize: 1, color: '#fff' } }, x: { title: { display: true, text: 'Hora', color: '#fff' }, ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
-
-// ================= REPORTES =================
-// (El código de Reportes no requiere cambios para estos flujos, se mantiene igual)
-function mostrarReporte(tipo){reporteActual=tipo;document.getElementById("selectoresReportes").style.display="none";const e=document.getElementById("contenedorReporte"),{fecha:t,turno:o}=obtenerTurnoActual();let n="";"resumen"!==tipo&&(n=`\n            <label for="areaFiltro">Área:</label>\n            <select id="areaFiltro">\n                ${["TODAS","MULTIPORT","DROPS","BEDROCK","CALIDAD_MULTIPORT","CALIDAD_DROPS","CALIDAD_BEDROCK"].map(e=>`<option value="${e}">${e.replace("CALIDAD_","Calidad ")}</option>`).join("")}\n            </select>\n        `),e.innerHTML=`\n        <div class="header-reporte">\n            <button onclick="regresarASelectores()" class="usuario-btn">Regresar</button>\n            <div class="filtros">\n                <label for="fechaReporte">Fecha:</label>\n                <input type="date" id="fechaReporte" value="${t}">\n                <label for="turnoFiltro">Turno:</label>\n                <select id="turnoFiltro">\n                    <option value="todos">Todos</option>\n                    <option value="Turno 1">Turno 1</option>\n                    <option value="Turno 2">Turno 2</option>\n                </select>\n                ${n}\n                <button onclick="buscarReporte()" class="usuario-btn">Buscar</button>\n            </div>\n        </div>\n        <h2 id="tituloReporteDinamico">Cargando...</h2>\n        <div id="opcionesGrafico" class="opciones-grafico" style="display:none;">\n            <label>Tipo de Gráfico:</label>\n            <select id="tipoGrafico">\n                <option value="bar">Barras</option>\n                <option value="pie">Pastel</option>\n                <option value="line">Línea</option>\n            </select>\n        </div>\n        <div id="contenidoReporte"></div>\n        <div class="botones-reporte">\n            <button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button>\n            <button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button>\n            <button class="usuario-btn" onclick="exportarReporte('csv')">Exportar a CSV</button>\n        </div>\n    `,document.getElementById("turnoFiltro").value="todos",document.getElementById("tipoGrafico")?.addEventListener("change",actualizarGraficoReporte),buscarReporte()}
-function actualizarGraficoReporte(){if(!datosFiltradosReporte)return;const e=document.getElementById("tipoGrafico").value,t=document.querySelector("#grafico-contenedor");if(t)t.innerHTML='<canvas id="graficoDinamico"></canvas>';else return;let o,n,l;let a="";"produccion"===reporteActual?(o=(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})).keys(),l=Object.values(n),a="Tarimas Asignadas"):"logistica"===reporteActual?(o=(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})).keys(),l=Object.values(n),a="Tarimas Recolectadas"):"calidad"===reporteActual&&(o=(n=datosFiltradosReporte.reduce((e,t)=>{const o=t.detalles?.problema||"No especificado";return e[o]=(e[o]||0)+1,e},{})).keys(),l=Object.values(n),a="Número de Rechazos"),miGrafico&&miGrafico.destroy();const r=document.getElementById("graficoDinamico").getContext("2d");miGrafico=new Chart(r,{type:e,data:{labels:o,datasets:[{label:a,data:l,backgroundColor:["#FF6384","#36A2EB","#FFCE56","#4BC0C0","#9966FF","#FF9F40"]}]},options:{responsive:!0,plugins:{title:{display:!0,text:a,font:{size:20}}}}})}
+function mostrarReporte(tipo){reporteActual=tipo;document.getElementById("selectoresReportes").style.display="none";const e=document.getElementById("contenedorReporte"),{fecha:t}=obtenerTurnoActual();let o="";"resumen"!==tipo&&(o=`<label for="areaFiltro">Área:</label><select id="areaFiltro">${["TODAS","MULTIPORT","DROPS","BEDROCK","CALIDAD_MULTIPORT","CALIDAD_DROPS","CALIDAD_BEDROCK"].map(e=>`<option value="${e}">${e.replace("CALIDAD_","Calidad ")}</option>`).join("")}</select>`),e.innerHTML=`<div class="header-reporte"><button onclick="regresarASelectores()" class="usuario-btn">Regresar</button><div class="filtros"><label for="fechaReporte">Fecha:</label><input type="date" id="fechaReporte" value="${t}"><label for="turnoFiltro">Turno:</label><select id="turnoFiltro"><option value="todos">Todos</option><option value="Turno 1">Turno 1</option><option value="Turno 2">Turno 2</option></select>${o}<button onclick="buscarReporte()" class="usuario-btn">Buscar</button></div></div><h2 id="tituloReporteDinamico">Cargando...</h2><div id="opcionesGrafico" class="opciones-grafico" style="display:none;"><label>Tipo de Gráfico:</label><select id="tipoGrafico"><option value="bar">Barras</option><option value="pie">Pastel</option><option value="line">Línea</option></select></div><div id="contenidoReporte"></div><div class="botones-reporte"><button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button><button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button><button class="usuario-btn" onclick="exportarReporte('csv')">Exportar a CSV</button></div>`,document.getElementById("turnoFiltro").value="todos",document.getElementById("tipoGrafico")?.addEventListener("change",actualizarGraficoReporte),buscarReporte()}
+function actualizarGraficoReporte(){if(!datosFiltradosReporte)return;const e=document.getElementById("tipoGrafico").value,t=document.querySelector("#grafico-contenedor");if(!t)return;t.innerHTML='<canvas id="graficoDinamico"></canvas>';let o,n,l,a="";"produccion"===reporteActual?(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})),l=Object.values(n),a="Tarimas Asignadas"):"logistica"===reporteActual?(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})),l=Object.values(n),a="Tarimas Recolectadas"):"calidad"===reporteActual&&(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>{const o=t.detalles?.problema||"No especificado";return e[o]=(e[o]||0)+1,e},{})),l=Object.values(n),a="Número de Rechazos"),miGrafico&&miGrafico.destroy();const r=document.getElementById("graficoDinamico").getContext("2d");miGrafico=new Chart(r,{type:e,data:{labels:o,datasets:[{label:a,data:l,backgroundColor:["#FF6384","#36A2EB","#FFCE56","#4BC0C0","#9966FF","#FF9F40"]}]},options:{responsive:!0,plugins:{title:{display:!0,text:a,font:{size:20}}}}})}
 function regresarASelectores(){document.getElementById("tituloReportes").textContent="REPORTES",document.getElementById("selectoresReportes").style.display="flex",document.getElementById("contenedorReporte").innerHTML="<h2>Selecciona un reporte</h2>",miGrafico&&miGrafico.destroy(),datosFiltradosReporte=null}
 function buscarReporte(){const e=reporteActual,t=document.getElementById("fechaReporte").value,o=document.getElementById("turnoFiltro").value,n=document.getElementById("areaFiltro")?.value||"TODAS";cargarDatosReporte(e,t,o,n)}
-function cargarDatosReporte(e,t,o,n){const l=document.getElementById("contenidoReporte"),a=document.getElementById("tituloReporteDinamico");l.innerHTML="<p>Cargando datos...</p>",miGrafico&&miGrafico.destroy(),db.ref(`historialLogs/${t}`).once("value").then(r=>{const i=r.val()||{};let s=[];"todos"===o?Object.values(i).forEach(e=>{s.push(...Object.values(e))}):i[o]&&(s=Object.values(i[o]));const d="TODAS"===n?s:s.filter(e=>e.grupo===n);switch(a.textContent=`Reporte de ${e} - ${t} - ${o}`,e){case"produccion":procesarReporteProduccion(d,l);break;case"logistica":procesarReporteLogistica(d,l);break;case"calidad":procesarReporteCalidad(d,l);break;case"resumen":procesarReporteResumen(s,l)}}).catch(e=>{console.error("Error al cargar datos:",e),l.innerHTML="<p>Error al cargar los datos. Intenta de nuevo.</p>"})}
+function cargarDatosReporte(e,t,o,n){const l=document.getElementById("contenidoReporte"),a=document.getElementById("tituloReporteDinamico");l.innerHTML="<p>Cargando datos...</p>",miGrafico&&miGrafico.destroy(),db.ref(`historialLogs/${t}`).once("value").then(r=>{const i=r.val()||{};let s=[];"todos"===o?Object.values(i).forEach(e=>{s.push(...Object.values(e))}):i[o]&&(s=Object.values(i[o]));const d="TODAS"===n?s:s.filter(e=>e.grupo===n);switch(a.textContent=`Reporte de ${e} - ${t} - ${o}`,e){case"produccion":procesarReporteProduccion(d,l);break;case"logistica":procesarReporteLogistica(d,l);break;case"calidad":procesarReporteCalidad(d,l);break;case"resumen":procesarReporteResumen(s,l)}}).catch(e=>{console.error("Error al cargar datos:",e),l.innerHTML="<p>Error al cargar los datos.</p>"})}
 function procesarReporteCalidad(e,t){datosFiltradosReporte=e.filter(e=>"rechazada"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Rechazos</div></div></div>`,l='<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Empleado</th><th>No. Parte</th><th>Problema</th><th>Causa</th><th>Acción</th></tr></thead><tbody>',a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{const t=e.detalles||{};l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${t.empleado}</td><td>${t.parte}</td><td>${t.problema}</td><td>${t.causa}</td><td>${t.accion}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Problema:</span><span class="valor">${t.problema}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
 function procesarReporteProduccion(e,t){datosFiltradosReporte=e.filter(e=>"asignada_en_produccion"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Asignadas</div></div></div>`,l="<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Usuario</th></tr></thead><tbody>",a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.usuario}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
-function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos">\n        <div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div>\n        <div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div>\n    </div>`,r="<table><thead><tr><th>Hora Recolección</th><th>Área</th><th>Tarima ID</th><th>Tiempo (min)</th><th>Hora Inicio</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${formatoHora(e.horaApagado)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.tiempoRecoleccion}</td><td>${formatoHora(e.horaEncendido)}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
-function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={prod:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"asignada_en_produccion":o[t].prod++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":o[t].liberadas++;break;case"rechazada":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos">\n            <div class="dato"><div class="valor">${t.prod}</div><div class="etiqueta">Producidas</div></div>\n            <div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div>\n            <div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div>\n            <div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div>\n            <div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Promedio</div></div>\n        </div>`}),t.innerHTML=n}
+function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div><div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`,r="<table><thead><tr><th>Hora Recolección</th><th>Área</th><th>Tarima ID</th><th>Tiempo (min)</th><th>Hora Inicio</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${formatoHora(e.horaApagado)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.tiempoRecoleccion}</td><td>${formatoHora(e.horaEncendido)}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
+function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={prod:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"asignada_en_produccion":o[t].prod++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":o[t].liberadas++;break;case"rechazada":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos"><div class="dato"><div class="valor">${t.prod}</div><div class="etiqueta">Producidas</div></div><div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div><div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div><div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div><div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`}),t.innerHTML=n}
 function exportarReporte(e){const t=document.querySelector("#contenidoReporte table");if(!t||!datosFiltradosReporte)return alert("No hay datos para exportar.");const o=`${reporteActual}_${document.getElementById("fechaReporte").value}`;"excel"===e?(e=>{const t=XLSX.utils.table_to_sheet(e),o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,t,"Reporte"),XLSX.writeFile(o,`${nombreArchivo}.xlsx`)})(t):"pdf"===e?exportarAPdf(t,miGrafico,o):"csv"===e&&exportarACsv(t,o)}
 function exportarACsv(e,t){let o=[];e.querySelectorAll("tr").forEach(e=>{let t=[];e.querySelectorAll("th, td").forEach(e=>{t.push(`"${e.textContent.trim().replace(/"/g,'""')}"`)}),o.push(t.join(","))});const n=new Blob([o.join("\n")],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(n),l.download=`${t}.csv`,l.click()}
 function exportarAPdf(e,t,o){const n=new window.jspdf.jsPDF({orientation:"landscape"});n.text(`Reporte de ${reporteActual}`,20,20),t&&n.addImage(t.toBase64Image(),"PNG",20,30,120,70),n.autoTable({html:e,startY:t?110:30}),n.save(`${o}.pdf`)}
@@ -2037,7 +1912,6 @@ window.addEventListener('load', ()=>{
     document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn').forEach(btn => btn.addEventListener('click', () => mostrarReporte(btn.dataset.reporte)));
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(reg => console.log("✅ SW Registrado")).catch(err => console.error("❌ Error SW:", err));
 });
-
 </script>
 </body>
 </html>
