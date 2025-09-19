@@ -113,7 +113,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 }
 .grupo{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 .grupo .nombre{ font-size: clamp(20px,2.2vw,28px); font-weight:800; margin-bottom:8px; letter-spacing:.5px; text-shadow:0 1px 6px rgba(0,0,0,.5); }
-.grupo .tarimas{ font-size: clamp(16px,1.7vw,22px); opacity:.9; margin-bottom:14px; }
+.grupo .tarimas{ font-size: clamp(16px,1.7vw,22px); opacity:.9; margin-top:14px; }
 .leds{ display:flex; gap: var(--led-gap); justify-content:center; align-items:center; flex-wrap:nowrap; padding:4px; }
 .led{
   width: var(--led-size);
@@ -507,6 +507,7 @@ body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
     display: flex;
     justify-content: center;
     gap: 15px;
+    flex-wrap: wrap;
 }
 .custom-modal-actions button {
     padding: 10px 25px;
@@ -571,80 +572,46 @@ body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
 <div class="grupo-contenedor">
     <div class="grupo" data-grupo="MULTIPORT">
         <div class="nombre">MULTIPORT</div>
-        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea1"></div>
         <div class="leds" data-grupo="MULTIPORT" data-linea="linea2"></div>
-      <div class="tarimas-recibidas-panel" id="tarimasRecibidasPanel">
-        <h3>Tarimas recibidas de Calidad</h3>
-        <ul id="listaTarimasRecibidas"></ul>
-      </div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="tiempos" data-grupo="MULTIPORT"></div>
-         </div>
+    </div>
 
     <div class="grupo" data-grupo="DROPS">
         <div class="nombre">DROPS</div>
-        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="DROPS" data-linea="linea1"></div>
         <div class="leds" data-grupo="DROPS" data-linea="linea2"></div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="tiempos" data-grupo="DROPS"></div>
     </div>
 
     <div class="grupo" data-grupo="BEDROCK">
         <div class="nombre">BEDROCK</div>
-        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea1"></div>
         <div class="leds" data-grupo="BEDROCK" data-linea="linea2"></div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="tiempos" data-grupo="BEDROCK"></div>
     </div>
 
     <div class="grupo" data-grupo="CALIDAD_MULTIPORT">
         <div class="nombre">CALIDAD MULTIPORT</div>
-        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="CALIDAD_MULTIPORT" data-linea="linea1"></div>
-        <div class="contadores-calidad">
-            <div class="contador-calidad">
-                <span class="valor" id="liberadas_CALIDAD_MULTIPORT">0</span>
-                <div class="etiqueta">Liberadas</div>
-            </div>
-            <div class="contador-calidad">
-                <span class="valor" id="rechazadas_CALIDAD_MULTIPORT">0</span>
-                <div class="etiqueta">Rechazadas</div>
-            </div>
-        </div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="tiempos" data-grupo="CALIDAD_MULTIPORT"></div>
     </div>
   
     <div class="grupo" data-grupo="CALIDAD_DROPS">
         <div class="nombre">CALIDAD DROPS</div>
-        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="CALIDAD_DROPS" data-linea="linea1"></div>
-        <div class="contadores-calidad">
-            <div class="contador-calidad">
-                <span class="valor" id="liberadas_CALIDAD_DROPS">0</span>
-                <div class="etiqueta">Liberadas</div>
-            </div>
-            <div class="contador-calidad">
-                <span class="valor" id="rechazadas_CALIDAD_DROPS">0</span>
-                <div class="etiqueta">Rechazadas</div>
-            </div>
-        </div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="tiempos" data-grupo="CALIDAD_DROPS"></div>
     </div>
 
     <div class="grupo" data-grupo="CALIDAD_BEDROCK">
         <div class="nombre">CALIDAD BEDROCK</div>
-        <div class="tarimas">Tarimas: 0</div>
         <div class="leds" data-grupo="CALIDAD_BEDROCK" data-linea="linea1"></div>
-        <div class="contadores-calidad">
-            <div class="contador-calidad">
-                <span class="valor" id="liberadas_CALIDAD_BEDROCK">0</span>
-                <div class="etiqueta">Liberadas</div>
-            </div>
-            <div class="contador-calidad">
-                <span class="valor" id="rechazadas_CALIDAD_BEDROCK">0</span>
-                <div class="etiqueta">Rechazadas</div>
-            </div>
-        </div>
+        <div class="tarimas">Tarimas: 0</div>
         <div class="tiempos" data-grupo="CALIDAD_BEDROCK"></div>
     </div>
 </div>
@@ -1022,7 +989,6 @@ function mostrarPromptContraseña(mensaje, titulo = "Acceso Requerido") {
     });
 }
 
-
 // ================= Panel de Identificación de Tarimas =================
 const MT = {
   ui: {
@@ -1319,7 +1285,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                     tarimaId: tarimaId,
                     timestamp: new Date().toISOString()
                 });
-                ledRef.set(null);
+                ledRef.set(null); // Libera el LED de Calidad
                 await mostrarAlerta(`Tarima #${tarimaId} recibida. Ahora puedes confirmarla en uno de tus LEDs.`);
             }
         }
@@ -1368,17 +1334,20 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
 async function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
     
-    db.ref(`tarimas/${tarimaId}`).update({ estado: 'liberada', liberadaPor: usuarioSeleccionado, timestampLiberada: new Date().toISOString() });
+    await db.ref(`tarimas/${tarimaId}`).update({
+        estado: 'liberada',
+        liberadaPor: usuarioSeleccionado,
+        timestampLiberada: new Date().toISOString()
+    });
     
-    // NO SE ENVÍA A PRODUCCIÓN AQUÍ, SOLO SE REGISTRA EL EVENTO
-    
-    db.ref(`historialLogs/${fecha}/${turno}`).push({
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({
         usuario: usuarioSeleccionado,
         grupo,
         accion: 'liberada',
         tarimaId,
         timestamp: new Date().toISOString()
     });
+
     actualizarContadoresTarimas(grupo, 'liberada');
     await mostrarAlerta(`✅ Tarima ${tarimaId} liberada. Producción ahora puede recibirla.`);
     cerrarModalCalidad();
@@ -1393,11 +1362,13 @@ async function guardarRechazo() {
         descripcionParte: form.descripcionParte.value, problema: form.problema.value,
         causa: form.causa.value, accion: form.accion.value, timestamp: new Date().toISOString()
     };
-    db.ref(`tarimas/${tarimaId}`).update({ estado: 'rechazada', rechazo: data, rechazadoPor: usuarioSeleccionado, timestampRechazo: new Date().toISOString() });
+
+    await db.ref(`tarimas/${tarimaId}`).update({ estado: 'rechazada', rechazo: data, rechazadoPor: usuarioSeleccionado, timestampRechazo: new Date().toISOString() });
     const { fecha, turno } = obtenerTurnoActual();
-    db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, timestamp: new Date().toISOString(), detalles: data });
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, timestamp: new Date().toISOString(), detalles: data });
     actualizarContadoresTarimas(grupo, 'rechazada');
-    db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
+    await db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
+    
     await mostrarAlerta(`❌ Tarima ${tarimaId} rechazada.`);
     cerrarModalRechazo();
     form.reset();
@@ -1414,14 +1385,14 @@ async function confirmarTarimaProduccion(grupo, idx, linea) {
     if (!tarima) return mostrarAlerta("Tarima no encontrada.");
 
     const { fecha, turno } = obtenerTurnoActual();
-    db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).set({
+    await db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).set({
         encendido: true,
         tarimaId: tarima.tarimaId,
         usuario: usuarioSeleccionado,
         timestamp: new Date().toISOString(),
         horaEncendido: new Date().toISOString()
     });
-    db.ref(`historialLogs/${fecha}/${turno}`).push({
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({
         usuario: usuarioSeleccionado,
         grupo,
         accion: 'confirmada_en_produccion',
@@ -1429,7 +1400,7 @@ async function confirmarTarimaProduccion(grupo, idx, linea) {
         timestamp: new Date().toISOString()
     });
     actualizarContadoresTarimas(grupo, 'confirmadas');
-    recibidaRef.remove();
+    await recibidaRef.remove();
     await mostrarAlerta(`✅ Tarima ${tarima.tarimaId} confirmada en LED ${linea}-${idx+1}`);
     cerrarModalProduccion();
 }
@@ -1491,15 +1462,15 @@ document.getElementById('btnAsignarProduccion').addEventListener('click', () => 
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function formatoHora(isoString) { if (!isoString) return 'N/A'; const date = new Date(isoString); return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; }
 function obtenerTurnoActual() { const ahora = new Date(); let fecha = new Date(ahora); let turno = (ahora.getHours() > 6 || (ahora.getHours() === 6 && ahora.getMinutes() >= 30)) && (ahora.getHours() < 18 || (ahora.getHours() === 18 && ahora.getMinutes() < 30)) ? 'Turno 1' : 'Turno 2'; if (turno === 'Turno 2' && ahora.getHours() < 6) fecha.setDate(ahora.getDate() - 1); const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`; return { fecha: fechaFormateada, turno }; }
-function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': contadores[log.grupo].rechazadas++; break; case 'liberada': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; el.textContent = grupo.startsWith('CALIDAD_') ? `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}` : `Confirmadas: ${c.confirmadas} | Recolectadas: ${c.recolectadas}`; } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = '<h4>Últimas recolecciones:</h4>'; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => { const p = document.createElement('p'); p.textContent = `Tarima ...${(log.tarimaId || '').slice(-4)}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`; contenedorTiempos.appendChild(p); }); }); }); }
+function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': contadores[log.grupo].rechazadas++; break; case 'liberada': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; el.textContent = grupo.startsWith('CALIDAD_') ? `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}` : `Confirmadas: ${c.confirmadas}`; } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = ''; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => { const p = document.createElement('p'); p.textContent = `Tarima ...${(log.tarimaId || '').slice(-4)}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`; contenedorTiempos.appendChild(p); }); }); }); }
 function actualizarContadoresTarimas(grupo, accion) { const { fecha, turno } = obtenerTurnoActual(); db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1); }
 function activarPantalla(id){ document.querySelectorAll('.pantalla').forEach(p => { p.style.display = 'none'; p.classList.remove('activa'); }); const pantalla = document.getElementById(id); if(pantalla) { pantalla.style.display = 'flex'; pantalla.classList.add('activa'); } }
 function volverAPantalla1(){ usuarioSeleccionado = null; if (historialRef) historialRef.off(); limpiarDashboardListeners(); activarPantalla('pantalla1'); }
 async function seleccionarUsuario(usuario) {
-    let targetUser = usuario;
     const password = await mostrarPromptContraseña(`Introduce la contraseña para ${usuario}`);
     if (password === null) return;
 
+    let targetUser = usuario;
     let isValid = false;
     if (usuario === 'CALIDAD') {
         if (password === CONFIG.PASSWORDS.CALIDAD_MULTIPORT) { targetUser = 'CALIDAD_MULTIPORT'; isValid = true; }
