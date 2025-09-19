@@ -923,8 +923,13 @@ window.__usuarioActual = null;
       window.__usuarioActual = String(usuarioClave || '').toUpperCase();
       const isDark = window.__usuarioActual.startsWith('CALIDAD') || CONFIG.PRODUCCION_GRUPOS.includes(window.__usuarioActual);
       document.body.classList.toggle('theme-dark', isDark);
+      
       const fab = document.getElementById('mtOpenBtn');
-      if (fab) fab.style.display = 'block';
+      if (fab) {
+          const userBase = window.__usuarioActual.replace('CALIDAD_','');
+          fab.style.display = (userBase === 'MULTIPORT') ? 'block' : 'none';
+      }
+
       if (window._seleccionarUsuarioOriginal) return window._seleccionarUsuarioOriginal(usuarioClave);
       console.info('[Compat] seleccionarUsuario activo. Usuario:', window.__usuarioActual);
     } catch (e) { console.error('Error en seleccionarUsuario compat:', e); }
@@ -1239,95 +1244,127 @@ function pintarEstado() {
 }
 
 // ================= LÓGICA DE INTERACCIÓN PRINCIPAL (togglearLED) =================
+function esGrupoDeTarimas(grupo) {
+    const grupoBase = grupo.replace('CALIDAD_', '');
+    return grupoBase === 'MULTIPORT';
+}
+
 async function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
-    const usuarioActual = usuarioSeleccionado || '';
+    const usuarioActual = usuarioSeleccionado;
+    const { fecha, turno } = obtenerTurnoActual();
     
     const snapshot = await ledRef.once('value');
     const estadoActual = snapshot.val() || {};
-    
-    // FLUJO 1: CALIDAD interactúa con sus propios LEDs
-    if (usuarioActual.startsWith('CALIDAD_') && grupo === usuarioActual) {
-        if (!estadoActual.tarimaId) return mostrarAlerta('Este LED está vacío. Usa el panel "TARIMAS" para asignar una.');
-        if (estadoActual.color === 'verde') return mostrarAlerta('Esta tarima ya ha sido liberada.');
-        
-        if (estadoActual.color === 'rojo') {
-            if (await mostrarConfirmacion('Esta tarima fue rechazada. ¿Confirmas que ha sido corregida y deseas liberarla ahora?')) {
-                liberarTarima(estadoActual.tarimaId, grupo);
-                ledRef.update({ color: 'verde' });
+
+    // ===============================================
+    // FLUJO PARA MULTIPORT (SISTEMA DE TARIMA ID)
+    // ===============================================
+    if (esGrupoDeTarimas(grupo)) {
+        if (usuarioActual === 'CALIDAD_MULTIPORT' && grupo === usuarioActual) {
+            if (!estadoActual.tarimaId) return mostrarAlerta('Este LED está vacío. Usa el panel "TARIMAS" para asignar una.');
+            if (estadoActual.color === 'verde') return mostrarAlerta('Esta tarima ya ha sido liberada.');
+            
+            if (estadoActual.color === 'rojo') {
+                if (await mostrarConfirmacion('Esta tarima fue rechazada. ¿Confirmas que ha sido corregida y deseas liberarla ahora?')) {
+                    liberarTarima(estadoActual.tarimaId, grupo);
+                    ledRef.update({ color: 'verde' });
+                }
+                return;
             }
-            return;
+            abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
         }
-        abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
-        return;
-    }
-
-    // FLUJO 2: PRODUCCIÓN recibe tarimas de CALIDAD
-    if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo.startsWith('CALIDAD_')) {
-        if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
-            const tarimaId = estadoActual.tarimaId;
-            const recibidasRef = db.ref(`tarimasRecibidas/${usuarioActual}`);
-            const yaRecibidaSnap = await recibidasRef.orderByChild('tarimaId').equalTo(tarimaId).once('value');
-            if (yaRecibidaSnap.exists()) {
-                return mostrarAlerta(`La tarima #${tarimaId} ya fue recibida anteriormente.`);
+        else if (usuarioActual === 'MULTIPORT' && grupo.startsWith('CALIDAD_')) {
+            if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
+                const tarimaId = estadoActual.tarimaId;
+                const recibidasRef = db.ref(`tarimasRecibidas/${usuarioActual}`);
+                const yaRecibidaSnap = await recibidasRef.orderByChild('tarimaId').equalTo(tarimaId).once('value');
+                if (yaRecibidaSnap.exists()) {
+                    return mostrarAlerta(`La tarima #${tarimaId} ya fue recibida anteriormente.`);
+                }
+                if (await mostrarConfirmacion(`¿Recibir la tarima #${tarimaId} liberada por Calidad?`)) {
+                    recibidasRef.push({ tarimaId, recibidaDe: grupo, timestampRecibida: new Date().toISOString() });
+                    db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioActual, grupo, accion: 'recibida_de_calidad', tarimaId, timestamp: new Date().toISOString() });
+                    ledRef.set(null);
+                    await mostrarAlerta(`Tarima #${tarimaId} recibida. Ahora puedes confirmarla en uno de tus LEDs.`);
+                }
             }
-
-            if (await mostrarConfirmacion(`¿Recibir la tarima #${tarimaId} liberada por Calidad?`)) {
-                const { fecha, turno } = obtenerTurnoActual();
-                recibidasRef.push({
-                    tarimaId: tarimaId,
-                    recibidaDe: grupo,
-                    timestampRecibida: new Date().toISOString()
-                });
-                db.ref(`historialLogs/${fecha}/${turno}`).push({
-                    usuario: usuarioActual,
-                    grupo: grupo,
-                    accion: 'recibida_de_calidad',
-                    tarimaId: tarimaId,
-                    timestamp: new Date().toISOString()
-                });
+        }
+        else if (usuarioActual === 'MULTIPORT' && grupo === usuarioActual) {
+            if (!estadoActual.encendido) {
+                mostrarModalProduccion(grupo, idx, linea);
+            } else {
+                await mostrarAlerta('Este LED ya tiene una tarima en proceso.');
+            }
+        }
+        else if (usuarioActual === 'LOGÍSTICA') {
+            if (estadoActual.encendido && estadoActual.tarimaId) {
+                if (!(await mostrarConfirmacion(`¿Confirmas la recolección de la tarima ${estadoActual.tarimaId}?`))) return;
+                const horaEncendido = estadoActual.horaEncendido;
+                const horaApagado = new Date().toISOString();
+                const tiempoRecoleccion = Math.round((new Date(horaApagado).getTime() - new Date(horaEncendido).getTime()) / 60000);
+                db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioActual, grupo, accion: 'recolectada', tarimaId: estadoActual.tarimaId, timestamp: horaApagado, horaEncendido, horaApagado, tiempoRecoleccion });
+                actualizarContadoresTarimas(grupo, 'recolectadas');
                 ledRef.set(null);
-                await mostrarAlerta(`Tarima #${tarimaId} recibida. Ahora puedes confirmarla en uno de tus LEDs.`);
+                await mostrarAlerta(`✅ Tarima ${estadoActual.tarimaId} recolectada en ${tiempoRecoleccion} minutos.`);
             }
         }
-        return;
+        return; // Fin del flujo de Multiport
     }
 
-    // FLUJO 3: PRODUCCIÓN confirma tarimas en sus LEDs
-    if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo === usuarioActual) {
-        if (!estadoActual.encendido) {
-             mostrarModalProduccion(grupo, idx, linea);
-        } else {
-            await mostrarAlerta('Este LED ya tiene una tarima en proceso.');
+    // ===============================================
+    // FLUJO PARA DROPS Y BEDROCK (SISTEMA SIMPLE DE LEDS)
+    // ===============================================
+    else {
+        const ledIdentifier = `${grupo}-${linea}-${idx + 1}`;
+        // CALIDAD (Drops/Bedrock)
+        if (usuarioActual.startsWith('CALIDAD_') && grupo === usuarioActual) {
+            if (!estadoActual.color) { // Si está apagado
+                if (await mostrarConfirmacion(`¿Iniciar revisión en el LED ${idx + 1}?`)) {
+                    ledRef.set({ color: 'naranja' });
+                    db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'revision_iniciada', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: new Date().toISOString() });
+                }
+            } else if (estadoActual.color === 'naranja') {
+                abrirModalCalidad(grupo, idx, linea, null); // Usamos null como tarimaId
+            } else {
+                await mostrarAlerta(`Este LED ya fue ${estadoActual.color === 'verde' ? 'liberado' : 'rechazado'}.`);
+            }
         }
-        return;
-    }
-
-    // FLUJO 4: LOGÍSTICA recolecta tarimas de PRODUCCIÓN
-    if (usuarioActual === 'LOGÍSTICA' && CONFIG.PRODUCCION_GRUPOS.includes(grupo)) {
-        if (estadoActual.encendido && estadoActual.tarimaId) {
-            if (!(await mostrarConfirmacion(`¿Confirmas la recolección de la tarima ${estadoActual.tarimaId}?`))) return;
-
-            const { fecha, turno } = obtenerTurnoActual();
-            const horaEncendido = estadoActual.horaEncendido;
-            const horaApagado = new Date().toISOString();
-            const tiempoRecoleccion = Math.round((new Date(horaApagado).getTime() - new Date(horaEncendido).getTime()) / 60000);
-
-            db.ref(`historialLogs/${fecha}/${turno}`).push({
-                usuario: usuarioActual,
-                grupo: grupo,
-                accion: 'recolectada',
-                tarimaId: estadoActual.tarimaId,
-                timestamp: horaApagado,
-                horaEncendido: horaEncendido,
-                horaApagado: horaApagado,
-                tiempoRecoleccion: tiempoRecoleccion
-            });
-            actualizarContadoresTarimas(grupo, 'recolectadas');
-            ledRef.set(null);
-            await mostrarAlerta(`✅ Tarima ${estadoActual.tarimaId} recolectada en ${tiempoRecoleccion} minutos.`);
+        // PRODUCCIÓN (Drops/Bedrock)
+        else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo.startsWith('CALIDAD_')) {
+            if (estadoActual.color === 'verde') {
+                if (await mostrarConfirmacion(`¿Recibir material del LED de Calidad?`)) {
+                    ledRef.set(null); // Apagar LED de calidad
+                    db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'led_recibido', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: new Date().toISOString() });
+                    await mostrarAlerta('Material recibido. Ahora puedes encender un LED en tu área.');
+                }
+            }
         }
-        return;
+        else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo === usuarioActual) {
+            if (!estadoActual.encendido) {
+                if (await mostrarConfirmacion(`¿Encender LED ${idx+1} para solicitar recolección?`)) {
+                    const horaEncendido = new Date().toISOString();
+                    ledRef.set({ encendido: true, horaEncendido });
+                    db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'led_encendido', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: horaEncendido, horaEncendido });
+                    actualizarContadoresTarimas(grupo, 'confirmadas');
+                }
+            } else {
+                await mostrarAlerta('Este LED ya está encendido.');
+            }
+        }
+        // LOGÍSTICA (Drops/Bedrock)
+        else if (usuarioActual === 'LOGÍSTICA') {
+             if (estadoActual.encendido) {
+                if (!(await mostrarConfirmacion(`¿Confirmas la recolección del LED ${grupo}-${idx + 1}?`))) return;
+                const horaEncendido = estadoActual.horaEncendido;
+                const horaApagado = new Date().toISOString();
+                const tiempoRecoleccion = Math.round((new Date(horaApagado).getTime() - new Date(horaEncendido).getTime()) / 60000);
+                db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioActual, grupo, accion: 'recolectada', led: ledIdentifier, timestamp: horaApagado, horaEncendido, horaApagado, tiempoRecoleccion });
+                actualizarContadoresTarimas(grupo, 'recolectadas');
+                ledRef.set(null);
+                await mostrarAlerta(`✅ LED ${grupo}-${idx + 1} recolectado en ${tiempoRecoleccion} minutos.`);
+            }
+        }
     }
 }
 
@@ -1335,22 +1372,16 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
 async function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
     
-    await db.ref(`tarimas/${tarimaId}`).update({
-        estado: 'liberada',
-        liberadaPor: usuarioSeleccionado,
-        timestampLiberada: new Date().toISOString()
-    });
+    // Para Multiport, actualiza la tarima y la envía. Para otros, solo es un evento de LED.
+    if (esGrupoDeTarimas(grupo) && tarimaId) {
+        await db.ref(`tarimas/${tarimaId}`).update({ estado: 'liberada', liberadaPor: usuarioSeleccionado, timestampLiberada: new Date().toISOString() });
+        const grupoProduccion = grupo.replace('CALIDAD_', '');
+        await db.ref(`tarimasRecibidas/${grupoProduccion}`).push({ tarimaId, recibidaDe: grupo, timestampRecibida: new Date().toISOString() });
+    }
     
-    await db.ref(`historialLogs/${fecha}/${turno}`).push({
-        usuario: usuarioSeleccionado,
-        grupo,
-        accion: 'liberada',
-        tarimaId,
-        timestamp: new Date().toISOString()
-    });
-
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'liberada', tarimaId, timestamp: new Date().toISOString() });
     actualizarContadoresTarimas(grupo, 'liberada');
-    await mostrarAlerta(`✅ Tarima ${tarimaId} liberada. Producción ahora puede recibirla.`);
+    await mostrarAlerta(`✅ ${esGrupoDeTarimas(grupo) ? `Tarima ${tarimaId}` : 'LED'} liberado. Producción ahora puede recibirlo.`);
     cerrarModalCalidad();
 }
 
@@ -1363,12 +1394,17 @@ async function guardarRechazo() {
         descripcionParte: form.descripcionParte.value, problema: form.problema.value,
         causa: form.causa.value, accion: form.accion.value, timestamp: new Date().toISOString()
     };
-    await db.ref(`tarimas/${tarimaId}`).update({ estado: 'rechazada', rechazo: data, rechazadoPor: usuarioSeleccionado, timestampRechazo: new Date().toISOString() });
+    
+    if (esGrupoDeTarimas(grupo) && tarimaId) {
+        await db.ref(`tarimas/${tarimaId}`).update({ estado: 'rechazada', rechazo: data, rechazadoPor: usuarioSeleccionado, timestampRechazo: new Date().toISOString() });
+    }
+    
     const { fecha, turno } = obtenerTurnoActual();
-    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, timestamp: new Date().toISOString(), detalles: data });
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, detalles: data, timestamp: new Date().toISOString() });
     actualizarContadoresTarimas(grupo, 'rechazada');
     await db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
-    await mostrarAlerta(`❌ Tarima ${tarimaId} rechazada.`);
+    
+    await mostrarAlerta(`❌ ${esGrupoDeTarimas(grupo) ? `Tarima ${tarimaId}` : 'LED'} rechazado.`);
     cerrarModalRechazo();
     form.reset();
 }
@@ -1437,7 +1473,7 @@ async function mostrarModalProduccion(grupo, idx, linea) {
     const selectTarima = modal.querySelector('#selectTarimaProduccion');
     const selectLed = modal.querySelector('#selectLedProduccion');
     ledSeleccionado = { grupo, idx, linea };
-
+    
     const snapshot = await db.ref(`tarimasRecibidas/${grupo}`).once('value');
     const recibidas = snapshot.val() || {};
     selectTarima.innerHTML = '';
@@ -1482,6 +1518,8 @@ async function seleccionarUsuario(usuario) {
     if (isValid) {
         usuarioSeleccionado = targetUser;
         document.getElementById('tituloFijo').textContent = targetUser.replace('_', ' ');
+        const fab = document.getElementById('mtOpenBtn');
+        if (fab) { fab.style.display = (targetUser === 'CALIDAD_MULTIPORT') ? 'block' : 'none'; }
         activarPantalla('pantalla2');
         inyectaLEDs();
         pintarEstado();
@@ -1504,10 +1542,10 @@ function actualizarGraficoReporte(){if(!datosFiltradosReporte)return;const e=doc
 function regresarASelectores(){document.getElementById("tituloReportes").textContent="REPORTES",document.getElementById("selectoresReportes").style.display="flex",document.getElementById("contenedorReporte").innerHTML="<h2>Selecciona un reporte</h2>",miGrafico&&miGrafico.destroy(),datosFiltradosReporte=null}
 function buscarReporte(){const e=reporteActual,t=document.getElementById("fechaReporte").value,o=document.getElementById("turnoFiltro").value,n=document.getElementById("areaFiltro")?.value||"TODAS";cargarDatosReporte(e,t,o,n)}
 function cargarDatosReporte(e,t,o,n){const l=document.getElementById("contenidoReporte"),a=document.getElementById("tituloReporteDinamico");l.innerHTML="<p>Cargando datos...</p>",miGrafico&&miGrafico.destroy(),db.ref(`historialLogs/${t}`).once("value").then(r=>{const i=r.val()||{};let s=[];"todos"===o?Object.values(i).forEach(e=>{s.push(...Object.values(e))}):i[o]&&(s=Object.values(i[o]));const d="TODAS"===n?s:s.filter(e=>e.grupo===n);switch(a.textContent=`Reporte de ${e} - ${t} - ${o}`,e){case"produccion":procesarReporteProduccion(d,l);break;case"logistica":procesarReporteLogistica(d,l);break;case"calidad":procesarReporteCalidad(d,l);break;case"resumen":procesarReporteResumen(s,l)}}).catch(e=>{console.error("Error al cargar datos:",e),l.innerHTML="<p>Error al cargar los datos.</p>"})}
-function procesarReporteCalidad(e,t){datosFiltradosReporte=e.filter(e=>"rechazada"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Rechazos</div></div></div>`,l='<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Empleado</th><th>No. Parte</th><th>Problema</th><th>Causa</th><th>Acción</th></tr></thead><tbody>',a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{const t=e.detalles||{};l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${t.empleado}</td><td>${t.parte}</td><td>${t.problema}</td><td>${t.causa}</td><td>${t.accion}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Problema:</span><span class="valor">${t.problema}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
-function procesarReporteProduccion(e,t){datosFiltradosReporte=e.filter(e=>"confirmada_en_produccion"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Confirmadas</div></div></div>`,l="<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Usuario</th></tr></thead><tbody>",a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.usuario}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
-function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div><div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`,r="<table><thead><tr><th>Hora Recolección</th><th>Área</th><th>Tarima ID</th><th>Tiempo (min)</th><th>Hora Inicio</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${formatoHora(e.horaApagado)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.tiempoRecoleccion}</td><td>${formatoHora(e.horaEncendido)}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
-function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={confirmadas:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"confirmada_en_produccion":o[t].confirmadas++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":o[t].liberadas++;break;case"rechazada":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos"><div class="dato"><div class="valor">${t.confirmadas}</div><div class="etiqueta">Confirmadas</div></div><div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div><div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div><div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div><div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Recolección</div></div></div>`}),t.innerHTML=n}
+function procesarReporteCalidad(e,t){datosFiltradosReporte=e.filter(e=>"rechazada"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Rechazos</div></div></div>`,l='<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Empleado</th><th>No. Parte</th><th>Problema</th><th>Causa</th><th>Acción</th></tr></thead><tbody>',a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{const t=e.detalles||{};l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId||e.led||'N/A'}</td><td>${t.empleado}</td><td>${t.parte}</td><td>${t.problema}</td><td>${t.causa}</td><td>${t.accion}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led||'N/A'}</span><br/><span class="etiqueta">Problema:</span><span class="valor">${t.problema}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
+function procesarReporteProduccion(e,t){datosFiltradosReporte=e.filter(e=>"confirmada_en_produccion"===e.accion||"led_encendido"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Confirmadas/Encendidas</div></div></div>`,l="<table><thead><tr><th>Hora</th><th>Área</th><th>Identificador</th><th>Usuario</th></tr></thead><tbody>",a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId||e.led}</td><td>${e.usuario}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led}</span><br/><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
+function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div><div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`,r="<table><thead><tr><th>Hora Recolección</th><th>Área</th><th>Identificador</th><th>Tiempo (min)</th><th>Hora Inicio</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${formatoHora(e.horaApagado)}</td><td>${e.grupo}</td><td>${e.tarimaId||e.led}</td><td>${e.tiempoRecoleccion}</td><td>${formatoHora(e.horaEncendido)}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led}</span><br/><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
+function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={confirmadas:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"confirmada_en_produccion":case"led_encendido":o[t].confirmadas++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":case"led_liberado":o[t].liberadas++;break;case"rechazada":case"led_rechazado":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos"><div class="dato"><div class="valor">${t.confirmadas}</div><div class="etiqueta">Confirmadas/Encendidas</div></div><div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div><div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div><div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div><div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Recolección</div></div></div>`}),t.innerHTML=n}
 async function exportarReporte(e){const t=document.querySelector("#contenidoReporte table");if(!t||!datosFiltradosReporte)return mostrarAlerta("No hay datos para exportar.");const o=`${reporteActual}_${document.getElementById("fechaReporte").value}`;"excel"===e?(()=>{const e=XLSX.utils.table_to_sheet(t),o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,e,"Reporte"),XLSX.writeFile(o,`${o}.xlsx`)})():"pdf"===e?exportarAPdf(t,miGrafico,o):"csv"===e&&exportarACsv(t,o)}
 function exportarACsv(e,t){let o=[];e.querySelectorAll("tr").forEach(e=>{let t=[];e.querySelectorAll("th, td").forEach(e=>{t.push(`"${e.textContent.trim().replace(/"/g,'""')}"`)}),o.push(t.join(","))});const n=new Blob([o.join("\n")],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(n),l.download=`${t}.csv`,l.click()}
 function exportarAPdf(e,t,o){const n=new window.jspdf.jsPDF({orientation:"landscape"});n.text(`Reporte de ${reporteActual}`,20,20),t&&n.addImage(t.toBase64Image(),"PNG",20,30,120,70),n.autoTable({html:e,startY:t?110:30}),n.save(`${o}.pdf`)}
