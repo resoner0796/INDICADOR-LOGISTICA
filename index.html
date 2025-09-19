@@ -989,6 +989,7 @@ function mostrarPromptContraseña(mensaje, titulo = "Acceso Requerido") {
     });
 }
 
+
 // ================= Panel de Identificación de Tarimas =================
 const MT = {
   ui: {
@@ -1285,7 +1286,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                     tarimaId: tarimaId,
                     timestamp: new Date().toISOString()
                 });
-                ledRef.set(null); // Libera el LED de Calidad
+                ledRef.set(null);
                 await mostrarAlerta(`Tarima #${tarimaId} recibida. Ahora puedes confirmarla en uno de tus LEDs.`);
             }
         }
@@ -1362,13 +1363,11 @@ async function guardarRechazo() {
         descripcionParte: form.descripcionParte.value, problema: form.problema.value,
         causa: form.causa.value, accion: form.accion.value, timestamp: new Date().toISOString()
     };
-
     await db.ref(`tarimas/${tarimaId}`).update({ estado: 'rechazada', rechazo: data, rechazadoPor: usuarioSeleccionado, timestampRechazo: new Date().toISOString() });
     const { fecha, turno } = obtenerTurnoActual();
     await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, timestamp: new Date().toISOString(), detalles: data });
     actualizarContadoresTarimas(grupo, 'rechazada');
     await db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
-    
     await mostrarAlerta(`❌ Tarima ${tarimaId} rechazada.`);
     cerrarModalRechazo();
     form.reset();
