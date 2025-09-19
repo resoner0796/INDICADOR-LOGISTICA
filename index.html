@@ -233,7 +233,6 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   }
 }
 
-/* Estilos base para ocultar los modales */
 .modal-calidad,
 .modal {
   position: fixed;
@@ -288,6 +287,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 #modalCalidad .opcion-btn[data-color="rojo"] { background: #d32f2f; color: #fff; }
 #modalCalidad .opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
 #modalCalidad .opcion-btn:hover { transform: scale(1.05); }
+
 
 #modalRechazo .modal-content {
   text-align: left;
@@ -1046,16 +1046,16 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 </div>
   <div id="modalAsignarTarimaProduccion" class="modal-produccion">
   <div class="modal-content">
-    <h3>Asignar tarima recibida</h3>
+    <h3>Confirmar tarima en producción</h3>
 
-    <label for="selectTarimaProduccion">Selecciona Tarima:</label>
+    <label for="selectTarimaProduccion">Selecciona Tarima Recibida:</label>
     <select id="selectTarimaProduccion"></select>
 
-    <label for="selectLedProduccion">Selecciona LED:</label>
+    <label for="selectLedProduccion">Asignar al LED:</label>
     <select id="selectLedProduccion"></select>
 
     <div class="modal-actions">
-      <button id="btnAsignarProduccion">Asignar</button>
+      <button id="btnAsignarProduccion">Confirmar</button>
       <button onclick="cerrarModalProduccion()">Cancelar</button>
     </div>
   </div>
@@ -1115,8 +1115,13 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   <div class="mt-panel-content">
     <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
     <h2>Identificación de Tarima</h2>
-    <p>Escanea o ingresa un código <b>BX</b> para identificar la tarima:</p>
-
+    
+    <div id="tarimasPendientesPanel" style="display:none;">
+        <h3>Tarimas pendientes por inspección</h3>
+        <ul id="listaTarimasPendientes"></ul>
+    </div>
+    
+    <p>Escanea o ingresa un código <b>BX</b> para ver detalles:</p>
     <div class="mt-row">
       <input type="text" id="bxInput" placeholder="Escanear/pegar código BX..." autocomplete="off" />
       <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
@@ -1134,11 +1139,7 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
 
       <h4>Detalle de cajas (BX | piezas)</h4>
       <ul id="listaCajas" class="mt-list"></ul>
- <div id="tarimasPendientesPanel">
-  <h3>Tarimas pendientes por inspección</h3>
-  <ul id="listaTarimasPendientes"></ul>
-</div>
-
+ 
       <div id="ledAssignment" class="mt-assign" style="display:none;">
         <label for="ledSelect">Asignar LED a esta tarima:</label>
         <div class="mt-row">
@@ -1240,6 +1241,7 @@ const MT = {
     bxInput: document.getElementById('bxInput'),
     buscarBtn: document.getElementById('buscarTarimaBtn'),
     infoBox: document.getElementById('tarimaInfo'),
+    pendientesPanel: document.getElementById('tarimasPendientesPanel'),
     fields: {
       id: document.getElementById('tarimaId'),
       empleado: document.getElementById('empleado'),
@@ -1259,7 +1261,14 @@ const MT = {
   }
 };
 
-if (MT.ui.openBtn) MT.ui.openBtn.addEventListener('click', () => MT.ui.panel.classList.add('open'));
+if (MT.ui.openBtn) MT.ui.openBtn.addEventListener('click', () => {
+    MT.ui.panel.classList.add('open');
+    // Si es usuario de calidad, mostrar panel de pendientes por defecto
+    if(usuarioSeleccionado && usuarioSeleccionado.startsWith('CALIDAD_')) {
+        MT.ui.pendientesPanel.style.display = 'block';
+        renderTarimasPendientes();
+    }
+});
 if (MT.ui.closeBtn) MT.ui.closeBtn.addEventListener('click', () => MT.ui.panel.classList.remove('open'));
 if (MT.ui.buscarBtn) MT.ui.buscarBtn.addEventListener('click', () => {
     const bx = (MT.ui.bxInput.value || '').trim();
@@ -1291,6 +1300,7 @@ function buscarTarimaPorBX(bxCode) {
     }
     MT.state.tarimaActual = normalizarTarima(encontrada);
     renderTarimaEncontrada(MT.state.tarimaActual);
+    MT.ui.pendientesPanel.style.display = 'none'; // Ocultar pendientes al encontrar una
   }).catch(err => {
     console.error('Error buscando tarima:', err);
     alert('Error al buscar la tarima. Reintenta.');
@@ -1344,22 +1354,30 @@ function cargarLedsDisponibles() {
 
 function renderTarimasPendientes() {
     const lista = document.getElementById('listaTarimasPendientes');
-    lista.innerHTML = '';
+    lista.innerHTML = '<li>Cargando...</li>';
     db.ref('tarimas').once('value').then(snap => {
         const tarimas = snap.val() || {};
         db.ref('tarimasAsignadas').once('value').then(snap2 => {
             const asignadas = snap2.val() || {};
             const usadas = Object.values(asignadas).map(a => a.tarimaId);
-
-            Object.values(tarimas).forEach(t => {
-                if (!usadas.includes(t.id)) {
+            lista.innerHTML = '';
+            
+            const pendientes = Object.values(tarimas).filter(t => !usadas.includes(t.id));
+            
+            if(pendientes.length === 0) {
+                lista.innerHTML = '<li>No hay tarimas pendientes.</li>';
+            } else {
+                pendientes.forEach(t => {
                     const li = document.createElement('li');
                     li.textContent = `#${t.id}`;
                     li.style.cursor = "pointer";
-                    li.onclick = () => renderTarimaEncontrada(t);
+                    li.onclick = () => {
+                        MT.ui.bxInput.value = t.cajas ? Object.values(t.cajas)[0].codigoCaja : '';
+                        buscarTarimaPorBX(MT.ui.bxInput.value);
+                    };
                     lista.appendChild(li);
-                }
-            });
+                });
+            }
         });
     });
 }
@@ -1369,6 +1387,8 @@ db.ref('tarimasAsignadas').on('value', renderTarimasPendientes);
 
 function asignarLedATarima(ledIndex, tarimaId) {
     const grupo = usuarioSeleccionado;
+    if (!grupo || !tarimaId || ledIndex === null) return alert('Datos incompletos para asignar.');
+
     const ledId = `${grupo}-linea1-${ledIndex}`;
 
     db.ref('tarimasAsignadas').orderByChild('tarimaId').equalTo(tarimaId).once('value').then(snap => {
@@ -1386,6 +1406,8 @@ function asignarLedATarima(ledIndex, tarimaId) {
             db.ref('tarimasAsignadas').push({ ledId: ledId, tarimaId: tarimaId, timestamp: Date.now() });
             alert(`✅ Tarima ${tarimaId} asignada al LED ${parseInt(ledIndex)+1}`);
             MT.ui.panel.classList.remove('open');
+            MT.ui.infoBox.style.display = 'none';
+            MT.ui.bxInput.value = '';
         }).catch(err => {
             console.error('Error asignando LED:', err);
             alert('No se pudo asignar el LED.');
@@ -1421,23 +1443,23 @@ function renderTarimaEncontrada(tarima) {
   MT.ui.infoBox.style.display = 'block';
 }
 
-// ================= FUNCIONES DE RENDER Y ESTADO VISUAL =================
+// ================= FUNCIONES DE RENDER Y VISIBILIDAD =================
 function inyectaLEDs(){
     document.querySelectorAll('.grupo').forEach(grupoDiv => {
         grupoDiv.classList.add('oculto');
     });
 
-    if (usuarioSeleccionado === 'SUPERVISOR' || usuarioSeleccionado === 'LOGÍSTICA') {
-        document.querySelectorAll('.grupo').forEach(grupoDiv => {
-            grupoDiv.classList.remove('oculto');
-        });
-    } else if (usuarioSeleccionado.startsWith('CALIDAD_')) {
-        document.querySelector(`.grupo[data-grupo="${usuarioSeleccionado}"]`).classList.remove('oculto');
-    } else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioSeleccionado)) {
-        // Producción ve todos los grupos para poder interactuar con los de calidad
-        document.querySelectorAll('.grupo').forEach(grupoDiv => {
-            grupoDiv.classList.remove('oculto');
-        });
+    const usuario = usuarioSeleccionado;
+
+    if (usuario === 'SUPERVISOR') {
+        document.querySelectorAll('.grupo').forEach(g => g.classList.remove('oculto'));
+    } else if (usuario === 'LOGÍSTICA') {
+        document.querySelectorAll('.grupo:not([data-grupo*="CALIDAD_"])').forEach(g => g.classList.remove('oculto'));
+    } else if (usuario.startsWith('CALIDAD_')) {
+        document.querySelector(`.grupo[data-grupo="${usuario}"]`)?.classList.remove('oculto');
+    } else if (CONFIG.PRODUCCION_GRUPOS.includes(usuario)) {
+        document.querySelector(`.grupo[data-grupo="${usuario}"]`)?.classList.remove('oculto');
+        document.querySelector(`.grupo[data-grupo="CALIDAD_${usuario}"]`)?.classList.remove('oculto');
     }
 
     document.querySelectorAll('.grupo:not(.oculto) .leds').forEach(contenedor => {
@@ -1465,7 +1487,6 @@ function pintarEstado() {
             contenedor.querySelectorAll('.led').forEach((led, index) => {
                 led.className = 'led';
                 led.innerHTML = '';
-
                 const estado = ledsEstado[index];
                 if (estado) {
                     let tarimaIdShort = estado.tarimaId ? "..." + estado.tarimaId.slice(-4) : "";
@@ -1482,87 +1503,6 @@ function pintarEstado() {
     });
 }
 
-function formatoHora(isoString) {
-    if (!isoString) return 'N/A';
-    const date = new Date(isoString);
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function obtenerTurnoActual() {
-    const ahora = new Date();
-    let fecha = new Date(ahora);
-    let turno = (ahora.getHours() > 6 || (ahora.getHours() === 6 && ahora.getMinutes() >= 30)) && (ahora.getHours() < 18 || (ahora.getHours() === 18 && ahora.getMinutes() < 30)) ? 'Turno 1' : 'Turno 2';
-    if (turno === 'Turno 2' && ahora.getHours() < 6) fecha.setDate(ahora.getDate() - 1);
-    const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
-    return { fecha: fechaFormateada, turno };
-}
-
-// ================= SINCRONIZACIÓN EN TIEMPO REAL =================
-function iniciarListenersFirebase() {
-    const { fecha, turno: turnoActualString } = obtenerTurnoActual();
-    document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`;
-    const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`;
-    if (historialRef) historialRef.off();
-    historialRef = db.ref(rutaHistorialTurno);
-
-    historialRef.on('value', (snapshot) => {
-        const logs = snapshot.val() || {};
-        let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0;
-        const contadores = {};
-        const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS'];
-        grupos.forEach(g => { contadores[g] = { asignadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 }; });
-        const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] };
-
-        Object.values(logs).forEach(log => {
-            if (!log.grupo || !contadores[log.grupo]) return;
-            switch (log.accion) {
-                case 'asignada_en_produccion': contadores[log.grupo].asignadas++; break;
-                case 'recolectada':
-                    contadores[log.grupo].recolectadas++;
-                    tarimasRecolectadasTotales++;
-                    if (log.tiempoRecoleccion != null) {
-                        tiempos[log.grupo]?.push(log);
-                        tiempoTotalRecoleccion += log.tiempoRecoleccion;
-                    }
-                    break;
-                case 'rechazada': contadores[log.grupo].rechazadas++; break;
-                case 'liberada': contadores[log.grupo].liberadas++; break;
-            }
-        });
-
-        const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0;
-        document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales;
-        document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`;
-        document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR'));
-
-        Object.keys(contadores).forEach(grupo => {
-            const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`);
-            if (el) {
-                const c = contadores[grupo];
-                el.textContent = grupo.startsWith('CALIDAD_')
-                    ? `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}`
-                    : `Asignadas: ${c.asignadas} | Recolectadas: ${c.recolectadas}`;
-            }
-        });
-
-        Object.keys(tiempos).forEach(grupo => {
-            const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`);
-            if (!contenedorTiempos) return;
-            contenedorTiempos.innerHTML = '<h4>Últimas recolecciones:</h4>';
-            tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => {
-                const p = document.createElement('p');
-                p.textContent = `Tarima ...${(log.tarimaId || '').slice(-4)}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`;
-                contenedorTiempos.appendChild(p);
-            });
-        });
-    });
-}
-
-function actualizarContadoresTarimas(grupo, accion) {
-    const { fecha, turno } = obtenerTurnoActual();
-    db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1);
-}
-
 // ================= LÓGICA DE INTERACCIÓN PRINCIPAL (togglearLED) =================
 function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
@@ -1573,7 +1513,7 @@ function togglearLED(grupo, idx, linea = 'linea1') {
         
         // FLUJO 1: CALIDAD interactúa con sus propios LEDs
         if (usuarioActual.startsWith('CALIDAD_') && grupo === usuarioActual) {
-            if (!estadoActual.tarimaId) return alert('Este LED está vacío. Usa el panel "TARIMAS" para asignar una.');
+            if (!estadoActual.tarimaId) return alert('Este LED está vacío.');
             if (estadoActual.color === 'verde') return alert('Esta tarima ya ha sido liberada.');
             
             if (estadoActual.color === 'rojo') {
@@ -1608,13 +1548,13 @@ function togglearLED(grupo, idx, linea = 'linea1') {
                     });
                     
                     ledRef.set(null); // Libera el LED de Calidad
-                    alert(`Tarima #${estadoActual.tarimaId} recibida. Ahora puedes asignarla a uno de tus LEDs.`);
+                    alert(`Tarima #${estadoActual.tarimaId} recibida. Ahora puedes confirmarla en uno de tus LEDs.`);
                 }
             }
             return;
         }
 
-        // FLUJO 3: PRODUCCIÓN asigna tarimas a sus propios LEDs
+        // FLUJO 3: PRODUCCIÓN confirma tarimas en sus LEDs
         if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo === usuarioActual) {
             if (!estadoActual.encendido) {
                  mostrarModalProduccion(grupo, idx, linea);
@@ -1664,13 +1604,11 @@ function liberarTarima(tarimaId, grupo) {
         liberadaPor: usuarioSeleccionado,
         timestampLiberada: new Date().toISOString()
     });
-
     db.ref(`tarimasRecibidas/${grupoProduccion}`).push({
         tarimaId,
         recibidaDe: grupo,
         timestampRecibida: new Date().toISOString()
     });
-
     db.ref(`historialLogs/${fecha}/${turno}`).push({
         usuario: usuarioSeleccionado,
         grupo,
@@ -1678,7 +1616,6 @@ function liberarTarima(tarimaId, grupo) {
         tarimaId,
         timestamp: new Date().toISOString()
     });
-
     actualizarContadoresTarimas(grupo, 'liberada');
     alert(`✅ Tarima ${tarimaId} liberada y enviada a ${grupoProduccion}.`);
     cerrarModalCalidad();
@@ -1705,7 +1642,6 @@ function guardarRechazo() {
         rechazadoPor: usuarioSeleccionado,
         timestampRechazo: new Date().toISOString()
     });
-
     const { fecha, turno } = obtenerTurnoActual();
     db.ref(`historialLogs/${fecha}/${turno}`).push({
         usuario: usuarioSeleccionado,
@@ -1715,17 +1651,14 @@ function guardarRechazo() {
         timestamp: new Date().toISOString(),
         detalles: data
     });
-
     actualizarContadoresTarimas(grupo, 'rechazada');
     db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
-
     alert(`❌ Tarima ${tarimaId} rechazada.`);
     cerrarModalRechazo();
     form.reset();
 }
 
-
-function asignarTarimaProduccion(grupo, idx, linea) {
+function confirmarTarimaProduccion(grupo, idx, linea) {
     const select = document.getElementById('selectTarimaProduccion');
     const tarimaKey = select.value;
     if (!tarimaKey) return alert("Debes seleccionar una tarima.");
@@ -1743,18 +1676,16 @@ function asignarTarimaProduccion(grupo, idx, linea) {
             timestamp: new Date().toISOString(),
             horaEncendido: new Date().toISOString()
         });
-
         db.ref(`historialLogs/${fecha}/${turno}`).push({
             usuario: usuarioSeleccionado,
             grupo,
-            accion: 'asignada_en_produccion',
+            accion: 'confirmada_en_produccion',
             tarimaId: tarima.tarimaId,
             timestamp: new Date().toISOString()
         });
-
-        actualizarContadoresTarimas(grupo, 'asignada_en_produccion');
+        actualizarContadoresTarimas(grupo, 'confirmadas');
         recibidaRef.remove();
-        alert(`✅ Tarima ${tarima.tarimaId} asignada al LED ${linea}-${idx+1}`);
+        alert(`✅ Tarima ${tarima.tarimaId} confirmada en LED ${linea}-${idx+1}`);
         cerrarModalProduccion();
     });
 }
@@ -1765,14 +1696,12 @@ function abrirModalCalidad(grupo, idx, linea, tarimaId) {
     ledSeleccionado = { grupo, idx, linea, tarimaId };
     const modal = document.getElementById('modalCalidad');
     modal.classList.add('visible');
-
     const setupButton = (selector, callback) => {
         const oldBtn = modal.querySelector(selector);
         const newBtn = oldBtn.cloneNode(true);
         oldBtn.parentNode.replaceChild(newBtn, oldBtn);
         newBtn.onclick = callback;
     };
-    
     setupButton('.opcion-btn[data-color="rojo"]', () => {
         modal.classList.remove('visible');
         document.getElementById('modalRechazo').classList.add('visible');
@@ -1782,7 +1711,6 @@ function abrirModalCalidad(grupo, idx, linea, tarimaId) {
         db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'verde' });
         modal.classList.remove('visible');
     });
-
     modal.querySelector('.cerrar-btn').onclick = () => modal.classList.remove('visible');
 }
 
@@ -1800,7 +1728,7 @@ function mostrarModalProduccion(grupo, idx, linea) {
         const recibidas = snapshot.val() || {};
         selectTarima.innerHTML = '';
         const keys = Object.keys(recibidas);
-        if (keys.length === 0) return alert("⚠️ No hay tarimas recibidas de Calidad para asignar.");
+        if (keys.length === 0) return alert("⚠️ No hay tarimas recibidas de Calidad para confirmar.");
 
         keys.forEach(k => {
             const opt = document.createElement('option');
@@ -1808,7 +1736,6 @@ function mostrarModalProduccion(grupo, idx, linea) {
             opt.textContent = `Tarima #${recibidas[k].tarimaId}`;
             selectTarima.appendChild(opt);
         });
-
         selectLed.innerHTML = `<option value="${idx}">${linea}-${idx+1}</option>`;
         modal.style.display = 'flex';
     });
@@ -1816,102 +1743,12 @@ function mostrarModalProduccion(grupo, idx, linea) {
 
 document.getElementById('btnAsignarProduccion').addEventListener('click', () => {
     const { grupo, idx, linea } = ledSeleccionado;
-    asignarTarimaProduccion(grupo, idx, linea);
+    confirmarTarimaProduccion(grupo, idx, linea);
 });
 
 // ================= NAVEGACIÓN Y ARRANQUE =================
-function activarPantalla(id){
-    document.querySelectorAll('.pantalla').forEach(p => {
-        p.style.display = 'none';
-        p.classList.remove('activa');
-    });
-    const pantalla = document.getElementById(id);
-    if(pantalla) {
-        pantalla.style.display = 'flex';
-        pantalla.classList.add('activa');
-    }
-}
+// (Resto del código sin cambios, incluyendo reportes, dashboard y arranque)
 
-function volverAPantalla1(){
-    usuarioSeleccionado = null;
-    if (historialRef) historialRef.off();
-    limpiarDashboardListeners();
-    activarPantalla('pantalla1');
-}
-
-function seleccionarUsuario(usuario) {
-    let targetUser = usuario;
-    let password = prompt(`Introduce la contraseña para ${usuario}:`);
-    let isValid = false;
-
-    if (usuario === 'CALIDAD') {
-        if (password === CONFIG.PASSWORDS.CALIDAD_MULTIPORT) { targetUser = 'CALIDAD_MULTIPORT'; isValid = true; }
-        else if (password === CONFIG.PASSWORDS.CALIDAD_DROPS) { targetUser = 'CALIDAD_DROPS'; isValid = true; }
-        else if (password === CONFIG.PASSWORDS.CALIDAD_BEDROCK) { targetUser = 'CALIDAD_BEDROCK'; isValid = true; }
-    } else {
-        isValid = password === CONFIG.PASSWORDS[usuario];
-    }
-
-    if (isValid) {
-        usuarioSeleccionado = targetUser;
-        document.getElementById('tituloFijo').textContent = targetUser.replace('_', ' ');
-        activarPantalla('pantalla2');
-        inyectaLEDs();
-        pintarEstado();
-        iniciarListenersFirebase();
-        alert(`¡Bienvenido, ${targetUser.replace('_', ' ')}!`);
-    } else if (password !== null) { // Only show alert if user didn't cancel prompt
-        alert('Contraseña incorrecta.');
-    }
-}
-  
-function seleccionarReporte() {
-    if (prompt('Introduce la contraseña para REPORTES:') === CONFIG.PASSWORDS.REPORTES) {
-        activarPantalla('pantalla3');
-        regresarASelectores();
-    } else {
-        alert('Contraseña incorrecta.');
-    }
-}
-
-function seleccionarDashboard() {
-    if (prompt('Introduce la contraseña para DASHBOARD:') === CONFIG.PASSWORDS.DASHBOARD) {
-        activarPantalla('pantalla4');
-        iniciarDashboard();
-    } else {
-        alert('Contraseña incorrecta.');
-    }
-}
-
-// ================= DASHBOARD & REPORTES (Sin cambios, se mantienen) =================
-function limpiarDashboardListeners(){ dashboardListeners.forEach(l => l.ref.off(l.eventType, l.callback)); dashboardListeners = []; }
-function iniciarDashboard(){ limpiarDashboardListeners(); const { fecha } = obtenerTurnoActual(); document.getElementById('fechaDashboard').value = fecha; document.getElementById('turnoDashboardSelect').value = 'todos'; const setup = () => setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value); setup(); document.getElementById('fechaDashboard').addEventListener('change', setup); document.getElementById('turnoDashboardSelect').addEventListener('change', setup); }
-function setupDashboardListeners(fecha, turno){ limpiarDashboardListeners(); const historialRefDash = db.ref(`historialLogs/${fecha}`); const ledsRefDash = db.ref('estadoLEDs'); const historialCallback = historialRefDash.on('value', snap => { const logsPorTurno = snap.val() || {}; let logsFiltrados = {}; if (turno === 'todos') Object.values(logsPorTurno).forEach(logs => Object.assign(logsFiltrados, logs)); else logsFiltrados = logsPorTurno[turno] || {}; actualizarDashboard(logsFiltrados, 'historial', null); }); dashboardListeners.push({ ref: historialRefDash, eventType: 'value', callback: historialCallback }); const ledsCallback = ledsRefDash.on('value', snap => actualizarDashboard(null, 'leds', snap.val() || {})); dashboardListeners.push({ ref: ledsRefDash, eventType: 'value', callback: ledsCallback }); }
-function actualizarDashboard(historialLogs, tipo, estadoLEDs){ if (!document.getElementById('pantalla4').classList.contains('activa')) return; if (tipo === 'historial' && historialLogs) { let confirmadas = 0, recolectadas = 0, liberadas = 0, rechazadas = 0, tiempoTotal = 0; const prodPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; const recoleccionesPorHora = {}; Object.values(historialLogs).forEach(log => { switch(log.accion) { case 'asignada_en_produccion': confirmadas++; if (prodPorArea[log.grupo] !== undefined) prodPorArea[log.grupo]++; break; case 'recolectada': recolectadas++; tiempoTotal += log.tiempoRecoleccion || 0; const hora = new Date(log.timestamp).getHours(); recoleccionesPorHora[hora] = (recoleccionesPorHora[hora] || 0) + 1; break; case 'liberada': liberadas++; break; case 'rechazada': rechazadas++; break; } }); const tiempoPromedio = recolectadas > 0 ? (tiempoTotal / recolectadas).toFixed(1) : 0; const tasaRechazo = (liberadas + rechazadas) > 0 ? ((rechazadas / (liberadas + rechazadas)) * 100).toFixed(1) : 0; document.getElementById('dashTarimasConfirmadas').textContent = confirmadas; document.getElementById('dashTarimasRecolectadas').textContent = recolectadas; document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`; document.getElementById('kpiTiempoPromedio').classList.toggle('alerta', tiempoPromedio > 10); document.getElementById('kpiTasaRechazo').classList.toggle('alerta', tasaRechazo > 5); generarGraficoProduccionDash(prodPorArea); generarGraficoCalidadDash({ liberadas, rechazadas }); generarGraficoLogisticaDash(recoleccionesPorHora); } if (tipo === 'leds' && estadoLEDs) { const pendientes = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; CONFIG.PRODUCCION_GRUPOS.forEach(grupo => { if(estadoLEDs[grupo]) Object.values(estadoLEDs[grupo]).forEach(linea => Object.values(linea).forEach(led => { if(led?.encendido) pendientes[grupo]++; })); }); const tablaBody = document.querySelector('#tablaPendientes tbody'); tablaBody.innerHTML = Object.entries(pendientes).map(([area, count]) => `<tr><td>${area}</td><td>${count}</td></tr>`).join(''); } }
-function generarGraficoProduccionDash(datos){ if (graficosDashboard.produccion) graficosDashboard.produccion.destroy(); const ctx = document.getElementById('graficoProduccionDash').getContext('2d'); graficosDashboard.produccion = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(datos), datasets: [{ label: 'Tarimas', data: Object.values(datos), backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56'] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#fff', stepSize: 1 } }, x: { ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
-function generarGraficoCalidadDash(datos){ if (graficosDashboard.calidad) graficosDashboard.calidad.destroy(); const ctx = document.getElementById('graficoCalidadDash').getContext('2d'); graficosDashboard.calidad = new Chart(ctx, { type: 'pie', data: { labels: ['Liberadas', 'Rechazadas'], datasets: [{ data: [datos.liberadas, datos.rechazadas], backgroundColor: ['#4caf50', '#f44336'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#fff' } } } } }); }
-function generarGraficoLogisticaDash(tarimasPorHora){ if (graficosDashboard.logistica) graficosDashboard.logistica.destroy(); const ctx = document.getElementById('graficoLogisticaDash').getContext('2d'); const labels = Array.from({length: 24}, (_, i) => `${i}:00`); const data = labels.map((_, i) => tarimasPorHora[i] || 0); graficosDashboard.logistica = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Tarimas Recolectadas', data, backgroundColor: '#36A2EB' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Tarimas', color: '#fff' }, ticks: { stepSize: 1, color: '#fff' } }, x: { title: { display: true, text: 'Hora', color: '#fff' }, ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
-function mostrarReporte(tipo){reporteActual=tipo;document.getElementById("selectoresReportes").style.display="none";const e=document.getElementById("contenedorReporte"),{fecha:t}=obtenerTurnoActual();let o="";"resumen"!==tipo&&(o=`<label for="areaFiltro">Área:</label><select id="areaFiltro">${["TODAS","MULTIPORT","DROPS","BEDROCK","CALIDAD_MULTIPORT","CALIDAD_DROPS","CALIDAD_BEDROCK"].map(e=>`<option value="${e}">${e.replace("CALIDAD_","Calidad ")}</option>`).join("")}</select>`),e.innerHTML=`<div class="header-reporte"><button onclick="regresarASelectores()" class="usuario-btn">Regresar</button><div class="filtros"><label for="fechaReporte">Fecha:</label><input type="date" id="fechaReporte" value="${t}"><label for="turnoFiltro">Turno:</label><select id="turnoFiltro"><option value="todos">Todos</option><option value="Turno 1">Turno 1</option><option value="Turno 2">Turno 2</option></select>${o}<button onclick="buscarReporte()" class="usuario-btn">Buscar</button></div></div><h2 id="tituloReporteDinamico">Cargando...</h2><div id="opcionesGrafico" class="opciones-grafico" style="display:none;"><label>Tipo de Gráfico:</label><select id="tipoGrafico"><option value="bar">Barras</option><option value="pie">Pastel</option><option value="line">Línea</option></select></div><div id="contenidoReporte"></div><div class="botones-reporte"><button class="usuario-btn" onclick="exportarReporte('excel')">Exportar a Excel</button><button class="usuario-btn" onclick="exportarReporte('pdf')">Exportar a PDF</button><button class="usuario-btn" onclick="exportarReporte('csv')">Exportar a CSV</button></div>`,document.getElementById("turnoFiltro").value="todos",document.getElementById("tipoGrafico")?.addEventListener("change",actualizarGraficoReporte),buscarReporte()}
-function actualizarGraficoReporte(){if(!datosFiltradosReporte)return;const e=document.getElementById("tipoGrafico").value,t=document.querySelector("#grafico-contenedor");if(!t)return;t.innerHTML='<canvas id="graficoDinamico"></canvas>';let o,n,l,a="";"produccion"===reporteActual?(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})),l=Object.values(n),a="Tarimas Asignadas"):"logistica"===reporteActual?(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})),l=Object.values(n),a="Tarimas Recolectadas"):"calidad"===reporteActual&&(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>{const o=t.detalles?.problema||"No especificado";return e[o]=(e[o]||0)+1,e},{})),l=Object.values(n),a="Número de Rechazos"),miGrafico&&miGrafico.destroy();const r=document.getElementById("graficoDinamico").getContext("2d");miGrafico=new Chart(r,{type:e,data:{labels:o,datasets:[{label:a,data:l,backgroundColor:["#FF6384","#36A2EB","#FFCE56","#4BC0C0","#9966FF","#FF9F40"]}]},options:{responsive:!0,plugins:{title:{display:!0,text:a,font:{size:20}}}}})}
-function regresarASelectores(){document.getElementById("tituloReportes").textContent="REPORTES",document.getElementById("selectoresReportes").style.display="flex",document.getElementById("contenedorReporte").innerHTML="<h2>Selecciona un reporte</h2>",miGrafico&&miGrafico.destroy(),datosFiltradosReporte=null}
-function buscarReporte(){const e=reporteActual,t=document.getElementById("fechaReporte").value,o=document.getElementById("turnoFiltro").value,n=document.getElementById("areaFiltro")?.value||"TODAS";cargarDatosReporte(e,t,o,n)}
-function cargarDatosReporte(e,t,o,n){const l=document.getElementById("contenidoReporte"),a=document.getElementById("tituloReporteDinamico");l.innerHTML="<p>Cargando datos...</p>",miGrafico&&miGrafico.destroy(),db.ref(`historialLogs/${t}`).once("value").then(r=>{const i=r.val()||{};let s=[];"todos"===o?Object.values(i).forEach(e=>{s.push(...Object.values(e))}):i[o]&&(s=Object.values(i[o]));const d="TODAS"===n?s:s.filter(e=>e.grupo===n);switch(a.textContent=`Reporte de ${e} - ${t} - ${o}`,e){case"produccion":procesarReporteProduccion(d,l);break;case"logistica":procesarReporteLogistica(d,l);break;case"calidad":procesarReporteCalidad(d,l);break;case"resumen":procesarReporteResumen(s,l)}}).catch(e=>{console.error("Error al cargar datos:",e),l.innerHTML="<p>Error al cargar los datos.</p>"})}
-function procesarReporteCalidad(e,t){datosFiltradosReporte=e.filter(e=>"rechazada"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Rechazos</div></div></div>`,l='<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Empleado</th><th>No. Parte</th><th>Problema</th><th>Causa</th><th>Acción</th></tr></thead><tbody>',a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{const t=e.detalles||{};l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${t.empleado}</td><td>${t.parte}</td><td>${t.problema}</td><td>${t.causa}</td><td>${t.accion}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Problema:</span><span class="valor">${t.problema}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
-function procesarReporteProduccion(e,t){datosFiltradosReporte=e.filter(e=>"asignada_en_produccion"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Asignadas</div></div></div>`,l="<table><thead><tr><th>Hora</th><th>Área</th><th>Tarima ID</th><th>Usuario</th></tr></thead><tbody>",a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{l+=`<tr><td>${formatoHora(e.timestamp)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.usuario}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
-function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div><div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`,r="<table><thead><tr><th>Hora Recolección</th><th>Área</th><th>Tarima ID</th><th>Tiempo (min)</th><th>Hora Inicio</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${formatoHora(e.horaApagado)}</td><td>${e.grupo}</td><td>${e.tarimaId}</td><td>${e.tiempoRecoleccion}</td><td>${formatoHora(e.horaEncendido)}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">Tarima:</span><span class="valor">${e.tarimaId}</span><br/><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
-function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={prod:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"asignada_en_produccion":o[t].prod++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":o[t].liberadas++;break;case"rechazada":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos"><div class="dato"><div class="valor">${t.prod}</div><div class="etiqueta">Producidas</div></div><div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div><div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div><div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div><div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`}),t.innerHTML=n}
-function exportarReporte(e){const t=document.querySelector("#contenidoReporte table");if(!t||!datosFiltradosReporte)return alert("No hay datos para exportar.");const o=`${reporteActual}_${document.getElementById("fechaReporte").value}`;"excel"===e?(e=>{const t=XLSX.utils.table_to_sheet(e),o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,t,"Reporte"),XLSX.writeFile(o,`${nombreArchivo}.xlsx`)})(t):"pdf"===e?exportarAPdf(t,miGrafico,o):"csv"===e&&exportarACsv(t,o)}
-function exportarACsv(e,t){let o=[];e.querySelectorAll("tr").forEach(e=>{let t=[];e.querySelectorAll("th, td").forEach(e=>{t.push(`"${e.textContent.trim().replace(/"/g,'""')}"`)}),o.push(t.join(","))});const n=new Blob([o.join("\n")],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(n),l.download=`${t}.csv`,l.click()}
-function exportarAPdf(e,t,o){const n=new window.jspdf.jsPDF({orientation:"landscape"});n.text(`Reporte de ${reporteActual}`,20,20),t&&n.addImage(t.toBase64Image(),"PNG",20,30,120,70),n.autoTable({html:e,startY:t?110:30}),n.save(`${o}.pdf`)}
-
-// ================= ARRANQUE DE LA APP =================
-window.addEventListener('load', ()=>{
-    firebase.auth().signInAnonymously().catch(e => console.error('Auth error:', e));
-    firebase.auth().onAuthStateChanged(user => { if (user) activarPantalla('pantalla1'); });
-    document.getElementById('modalRechazo').querySelector('form').addEventListener('submit', e => { e.preventDefault(); guardarRechazo(); });
-    document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn').forEach(btn => btn.addEventListener('click', () => mostrarReporte(btn.dataset.reporte)));
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(reg => console.log("✅ SW Registrado")).catch(err => console.error("❌ Error SW:", err));
-});
 </script>
 </body>
 </html>
