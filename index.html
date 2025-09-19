@@ -350,6 +350,12 @@ html, body {
     color: var(--text-dark); /* Texto oscuro para mejor contraste en LED encendido */
     text-shadow: none;
 }
+.led.on .tarima-id {
+    color: var(--text-dark);
+    text-shadow: none;
+    font-size: 18px;
+    font-weight: 700;
+}
 .led .tiempo-transcurrido b {
     font-size: 18px;
     font-weight: 700;
@@ -1540,22 +1546,32 @@ function pintarEstado() {
             const linea = contenedor.dataset.linea;
             const ledsEstado = estados[grupoLeds]?.[linea] || {};
             contenedor.querySelectorAll('.led').forEach((led, index) => {
+                // Limpieza inicial
                 led.className = 'led';
                 led.innerHTML = '';
                 led.removeAttribute('data-hora-encendido');
+
                 const estado = ledsEstado[index];
                 if (estado) {
-                    let tarimaIdShort = estado.tarimaId ? "..." + estado.tarimaId.slice(-4) : "";
+                    let tarimaIdDisplay = "";
+                    if (estado.tarimaId) {
+                        // Formato de 3 dígitos con ceros a la izquierda
+                        tarimaIdDisplay = String(estado.tarimaId).slice(-3).padStart(3, '0');
+                    }
+
                     if (grupoLeds.startsWith('CALIDAD_') && estado.color) {
                         led.classList.add(estado.color);
-                        if (tarimaIdShort) led.innerHTML = `<span>${tarimaIdShort}</span>`;
+                        if (tarimaIdDisplay) led.innerHTML = `<span>${tarimaIdDisplay}</span>`;
                     } else if (estado.encendido) {
                         led.classList.add('on');
                         if (esGrupoDeTarimas(grupoLeds)) { // Es MULTIPORT, muestra ID
-                            if (tarimaIdShort) led.innerHTML = `<span>${tarimaIdShort}</span>`;
-                        } else { // Es BEDROCK o DROPS, prepara para el contador
+                            if (tarimaIdDisplay) led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span>`;
+                        } else { // Es BEDROCK o DROPS, renderiza el contador inmediatamente
                             if (estado.horaEncendido) {
                                 led.dataset.horaEncendido = estado.horaEncendido;
+                                const tiempoTranscurridoMs = new Date() - new Date(estado.horaEncendido);
+                                const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / 60000);
+                                led.innerHTML = `<span class="tiempo-transcurrido"><b>${minutosTranscurridos}</b><small>min</small></span>`;
                             }
                         }
                     }
@@ -1564,6 +1580,7 @@ function pintarEstado() {
         });
     });
 }
+
 
 // NUEVA FUNCIÓN para actualizar los contadores de tiempo
 function actualizarTodosLosContadores() {
