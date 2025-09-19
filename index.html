@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel Logística</title>
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -16,231 +19,301 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
 <style>
-:root{
-  --btn-bg: #0066cc;
-  --btn-bg-hover: #004c99;
-  --grid-size: 26px;
-  --vignette: rgba(0,0,0,0.9);
-  --titulo-size: clamp(42px,7vw,96px);
+:root {
+  /* Paleta de Colores Profesional */
+  --bg-dark: #111827;      /* Azul Marino Oscuro (Fondo Principal) */
+  --bg-medium: #1F2937;    /* Gris Azulado Oscuro (Tarjetas y Paneles) */
+  --bg-light: #374151;     /* Gris Azulado Claro (Bordes, Hover) */
+  --text-light: #F9FAFB;   /* Blanco Hueso (Texto Principal) */
+  --text-medium: #9CA3AF; /* Gris Claro (Texto Secundario, Etiquetas) */
+  --text-dark: #1F2937;    /* Texto para fondos claros */
+  --accent-blue: #3B82F6;   /* Azul Principal (Botones, Énfasis) */
+  --accent-blue-hover: #2563EB;
+  --accent-green: #10B981;  /* Verde Esmeralda (Éxito, Liberado) */
+  --accent-red: #EF4444;    /* Rojo (Peligro, Rechazado) */
+  --accent-orange: #F59E0B; /* Ámbar (Advertencia, En Proceso) */
+  
+  /* Estilos de LED */
   --led-size: 50px;
   --led-gap: 16px;
-  --led-off-core: #111;
-  --led-off-edge: #000;
-  --led-on-core: #0f0;
-  --led-on-edge: #063;
-  --glow: #00ff88;
-  --blink-duration: 0.9s;
+  --led-off-core: #2d3748;
+  --led-off-edge: #1a202c;
+  --glow-green: rgba(16, 185, 129, 0.7);
+  --glow-red: rgba(239, 68, 68, 0.7);
+  --glow-orange: rgba(245, 158, 11, 0.7);
+  --blink-duration: 1.2s;
+
+  /* Tipografía */
+  --font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  --titulo-size: clamp(36px, 6vw, 72px);
+
+  /* Otros */
+  --border-radius-md: 16px; 
+  --border-radius-sm: 10px;
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 }
 
-*{ box-sizing: border-box; }
-html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color:#fff; background:#111; }
+* { box-sizing: border-box; }
 
-.pantalla{ display:none; width:100%; min-height:100vh; }
-.pantalla.activa{ display:flex; flex-direction:column; }
-
-#pantalla1{
-  align-items:center;
-  justify-content:center;
-  flex-direction: column;
-  background:linear-gradient(135deg,#222,#444);
-  gap:18px;
-}
-.btn-contenedor{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-family);
+  color: var(--text-light);
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(at 47% 33%, hsl(225, 39%, 30%) 0, transparent 59%), 
+    radial-gradient(at 82% 65%, hsl(253, 16%, 7%) 0, transparent 55%);
 }
 
-#pantalla1 h1{ margin:0 0 8px; }
-.usuario-btn{
-  background: var(--btn-bg);
-  color:#fff;
-  border:0;
-  padding:14px 28px;
-  margin:8px;
-  border-radius:10px;
-  font-size:18px;
-  cursor:pointer;
-  transition: background .25s ease;
-  outline-color: #000;
-}
-.usuario-btn:hover{ background: var(--btn-bg-hover); }
-
-#pantalla2{
-  background-color:#000;
-  background-image:
-    radial-gradient(circle, rgba(60,60,60,.28) 20%, transparent 21%),
-    radial-gradient(circle, #101010 20%, transparent 21%);
-  background-size: var(--grid-size) var(--grid-size);
-  box-shadow: inset 0 0 90px var(--vignette);
-  overflow-y: auto;
-}
-.header{ display:flex; align-items:center; justify-content:center; padding:16px 20px 6px; position: relative; }
-#tituloFijo{
-  font-weight:800;
-  text-align:center;
-  letter-spacing:.5px;
-  text-shadow:0 2px 8px rgba(0,0,0,.65);
-  font-size:var(--titulo-size);
-}
-#turnoActual {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  background-color: rgba(0,0,0,0.5);
-  padding: 5px 10px;
-  border-radius: 5px;
-}
-.zona-centro{
-  flex:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:10px 24px 28px;
-  flex-direction: column;
-}
-.grupo-contenedor{
-  display: flex;
-  flex-wrap: wrap;
-  gap: clamp(24px, 4vw, 64px);
-  width: min(1200px, 96vw);
-  justify-content: center;
-}
-.grupo.oculto {
+.pantalla {
   display: none;
+  width: 100%;
+  min-height: 100vh;
+  padding: 20px;
+  transition: opacity 0.5s ease-out;
 }
-.grupo{ display:flex; flex-direction:column; align-items:center; text-align:center; }
-.grupo .nombre{ font-size: clamp(20px,2.2vw,28px); font-weight:800; margin-bottom:8px; letter-spacing:.5px; text-shadow:0 1px 6px rgba(0,0,0,.5); }
-.grupo .tarimas{ font-size: clamp(16px,1.7vw,22px); opacity:.9; margin-top:14px; }
-.leds{ display:flex; gap: var(--led-gap); justify-content:center; align-items:center; flex-wrap:nowrap; padding:4px; }
-.led{
-  width: var(--led-size);
-  height: var(--led-size);
-  border-radius:50%;
-  cursor:pointer;
-  background: radial-gradient(circle at 45% 40%, var(--led-off-core) 40%, var(--led-off-edge) 100%);
-  box-shadow: inset -4px -5px 8px rgba(0,0,0,.8), inset 4px 5px 6px rgba(255,255,255,.06), 0 1px 0 rgba(255,255,255,.05);
-  transition: transform .1s ease, filter .2s ease, box-shadow .2s ease;
+.pantalla.activa { display: flex; flex-direction: column; }
+
+.brand-title {
+  font-family: 'Times New Roman', Times, serif;
+  color: white;
+  font-size: clamp(24px, 3vw, 28px);
+  font-weight: normal;
+  text-align: center;
+  width: 100%;
+  letter-spacing: 2px;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  padding: 0;
+}
+
+#pantalla1 {
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+#pantalla1 .brand-header { text-align: center; }
+#pantalla1 h1 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 700;
+  color: var(--text-light);
+}
+.btn-contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 300px;
+}
+.usuario-btn {
+  background: rgba(59, 130, 246, 0.25); 
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--text-light);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 14px 28px;
+  border-radius: var(--border-radius-sm);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s ease, transform .2s ease;
+  box-shadow: var(--shadow-md);
+  width: 100%;
+}
+.usuario-btn:hover {
+  background: rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+.btn-rojo { background: rgba(239, 68, 68, 0.25); }
+.btn-rojo:hover { background: rgba(239, 68, 68, 0.4); }
+
+#pantalla2 { gap: 10px; }
+.header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: bold;
-  color: #fff;
-  text-shadow: 0 0 3px #000;
+  padding: 0 10px;
+  width: 100%;
+  flex-wrap: wrap;
 }
-.led:active{ transform: scale(.96); }
-.led.on{
-  background: radial-gradient(circle at 48% 45%, var(--led-on-core) 40%, var(--led-on-edge) 100%);
-  box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
-  animation: blink var(--blink-duration) ease-in-out infinite;
+#tituloFijo {
+  font-weight: 700;
+  text-align: center;
+  font-size: var(--titulo-size);
+  color: var(--text-light);
 }
-.led.disabled {
-    cursor: not-allowed;
-    pointer-events: none;
+#turnoActual {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--border-radius-sm);
+  background: rgba(31, 41, 55, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
-
+.zona-centro {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 24px;
+  margin-top: 20px;
+}
 .resumen-turno {
   display: flex;
   justify-content: center;
   gap: 40px;
-  margin-bottom: 20px;
-  background-color: #222;
-  border-radius: 12px;
-  padding: 15px 30px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.3);
-  width: min(800px, 90vw);
+  padding: 20px 40px;
+  width: 100%;
+  max-width: 700px;
+  border-radius: var(--border-radius-md);
+  background: rgba(31, 41, 55, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
-.resumen-turno.oculto {
-  display: none;
-}
-.dato-resumen {
-  text-align: center;
-}
+.resumen-turno.oculto { display: none; }
+.dato-resumen { text-align: center; }
 .dato-resumen .etiqueta {
   font-size: 14px;
-  opacity: 0.7;
+  color: var(--text-medium);
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 .dato-resumen .valor {
   font-size: 32px;
-  font-weight: bold;
-  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--text-light);
 }
-.tiempos{
+.grupo-contenedor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  width: 100%;
+  max-width: 1400px;
+  justify-content: center;
+}
+.grupo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  flex-grow: 1;
+  min-width: 300px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--border-radius-md);
+  background-color: #18181a;
+  background-image: radial-gradient(circle at center, rgba(0,0,0,0.4) 2px, transparent 3px);
+  background-size: 12px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+.grupo:hover {
+  transform: translateY(-5px);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.1);
+}
+.grupo.oculto { display: none; }
+.grupo .nombre {
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.grupo .tarimas {
+  font-size: clamp(16px, 1.7vw, 18px);
+  color: var(--text-medium);
+  margin-top: 20px;
+  font-weight: 600;
+}
+.leds {
+  display: flex;
+  gap: var(--led-gap);
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.led {
+  width: var(--led-size);
+  height: var(--led-size);
+  border-radius: 50%;
+  cursor: pointer;
+  background: radial-gradient(circle at 45% 40%, var(--led-off-core) 40%, var(--led-off-edge) 100%);
+  border: 2px solid var(--led-off-edge);
+  transition: all .2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-light);
+  line-height: 1;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.led:active { transform: scale(.96); }
+.led.on {
+  background: radial-gradient(circle at 48% 45%, #6EE7B7 40%, var(--accent-green) 100%);
+  box-shadow: 0 0 22px var(--glow-green);
+  border-color: var(--accent-green);
+  animation: blink var(--blink-duration) ease-in-out infinite;
+}
+.led.naranja {
+  background: radial-gradient(circle at 48% 45%, #FBBF24 40%, var(--accent-orange) 100%);
+  box-shadow: 0 0 22px var(--glow-orange);
+  border-color: var(--accent-orange);
+}
+.led.rojo {
+  background: radial-gradient(circle at 48% 45%, #F87171 40%, var(--accent-red) 100%);
+  box-shadow: 0 0 22px var(--glow-red);
+  border-color: var(--accent-red);
+}
+.led.verde {
+  background: radial-gradient(circle at 48% 45%, #6EE7B7 40%, var(--accent-green) 100%);
+  box-shadow: 0 0 22px var(--glow-green);
+  border-color: var(--accent-green);
+}
+.led.disabled { cursor: not-allowed; opacity: 0.6; }
+
+.tiempos {
   margin-top: 10px;
   font-size: 14px;
-  opacity: 0.8;
+  color: var(--text-medium);
   text-align: left;
   width: 100%;
-  max-height: 200px;
+  max-height: 150px;
   overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: var(--border-radius-sm);
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
-.btn-rojo{
-  background: #cc0000;
-  outline-color: #000;
-}
-.btn-rojo:hover{
-  background: #990000;
-}
-.footer{
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-}
-.footer .usuario-btn{
-  padding: 10px 20px;
-  font-size: 16px;
-}
-.contadores-calidad {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  margin-top: 10px;
-}
-.contador-calidad {
-  text-align: center;
-  font-size: 14px;
-  font-weight: bold;
-}
-.contador-calidad .valor {
-  font-size: 20px;
-  font-weight: bold;
-}
-.contador-calidad .etiqueta {
-  font-size: 12px;
-  opacity: 0.8;
-}
+.tiempos p { margin: 0 0 5px; }
 
-@media(max-width:720px){ 
-  .grupo-contenedor{ 
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    width: 100%;
-  }
-}
-@keyframes blink {
-  0%, 100% {
-    box-shadow: 0 0 22px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
-  }
-  50% {
-    box-shadow: 0 0 40px var(--glow), inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
-  }
-}
+.footer { width: 100%; display: flex; justify-content: center; padding: 20px 0 0; }
+.footer .usuario-btn { padding: 10px 20px; font-size: 16px; }
 
-.modal-calidad,
+@keyframes blink { 50% { box-shadow: 0 0 35px var(--glow-green); } }
+
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.5); 
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -249,316 +322,406 @@ html, body{ height:100%; margin:0; font-family:Arial,Helvetica,sans-serif; color
   opacity: 0;
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-
-.modal-calidad.visible,
-.modal.visible {
-  visibility: visible;
-  opacity: 1;
-}
-
-#modalCalidad .modal-content,
-#modalRechazo .modal-content,
-#modalOpcionesCalidad .modal-content,
-#modalAsignarTarimaProduccion .modal-content {
-  background-color: #1c1c1c !important;
-  color: #eee !important;
-  padding: 25px 35px;
-  border-radius: 12px;
+.modal.visible { visibility: visible; opacity: 1; }
+.modal-content {
+  padding: 30px;
   text-align: center;
-  max-width: 450px;
   width: 90%;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--border-radius-md);
+  background: rgba(31, 41, 55, 0.7); 
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
-  
-#modalCalidad h3,
-#modalRechazo h3 {
-  color: #f0f0f0 !important;
+.modal-content h3 {
+  margin-top: 0;
+  font-size: 22px;
+  margin-bottom: 25px;
 }
-#modalCalidad .opcion-btn,
-#modalRechazo .opcion-btn {
-  padding: 12px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-#modalCalidad .opcion-btn[data-color="rojo"] { background: #d32f2f; color: #fff; }
-#modalCalidad .opcion-btn[data-color="verde"] { background: #2e7d32; color: #fff; }
-#modalCalidad .opcion-btn:hover { transform: scale(1.05); }
 
-#modalRechazo .modal-content {
-  text-align: left;
-}
-#modalRechazo .modal-content h3 {
-  text-align: center;
-  margin-bottom: 30px;
-}
-#modalRechazo form {
+.opciones {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  margin-bottom: 25px;
 }
-#modalRechazo label {
-  font-size: 16px;
-  margin-bottom: 5px;
-  display: block;
-}
-#modalRechazo input, #modalRechazo textarea {
-  width: 100%;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #555;
-  background-color: #333;
-  color: #fff;
-  font-size: 16px;
-}
-#modalRechazo textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-#modalRechazo button[type="submit"] {
-  margin-top: 20px;
-  background-color: var(--btn-bg);
-  color: #fff;
-  border: none;
-  padding: 15px;
-  border-radius: 8px;
+.opcion-btn {
+  padding: 15px 25px;
   font-size: 18px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
+  color: #fff;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
-#modalRechazo button[type="submit"]:hover {
-  background-color: var(--btn-bg-hover);
-}
+.opcion-btn:hover { transform: scale(1.02); }
+.opcion-btn[data-color="rojo"] { background: rgba(239, 68, 68, 0.3); }
+.opcion-btn[data-color="rojo"]:hover { background: rgba(239, 68, 68, 0.5); }
+.opcion-btn[data-color="verde"] { background: rgba(16, 185, 129, 0.3); }
+.opcion-btn[data-color="verde"]:hover { background: rgba(16, 185, 129, 0.5); }
 
-#modalRechazo .modal-actions {
+.cerrar-btn {
+  background: rgba(55, 65, 81, 0.4); 
+  color: var(--text-light);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 20px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  backdrop-filter: blur(5px);
+}
+.cerrar-btn:hover { background: rgba(75, 85, 99, 0.6); }
+
+#modalRechazo .modal-content {
+  text-align: left;
+  max-height: 85vh; 
+  overflow-y: auto;
+}
+#modalRechazo form { display: flex; flex-direction: column; gap: 15px; }
+#modalRechazo label { font-size: 14px; margin-bottom: 5px; display: block; color: var(--text-medium); }
+#modalRechazo input, #modalRechazo textarea, .modal-prompt-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-light);
+  font-size: 16px;
+  font-family: var(--font-family);
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+#modalRechazo input:focus, #modalRechazo textarea:focus, .modal-prompt-input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+#modalRechazo textarea { resize: vertical; min-height: 80px; }
+
+.modal-generic-message {
+  font-size: 16px;
+  color: var(--text-medium);
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+.modal-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  gap: 15px;
   margin-top: 20px;
-}
-#modalRechazo .modal-actions button {
-  flex: 1;
-  margin: 0 5px;
-}
-  
-.led.naranja {
-  background: radial-gradient(circle at 48% 45%, #ff9800 40%, #c17500 100%);
-  box-shadow: 0 0 22px #ff9800, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
-}
-.led.rojo {
-  background: radial-gradient(circle at 48% 45%, #f44336 40%, #d32f2f 100%);
-  box-shadow: 0 0 22px #f44336, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
-}
-.led.verde {
-  background: radial-gradient(circle at 48% 45%, #4caf50 40%, #388e3c 100%);
-  box-shadow: 0 0 22px #4caf50, inset -4px -5px 8px rgba(0,0,0,.75), inset 3px 4px 7px rgba(255,255,255,.10);
 }
 
 #pantalla3 {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: #f4f7f9;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(210, 40%, 98%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 100%, hsla(200, 50%, 90%, 1) 0, transparent 50%);
+  color: var(--text-dark);
   align-items: center;
   justify-content: flex-start;
+  gap: 10px;
+}
+#pantalla3 .zona-centro { margin-top: 0; }
+#pantalla3 .brand-title,
+#pantalla3 .header h1,
+#pantalla3 .header-reporte h2 { color: var(--text-dark); }
+#pantalla3 .contenedor-reporte {
+  box-shadow: var(--shadow-lg);
+  color: var(--text-dark);
   padding: 20px;
-  overflow-y: auto;
+  width: 100%;
+  max-width: 1400px;
+  margin-top: 20px;
+  border-radius: var(--border-radius-md);
+  background-color: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
-#pantalla3 h1 { font-size: 2.5rem; color: #0066cc; margin-bottom: 20px; }
-#pantalla3 .btn-contenedor { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; max-width: 800px; }
-#pantalla3 .usuario-btn { background-color: #0066cc; color: #fff; font-size: 1.2rem; padding: 15px 30px; border-radius: 10px; cursor: pointer; border: none; transition: background-color 0.3s ease; }
-#pantalla3 .usuario-btn:hover { background-color: #004c99; }
-#pantalla3 .contenedor-reporte { background-color: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 100%; max-width: 1200px; margin-top: 20px; }
-#pantalla3 .header-reporte { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 20px; }
-#pantalla3 .header-reporte h2 { color: #0066cc; margin: 0; }
-#pantalla3 .header-reporte .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-#pantalla3 .header-reporte .filtros label { font-size: 14px; }
-#pantalla3 .header-reporte .filtros input[type="date"],
-#pantalla3 .header-reporte .filtros select,
-#pantalla3 .header-reporte .filtros input[type="text"] { padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; }
-#pantalla3 table { width: 100%; border-collapse: collapse; margin-top: 20px; display: table; }
-#pantalla3 th, #pantalla3 td { border: 1px solid #ccc; padding: 12px; text-align: left; font-size: 14px; }
-#pantalla3 thead { background-color: #0066cc; color: #fff; }
-#pantalla3 tbody tr:nth-child(even) { background-color: #f2f2f2; }
-#pantalla3 tbody tr:hover { background-color: #ddd; }
-#pantalla3 .resumen-datos { display: flex; gap: 30px; flex-wrap: wrap; justify-content: space-around; margin-bottom: 20px; }
-#pantalla3 .dato { background-color: #f2f2f2; padding: 15px; border-radius: 8px; font-weight: bold; text-align: center; }
-#pantalla3 .dato .valor { font-size: 24px; color: #0066cc; }
-#pantalla3 .dato .etiqueta { font-size: 12px; text-transform: uppercase; color: #666; }
-.botones-reporte { margin-top: 20px; display: flex; gap: 15px; justify-content: flex-end; flex-wrap: wrap; }
-.grafico-contenedor { width: 100%; max-width: 600px; margin: 20px auto; }
-.opciones-grafico { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; justify-content: center; }
-.opciones-grafico .usuario-btn { padding: 8px 15px; font-size: 14px; }
-.reporte-calidad-mobile .tabla-calidad-movil .fila-dato { background-color: #f2f2f2; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
-.reporte-calidad-mobile .tabla-calidad-movil .etiqueta { font-weight: bold; color: #666; display: block; font-size: 12px; }
-.reporte-calidad-mobile .tabla-calidad-movil .valor { color: #333; font-size: 16px; }
-@media (max-width: 768px) {
-    #pantalla3 .header-reporte { flex-direction: column; align-items: flex-start; }
-    #pantalla3 .header-reporte .filtros { width: 100%; flex-direction: column; }
-    #pantalla3 .header-reporte .filtros input, #pantalla3 .header-reporte .filtros select { width: 100%; }
-    #pantalla3 .resumen-datos { flex-direction: column; gap: 15px; }
-    #pantalla3 .dato { width: 100%; }
-    #pantalla3 table { display: none; }
-    .reporte-calidad-mobile { display: block; }
+#pantalla3 .header-reporte {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
-@media (min-width: 769px) { .reporte-calidad-mobile { display: none; } }
+#pantalla3 .header-reporte .filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+#pantalla3 .header-reporte .filtros label { font-size: 14px; color: #64748b; }
+#pantalla3 .header-reporte .filtros input,
+#pantalla3 .header-reporte .filtros select {
+  padding: 8px;
+  border-radius: var(--border-radius-sm);
+  background-color: rgba(255, 255, 255, 0.5);
+  color: var(--text-dark);
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+}
+#pantalla3 .header-reporte .filtros input:focus,
+#pantalla3 .header-reporte .filtros select:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  outline: none;
+}
+#pantalla3 .usuario-btn {
+    color: var(--text-dark);
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.2);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+#pantalla3 .usuario-btn:hover { background: rgba(59, 130, 246, 0.25); }
+#pantalla3 .btn-rojo {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+#pantalla3 .btn-rojo:hover { background: rgba(239, 68, 68, 0.25); }
+
+#pantalla3 table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  color: var(--text-dark);
+  display: table;
+}
+#pantalla3 th, #pantalla3 td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px;
+  text-align: left;
+}
+#pantalla3 thead {
+  background-color: rgba(241, 245, 249, 0.7);
+  color: #334155;
+  font-weight: 600;
+}
+#pantalla3 tbody tr:hover { background-color: rgba(248, 250, 252, 0.8); }
+#pantalla3 .resumen-datos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+#pantalla3 .dato {
+  background-color: rgba(248, 250, 252, 0.7);
+  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-md);
+  padding: 15px;
+  border-radius: var(--border-radius-sm);
+  text-align: center;
+  min-width: 150px;
+}
+#pantalla3 .dato .valor {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+#pantalla3 .dato .etiqueta {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.grafico-contenedor {
+  width: 100%;
+  max-width: 700px;
+  margin: 30px auto;
+}
+.reporte-calidad-mobile { display: none; }
 
 #pantalla4 {
-  background-color: #000; color: #fff; padding: 20px; display: grid; grid-template-areas: "header" "filtros" "kpis" "graficos" "pendientes" "footer"; gap: 20px; align-content: start; overflow-y: auto;
+  background-color: transparent;
+  color: var(--text-light);
+  padding: 20px;
+  display: grid;
+  grid-template-areas:
+    "brand" "header" "filtros" "kpis" "graficos" "pendientes" "footer";
+  gap: 10px;
+  align-content: start;
+  overflow-y: auto;
 }
+#pantalla4 .brand-title { grid-area: brand; }
 #pantalla4 .header { grid-area: header; text-align: center; }
-#pantalla4 .filtros-dashboard { grid-area: filtros; display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; align-items: center; }
-#pantalla4 .filtros-dashboard label { font-size: 14px; }
-#pantalla4 .filtros-dashboard input[type="date"], #pantalla4 .filtros-dashboard select { padding: 8px; border-radius: 5px; border: 1px solid #555; background-color: #222; color: #fff; }
-#pantalla4 .kpis-grid { grid-area: kpis; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-#pantalla4 .kpi-card { background-color: #1a1a1a; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #333; }
-#pantalla4 .kpi-card h3 { margin-top: 0; font-size: 1rem; color: #aaa; text-transform: uppercase; }
-#pantalla4 .kpi-card .valor { font-size: 3rem; font-weight: bold; color: #00ff88; transition: color 0.3s ease; }
-#pantalla4 .kpi-card.alerta .valor { color: #ff3333; }
-#pantalla4 .graficos-container { grid-area: graficos; display: grid; grid-template-columns: 1fr; gap: 20px; }
-#pantalla4 .graficos-container .panel { background-color: #1a1a1a; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #333; }
-#pantalla4 .graficos-container h3 { text-align: center; margin-top: 0; margin-bottom: 15px; color: #eee; }
-#pantalla4 #tablaPendientes { width: 100%; border-collapse: collapse; color: #fff; }
-#pantalla4 #tablaPendientes th, #pantalla4 #tablaPendientes td { padding: 12px; border-bottom: 1px solid #444; text-align: left; }
-#pantalla4 #tablaPendientes th { background-color: #222; }
-#pantalla4 #tablaPendientes tbody tr:hover { background-color: #333; }
+#pantalla4 .filtros-dashboard {
+  grid-area: filtros;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+#pantalla4 .filtros-dashboard label { font-size: 14px; color: var(--text-medium); }
+#pantalla4 .filtros-dashboard input,
+#pantalla4 .filtros-dashboard select {
+  padding: 8px;
+  border-radius: var(--border-radius-sm);
+  background-color: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+}
+#pantalla4 .kpis-grid {
+  grid-area: kpis;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+#pantalla4 .kpi-card {
+  padding: 25px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--border-radius-md);
+  background: rgba(31, 41, 55, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+#pantalla4 .kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+}
+#pantalla4 .kpi-card h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: var(--text-medium);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+#pantalla4 .kpi-card .valor {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-light);
+  transition: color 0.3s ease;
+  margin-top: 10px;
+}
+#pantalla4 .kpi-card.alerta .valor { color: var(--accent-red); }
+#pantalla4 .graficos-container {
+  grid-area: graficos;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+#pantalla4 .panel {
+  grid-area: pendientes;
+  padding: 20px;
+  border-radius: var(--border-radius-md);
+  background: rgba(31, 41, 55, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+#pantalla4 .graficos-container .panel { grid-area: unset; }
+#pantalla4 .panel h3 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--text-light);
+}
+#pantalla4 #tablaPendientes {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-light);
+}
+#pantalla4 #tablaPendientes th, #pantalla4 #tablaPendientes td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(55, 65, 81, 0.5); 
+  text-align: left;
+}
+#pantalla4 #tablaPendientes thead { background-color: rgba(55, 65, 81, 0.4); }
+#pantalla4 #tablaPendientes tbody tr:hover { background-color: rgba(75, 85, 99, 0.4); }
 #pantalla4 .footer { grid-area: footer; }
-@media (min-width: 768px) {
-  #pantalla4 { grid-template-columns: 1fr 1fr; grid-template-areas: "header header" "filtros filtros" "kpis kpis" "graficos graficos" "pendientes pendientes" "footer footer"; }
+
+
+@media (max-width: 768px) {
+  .header { justify-content: center; text-align: center; }
+  #turnoActual { position: static; transform: none; margin-top: 10px; }
+  
+  #pantalla3 table { display: none; }
+  .reporte-calidad-mobile { display: block; }
+  
+  #pantalla3 .reporte-calidad-mobile .tabla-calidad-movil .fila-dato {
+    background-color: rgba(241, 245, 249, 0.8);
+    padding: 10px;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 10px;
+    color: var(--text-dark);
+  }
+  #pantalla3 .reporte-calidad-mobile .tabla-calidad-movil .etiqueta {
+    font-weight: bold;
+    color: #64748b;
+    display: block;
+    font-size: 12px;
+  }
+  #pantalla3 .reporte-calidad-mobile .tabla-calidad-movil .valor {
+    color: var(--text-dark);
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 769px) {
+  .reporte-calidad-mobile { display: none; }
+}
+
+@media (min-width: 992px) {
+  #pantalla4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "brand brand" "header header" "filtros filtros"
+      "kpis kpis" "graficos graficos" "pendientes pendientes" "footer footer";
+  }
   #pantalla4 .graficos-container { grid-template-columns: 1fr 1fr; }
   .graficos-container > *:nth-child(3) { grid-column: span 2; }
 }
 @media (min-width: 1200px) {
-  #pantalla4 { grid-template-columns: repeat(3, 1fr); grid-template-areas: "header header header" "filtros filtros filtros" "kpis kpis kpis" "produccion calidad logistica" "pendientes pendientes pendientes" "footer footer footer"; }
-  #pantalla4 .graficos-container { grid-template-columns: 1fr 1fr 1fr; }
-  .graficos-container > *:nth-child(3) { grid-column: span 1; }
-}
-
-.mt-fab { position: fixed; bottom: 20px; right: 20px; background: #0a84ff; color: #fff; border: none; border-radius: 50%; width: 78px; height: 78px; font-size: 12px; font-weight: 700; cursor: pointer; z-index: 1000; box-shadow: 0 10px 25px rgba(10,132,255,.35); }
-.mt-fab:active { transform: translateY(1px); }
-
-.mt-panel { position: fixed; top: 0; right: -420px; width: 420px; max-width: 95vw; height: 100%; background: #111316; color: #eaeaea; box-shadow: -4px 0 20px rgba(0,0,0,.45); transition: right .28s ease; z-index: 999; }
-.mt-panel.open { right: 0; }
-.mt-panel-content { padding: 20px; }
-.mt-close { background: transparent; border: none; color: #aaa; font-size: 28px; cursor: pointer; float: right; }
-.mt-close:hover { color: #fff; }
-
-.mt-row { display: flex; gap: 10px; align-items: stretch; }
-.mt-btn { padding: 10px 14px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
-.mt-primary { background:#0a84ff; color:#fff; }
-.mt-success { background:#34c759; color:#000; }
-.mt-select, #bxInput { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2b2f36; background:#171a1f; color:#eaeaea; }
-.mt-select:focus, #bxInput:focus { outline: 2px solid #0a84ff; }
-.mt-card { margin-top: 16px; padding: 16px; border-radius: 14px; background: linear-gradient(180deg, #16191e 0%, #121418 100%); border: 1px solid #20242b; }
-.mt-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px 14px; margin-bottom: 10px; }
-.mt-list { list-style: none; padding-left: 0; margin: 8px 0 0; max-height: 200px; overflow: auto; }
-.mt-list li { padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; background:#0f1216; border: 1px solid #22262c; font-size: 14px; word-break: break-word; }
-.mt-assign { margin-top: 14px; border-top: 1px dashed #2a2f36; padding-top: 12px; }
-
-body.theme-dark { background: #0b0d0f !important; color: #eaeaea !important; }
-body.theme-dark .card, body.theme-dark .panel, body.theme-dark .widget { background: #121418 !important; color: #eaeaea !important; border-color: #21252b !important; }
-body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
-
-/* ======== NUEVO CSS PARA MODALES PERSONALIZADOS ======== */
-.custom-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-.custom-modal-overlay.visible {
-    opacity: 1;
-    visibility: visible;
-}
-.custom-modal {
-    background: #1e1e1e;
-    padding: 25px 35px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-    border: 1px solid #444;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    transform: scale(0.9);
-    transition: transform 0.3s ease;
-}
-.custom-modal-overlay.visible .custom-modal {
-    transform: scale(1);
-}
-.custom-modal h3 {
-    margin-top: 0;
-    color: #00aaff;
-}
-.custom-modal p {
-    color: #ccc;
-    line-height: 1.5;
-}
-.custom-modal-actions {
-    margin-top: 25px;
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-.custom-modal-actions button {
-    padding: 10px 25px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-}
-.custom-modal-actions input {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #555;
-    background-color: #333;
-    color: #fff;
-    font-size: 16px;
-    margin-bottom: 10px;
-}
-.modal-btn-confirm {
-    background-color: var(--btn-bg);
-    color: white;
-}
-.modal-btn-cancel {
-    background-color: #555;
-    color: white;
+  #pantalla4 {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-areas:
+      "brand brand brand brand" "header header header header" "filtros filtros filtros filtros"
+      "kpis kpis kpis kpis" "graficos graficos pendientes pendientes" "footer footer footer footer";
+  }
+   #pantalla4 .graficos-container {
+    grid-area: graficos;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, auto);
+  }
+  .graficos-container > * { grid-column: span 1 !important; }
+  #pantalla4 .panel { grid-area: pendientes; }
 }
 </style>
 </head>
 <body>
 
 <section id="pantalla1" class="pantalla activa">
-<h1 id="mainTitle">Selecciona tu usuario</h1>
-<div class="btn-contenedor">
-    <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
-    <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button> 
-    <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
-    <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
-</div>
+    <div class="brand-header">
+        <p class="brand-title">CORNING</p>
+        <h1 id="mainTitle">Panel de Logística</h1>
+    </div>
+    <div class="btn-contenedor">
+        <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
+        <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
+        <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
+        <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+        <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button>
+        <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
+        <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
+        <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
+    </div>
 </section>
 
 <section id="pantalla2" class="pantalla">
-<header class="header">
-    <div id="tituloFijo">LOGÍSTICA</div>
-    <div id="turnoActual"></div>
-</header>
-<div class="zona-centro">
+    <p class="brand-title">CORNING</p>
+    <header class="header">
+        <div id="tituloFijo">LOGÍSTICA</div>
+        <div id="turnoActual"></div>
+    </header>
+    <div class="zona-centro">
     <div id="resumenTurno" class="resumen-turno oculto">
 <div class="dato-resumen">
     <div class="etiqueta">Tarimas Totales</div>
@@ -622,118 +785,102 @@ body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
 </section>
 
 <section id="pantalla3" class="pantalla">
-<header class="header">
-    <h1 id="tituloReportes">REPORTES</h1>
-</header>
-<div class="zona-centro">
-    <div id="selectoresReportes" class="btn-contenedor">
-        <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
-        <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
-        <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
-        <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
+    <p class="brand-title">CORNING</p>
+    <header class="header">
+        <h1 id="tituloReportes">REPORTES</h1>
+    </header>
+    <div class="zona-centro">
+        <div id="selectoresReportes" class="btn-contenedor">
+            <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
+            <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
+            <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
+            <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
+        </div>
+        <div id="contenedorReporte" class="contenedor-reporte">
+            <h2>Selecciona un reporte</h2>
+        </div>
     </div>
-    <div id="contenedorReporte" class="contenedor-reporte">
-        <h2>Selecciona un reporte</h2>
+    <div class="footer">
+        <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver</button>
     </div>
-</div>
-<div class="footer">
-    <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver</button>
-</div>
 </section>
 
 <section id="pantalla4" class="pantalla" style="display: none;">
-<header class="header">
-    <h1>DASHBOARD DE SUPERVISOR</h1>
-</header>
-<div class="filtros-dashboard">
-    <label for="fechaDashboard">Fecha:</label>
-    <input type="date" id="fechaDashboard">
-    <label for="turnoDashboardSelect">Turno:</label>
-    <select id="turnoDashboardSelect">
-        <option value="todos">Todos</option>
-        <option value="Turno 1">Turno 1</option>
-        <option value="Turno 2">Turno 2</option>
-    </select>
-</div>
-  <div class="kpis-grid">
-    <div class="kpi-card">
-        <h3>Tarimas Confirmadas</h3>
-        <div class="valor" id="dashTarimasConfirmadas">0</div>
+    <p class="brand-title">CORNING</p>
+    <header class="header">
+        <h1>DASHBOARD DE SUPERVISOR</h1>
+    </header>
+    <div class="filtros-dashboard">
+        <label for="fechaDashboard">Fecha:</label>
+        <input type="date" id="fechaDashboard">
+        <label for="turnoDashboardSelect">Turno:</label>
+        <select id="turnoDashboardSelect">
+            <option value="todos">Todos</option>
+            <option value="Turno 1">Turno 1</option>
+            <option value="Turno 2">Turno 2</option>
+        </select>
     </div>
-    <div class="kpi-card">
-        <h3>Tarimas Recolectadas</h3>
-        <div class="valor" id="dashTarimasRecolectadas">0</div>
+    <div class="kpis-grid">
+        <div class="kpi-card">
+            <h3>Tarimas Confirmadas</h3>
+            <div class="valor" id="dashTarimasConfirmadas">0</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Tarimas Recolectadas</h3>
+            <div class="valor" id="dashTarimasRecolectadas">0</div>
+        </div>
+        <div class="kpi-card" id="kpiTiempoPromedio">
+            <h3>Tiempo Promedio</h3>
+            <div class="valor" id="dashTiempoPromedio">0 min</div>
+        </div>
+        <div class="kpi-card" id="kpiTasaRechazo">
+            <h3>Tasa de Rechazo</h3>
+            <div class="valor" id="dashTasaRechazo">0%</div>
+        </div>
     </div>
-    <div class="kpi-card" id="kpiTiempoPromedio">
-        <h3>Tiempo Promedio</h3>
-        <div class="valor" id="dashTiempoPromedio">0 min</div>
+    <div class="graficos-container">
+        <div class="panel">
+            <h3>Producción por Área</h3>
+            <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
+        </div>
+        <div class="panel">
+            <h3>Estado de Calidad</h3>
+            <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
+        </div>
+        <div class="panel">
+            <h3>Evolución Tiempos de Recolección</h3>
+            <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
+        </div>
     </div>
-    <div class="kpi-card" id="kpiTasaRechazo">
-        <h3>Tasa de Rechazo</h3>
-        <div class="valor" id="dashTasaRechazo">0%</div>
-    </div>
-</div>
-<div class="graficos-container">
     <div class="panel">
-        <h3>Producción por Área</h3>
-        <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
+        <h3>Tarimas Pendientes por Recolectar</h3>
+        <table id="tablaPendientes">
+            <thead>
+                <tr>
+                    <th>Área</th>
+                    <th>Tarimas Pendientes</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
-    <div class="panel">
-        <h3>Estado de Calidad</h3>
-        <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
+    <div class="footer">
+        <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
     </div>
-    <div class="panel">
-        <h3>Recolecciones por Hora</h3>
-        <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
-    </div>
-</div>
-<div class="panel" style="grid-area: pendientes;">
-    <h3>Tarimas Pendientes por Recolectar</h3>
-    <table id="tablaPendientes">
-        <thead>
-            <tr>
-                <th>Área</th>
-                <th>Tarimas Pendientes</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-<div class="footer">
-    <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
-</div>
 </section>
 
-<div id="modalCalidad" class="modal-calidad">
-  <div class="modal-content">
+<div id="modalCalidad" class="modal">
+<div class="modal-content">
     <h3 id="modalCalidadTitulo">Selecciona el estado:</h3>
     <div class="opciones">
-      <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
-      <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
+        <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
+        <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
     </div>
     <button class="cerrar-btn">Cerrar</button>
-  </div>
 </div>
-<div id="modalOpcionesCalidad" class="modal">
-  <div class="modal-content">
-    <h3>Asignar tarima a LED de Calidad</h3>
-    <label for="selectLedCalidad">Selecciona LED:</label>
-    <select id="selectLedCalidad"></select>
-    <div class="modal-actions">
-      <button id="btnAsignarTarimaCalidad">Asignar</button>
-      <button onclick="cerrarModalCalidad()">Cancelar</button>
-    </div>
-  </div>
 </div>
-
-<style>
-.modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
-.modal-content { background: #fff; padding: 20px; margin: 10% auto; width: 90%; max-width: 400px; border-radius: 10px; }
-.modal-actions { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
-</style>
-  
-<div id="modalRechazo" class="modal-calidad">
-  <div class="modal-content">
+<div id="modalRechazo" class="modal">
+<div class="modal-content">
     <h3>Detalles del Rechazo</h3>
     <form id="formularioRechazo">
         <label for="empleado">Empleado Originador:</label>
@@ -750,127 +897,43 @@ body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
         <textarea id="causa" name="causa" required></textarea>
         <label for="accion">Acción correctiva:</label>
         <textarea id="accion" name="accion" required></textarea>
-        <div class="modal-actions">
-            <button type="submit">Guardar Rechazo</button>
-            <button type="button" onclick="cerrarModalRechazo()">Cancelar</button>
+        <div class="modal-buttons">
+            <button type="button" id="cancelRechazo" class="usuario-btn btn-rojo">Cancelar</button>
+            <button type="submit" class="usuario-btn">Guardar Rechazo</button>
         </div>
     </form>
-  </div>
 </div>
-  <div id="modalAsignarTarimaProduccion" class="modal-produccion">
-  <div class="modal-content">
-    <h3>Confirmar Tarima en Producción</h3>
-    <label for="selectTarimaProduccion">Selecciona Tarima Recibida:</label>
-    <select id="selectTarimaProduccion"></select>
-    <label for="selectLedProduccion">Asignar al LED:</label>
-    <select id="selectLedProduccion"></select>
-    <div class="modal-actions">
-      <button id="btnAsignarProduccion">Confirmar</button>
-      <button onclick="cerrarModalProduccion()">Cancelar</button>
-    </div>
-  </div>
 </div>
-  
-<style>
-.modal-produccion {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background-color: rgba(0,0,0,0.8);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-.modal-produccion .modal-content {
-  background: #222; padding: 20px; border-radius: 12px; color: #fff; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-}
-.modal-produccion h3 { margin-bottom: 15px; }
-.modal-produccion select { width: 100%; padding: 8px; margin: 10px 0; border-radius: 6px; border: none; }
-.modal-actions { display: flex; justify-content: space-around; margin-top: 15px; }
-.modal-actions button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
-#btnAsignarProduccion { background: #4caf50; color: #fff; }
-#btnAsignarProduccion:hover { filter: brightness(1.2); }
-.modal-actions button:last-child { background: #555; color: #fff; }
-.modal-actions button:last-child:hover { background: #777; }
-#modalAsignarTarimaProduccion .modal-content {
-  background: #fff; padding: 20px; margin: 10% auto; width: 90%; max-width: 400px; border-radius: 10px;
-}
-</style>
-  <button class="mt-fab" id="mtOpenBtn" style="display:none;" title="Identificación de Tarima">TARIMAS</button>
-
-<div id="mtPanel" class="mt-panel" aria-hidden="true">
-  <div class="mt-panel-content">
-    <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
-    <h2>Identificación de Tarima</h2>
-    
-    <div id="tarimasPendientesPanel" style="display:none;">
-      <h3>Tarimas pendientes por inspección</h3>
-      <ul id="listaTarimasPendientes" class="mt-list"></ul>
-    </div>
-
-    <p>Escanea o ingresa un código <b>BX</b> para ver detalles:</p>
-    <div class="mt-row">
-      <input type="text" id="bxInput" placeholder="Escanear/pegar código BX..." autocomplete="off" />
-      <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
-    </div>
-
-    <div id="tarimaInfo" class="mt-card" style="display:none;">
-      <h3>Tarima encontrada</h3>
-      <div class="mt-grid">
-        <div><b>ID:</b> <span id="tarimaId">—</span></div>
-        <div><b>Empleado:</b> <span id="empleado">—</span></div>
-        <div><b>Turno:</b> <span id="turno">—</span></div>
-        <div><b>Total cajas:</b> <span id="totalCajas">0</span></div>
-        <div><b>Total piezas:</b> <span id="totalPiezas">0</span></div>
-      </div>
-      <h4>Detalle de cajas (BX | piezas)</h4>
-      <ul id="listaCajas" class="mt-list"></ul>
-      <div id="ledAssignment" class="mt-assign" style="display:none;">
-        <label for="ledSelect">Asignar LED a esta tarima:</label>
-        <div class="mt-row">
-          <select id="ledSelect" class="mt-select"></select>
-          <button id="asignarLedBtn" class="mt-btn mt-success">Asignar LED</button>
-        </div>
-        <small>Nota: los LEDs solo podrán encenderse/apagarse si tienen tarima asignada.</small>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="modalAlerta" class="custom-modal-overlay">
-    <div class="custom-modal">
-        <h3 id="alertaTitulo">Notificación</h3>
-        <p id="alertaMensaje"></p>
-        <div class="custom-modal-actions">
-            <button id="alertaBotonCerrar" class="modal-btn-confirm">Aceptar</button>
+<div id="modalAlert" class="modal">
+    <div class="modal-content">
+        <h3 id="modalAlertTitle">Notificación</h3>
+        <p id="modalAlertMessage" class="modal-generic-message"></p>
+        <div class="modal-buttons" style="justify-content: center;">
+            <button id="modalAlertOk" class="usuario-btn">OK</button>
         </div>
     </div>
 </div>
-
-<div id="modalConfirmacion" class="custom-modal-overlay">
-    <div class="custom-modal">
-        <h3 id="confirmacionTitulo">Confirmación</h3>
-        <p id="confirmacionMensaje"></p>
-        <div class="custom-modal-actions">
-            <button id="confirmacionBotonCancelar" class="modal-btn-cancel">Cancelar</button>
-            <button id="confirmacionBotonOk" class="modal-btn-confirm">Confirmar</button>
+<div id="modalConfirm" class="modal">
+    <div class="modal-content">
+        <h3 id="modalConfirmTitle">Confirmación</h3>
+        <p id="modalConfirmMessage" class="modal-generic-message"></p>
+        <div class="modal-buttons">
+            <button id="modalConfirmCancel" class="usuario-btn btn-rojo">Cancelar</button>
+            <button id="modalConfirmOk" class="usuario-btn">Confirmar</button>
         </div>
     </div>
 </div>
-
-<div id="modalContraseña" class="custom-modal-overlay">
-    <div class="custom-modal">
-        <h3 id="contraseñaTitulo">Acceso Requerido</h3>
-        <p id="contraseñaMensaje"></p>
-        <input type="password" id="contraseñaInput" placeholder="Introduce la contraseña...">
-        <div class="custom-modal-actions">
-            <button id="contraseñaBotonCancelar" class="modal-btn-cancel">Cancelar</button>
-            <button id="contraseñaBotonOk" class="modal-btn-confirm">Aceptar</button>
+<div id="modalPrompt" class="modal">
+    <div class="modal-content">
+        <h3 id="modalPromptTitle">Introducir Datos</h3>
+        <p id="modalPromptMessage" class="modal-generic-message"></p>
+        <input type="password" id="modalPromptInput" class="modal-prompt-input" autocomplete="off" />
+        <div class="modal-buttons">
+            <button id="modalPromptCancel" class="usuario-btn btn-rojo">Cancelar</button>
+            <button id="modalPromptOk" class="usuario-btn">Aceptar</button>
         </div>
     </div>
 </div>
-
 <script>
 // ================= CONFIG Y ESTADO =================
 const CONFIG = {
@@ -886,13 +949,13 @@ const CONFIG = {
 };
 
 let usuarioSeleccionado = null;
-let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
+let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
 let reporteActual = null;
 let datosFiltradosReporte = null;
 let miGrafico;
 let graficosDashboard = {};
-let dashboardUpdateInterval;
 
+// ================= FIREBASE =================
 // ================= FIREBASE =================
 const firebaseConfig = {
     apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
@@ -911,7 +974,7 @@ let historialRef;
 let contadoresCalidadRef;
 let rechazosDetalladosRef;
 let dashboardListeners = [];
-
+  
 window.database = window.database || firebase.database();
 window.__usuarioActual = null;
 
@@ -1571,6 +1634,7 @@ window.addEventListener('load', ()=>{
     document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn').forEach(btn => btn.addEventListener('click', () => mostrarReporte(btn.dataset.reporte)));
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(reg => console.log("✅ SW Registrado")).catch(err => console.error("❌ Error SW:", err));
 });
+
 </script>
 </body>
 </html>
