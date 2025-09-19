@@ -706,7 +706,7 @@ body.theme-dark button, body.theme-dark .btn { border-radius: 10px; }
 
 <div id="modalCalidad" class="modal-calidad">
   <div class="modal-content">
-    <h3>Selecciona el estado de la tarima:</h3>
+    <h3 id="modalCalidadTitulo">Selecciona el estado:</h3>
     <div class="opciones">
       <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
       <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
@@ -1251,11 +1251,11 @@ function esGrupoDeTarimas(grupo) {
 
 async function togglearLED(grupo, idx, linea = 'linea1') {
     const ledRef = db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`);
-    const usuarioActual = usuarioSeleccionado;
-    const { fecha, turno } = obtenerTurnoActual();
+    const usuarioActual = usuarioSeleccionado || '';
     
     const snapshot = await ledRef.once('value');
     const estadoActual = snapshot.val() || {};
+    const { fecha, turno } = obtenerTurnoActual();
 
     // ===============================================
     // FLUJO PARA MULTIPORT (SISTEMA DE TARIMA ID)
@@ -1274,7 +1274,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
             }
             abrirModalCalidad(grupo, idx, linea, estadoActual.tarimaId);
         }
-        else if (usuarioActual === 'MULTIPORT' && grupo.startsWith('CALIDAD_')) {
+        else if (usuarioActual === 'MULTIPORT' && grupo === 'CALIDAD_MULTIPORT') {
             if (estadoActual.color === 'verde' && estadoActual.tarimaId) {
                 const tarimaId = estadoActual.tarimaId;
                 const recibidasRef = db.ref(`tarimasRecibidas/${usuarioActual}`);
@@ -1297,7 +1297,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                 await mostrarAlerta('Este LED ya tiene una tarima en proceso.');
             }
         }
-        else if (usuarioActual === 'LOGÍSTICA') {
+        else if (usuarioActual === 'LOGÍSTICA' && grupo === 'MULTIPORT') {
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!(await mostrarConfirmacion(`¿Confirmas la recolección de la tarima ${estadoActual.tarimaId}?`))) return;
                 const horaEncendido = estadoActual.horaEncendido;
@@ -1309,7 +1309,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                 await mostrarAlerta(`✅ Tarima ${estadoActual.tarimaId} recolectada en ${tiempoRecoleccion} minutos.`);
             }
         }
-        return; // Fin del flujo de Multiport
+        return;
     }
 
     // ===============================================
@@ -1317,24 +1317,27 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
     // ===============================================
     else {
         const ledIdentifier = `${grupo}-${linea}-${idx + 1}`;
-        // CALIDAD (Drops/Bedrock)
+        
         if (usuarioActual.startsWith('CALIDAD_') && grupo === usuarioActual) {
-            if (!estadoActual.color) { // Si está apagado
+            if (!estadoActual.color) {
                 if (await mostrarConfirmacion(`¿Iniciar revisión en el LED ${idx + 1}?`)) {
-                    ledRef.set({ color: 'naranja' });
+                    ledRef.set({ color: 'naranja', timestamp: new Date().toISOString() });
                     db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'revision_iniciada', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: new Date().toISOString() });
                 }
             } else if (estadoActual.color === 'naranja') {
-                abrirModalCalidad(grupo, idx, linea, null); // Usamos null como tarimaId
+                abrirModalCalidad(grupo, idx, linea, null); // null para tarimaId
+            } else if (estadoActual.color === 'rojo') {
+                if (await mostrarConfirmacion('Este LED fue rechazado. ¿Confirmas que ha sido corregido y deseas liberarlo ahora?')) {
+                    liberarLedSimple(grupo, idx, linea);
+                }
             } else {
-                await mostrarAlerta(`Este LED ya fue ${estadoActual.color === 'verde' ? 'liberado' : 'rechazado'}.`);
+                await mostrarAlerta(`Este LED ya ha sido liberado.`);
             }
         }
-        // PRODUCCIÓN (Drops/Bedrock)
         else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo.startsWith('CALIDAD_')) {
             if (estadoActual.color === 'verde') {
                 if (await mostrarConfirmacion(`¿Recibir material del LED de Calidad?`)) {
-                    ledRef.set(null); // Apagar LED de calidad
+                    ledRef.set(null);
                     db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'led_recibido', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: new Date().toISOString() });
                     await mostrarAlerta('Material recibido. Ahora puedes encender un LED en tu área.');
                 }
@@ -1346,13 +1349,12 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                     const horaEncendido = new Date().toISOString();
                     ledRef.set({ encendido: true, horaEncendido });
                     db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'led_encendido', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: horaEncendido, horaEncendido });
-                    actualizarContadoresTarimas(grupo, 'confirmadas');
+                    actualizarContadoresTarimas(grupo, 'encendidos');
                 }
             } else {
                 await mostrarAlerta('Este LED ya está encendido.');
             }
         }
-        // LOGÍSTICA (Drops/Bedrock)
         else if (usuarioActual === 'LOGÍSTICA') {
              if (estadoActual.encendido) {
                 if (!(await mostrarConfirmacion(`¿Confirmas la recolección del LED ${grupo}-${idx + 1}?`))) return;
@@ -1372,18 +1374,27 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
 async function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
     
-    // Para Multiport, actualiza la tarima y la envía. Para otros, solo es un evento de LED.
-    if (esGrupoDeTarimas(grupo) && tarimaId) {
-        await db.ref(`tarimas/${tarimaId}`).update({ estado: 'liberada', liberadaPor: usuarioSeleccionado, timestampLiberada: new Date().toISOString() });
-        const grupoProduccion = grupo.replace('CALIDAD_', '');
-        await db.ref(`tarimasRecibidas/${grupoProduccion}`).push({ tarimaId, recibidaDe: grupo, timestampRecibida: new Date().toISOString() });
-    }
+    // Esta función ahora solo se usa para Multiport
+    await db.ref(`tarimas/${tarimaId}`).update({ estado: 'liberada', liberadaPor: usuarioSeleccionado, timestampLiberada: new Date().toISOString() });
     
-    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'liberada', tarimaId, timestamp: new Date().toISOString() });
-    actualizarContadoresTarimas(grupo, 'liberada');
-    await mostrarAlerta(`✅ ${esGrupoDeTarimas(grupo) ? `Tarima ${tarimaId}` : 'LED'} liberado. Producción ahora puede recibirlo.`);
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({
+        usuario: usuarioSeleccionado, grupo, accion: 'liberada', tarimaId, timestamp: new Date().toISOString()
+    });
+    actualizarContadoresTarimas(grupo, 'liberadas');
+    await mostrarAlerta(`✅ Tarima ${tarimaId} liberada. Producción ahora puede recibirla.`);
     cerrarModalCalidad();
 }
+
+async function liberarLedSimple(grupo, idx, linea) {
+    const { fecha, turno } = obtenerTurnoActual();
+    const ledIdentifier = `${grupo}-${linea}-${idx + 1}`;
+    await db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'verde' });
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'led_liberado', led: ledIdentifier, timestamp: new Date().toISOString() });
+    actualizarContadoresTarimas(grupo, 'liberadas');
+    await mostrarAlerta(`✅ LED liberado. Producción ahora puede recibirlo.`);
+    cerrarModalCalidad();
+}
+
 
 async function guardarRechazo() {
     if (!ledSeleccionado.grupo) return;
@@ -1400,8 +1411,9 @@ async function guardarRechazo() {
     }
     
     const { fecha, turno } = obtenerTurnoActual();
-    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, detalles: data, timestamp: new Date().toISOString() });
-    actualizarContadoresTarimas(grupo, 'rechazada');
+    const ledIdentifier = `${grupo}-${linea}-${idx + 1}`;
+    await db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioSeleccionado, grupo, accion: 'rechazada', tarimaId, led: ledIdentifier, detalles: data, timestamp: new Date().toISOString() });
+    actualizarContadoresTarimas(grupo, 'rechazadas');
     await db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'rojo' });
     
     await mostrarAlerta(`❌ ${esGrupoDeTarimas(grupo) ? `Tarima ${tarimaId}` : 'LED'} rechazado.`);
@@ -1445,6 +1457,10 @@ let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
 function abrirModalCalidad(grupo, idx, linea, tarimaId) {
     ledSeleccionado = { grupo, idx, linea, tarimaId };
     const modal = document.getElementById('modalCalidad');
+    const titulo = document.getElementById('modalCalidadTitulo');
+    
+    titulo.textContent = esGrupoDeTarimas(grupo) ? 'Selecciona el estado de la tarima:' : 'Selecciona el estado del LED:';
+
     modal.classList.add('visible');
     const setupButton = (selector, callback) => {
         const oldBtn = modal.querySelector(selector);
@@ -1457,7 +1473,11 @@ function abrirModalCalidad(grupo, idx, linea, tarimaId) {
         document.getElementById('modalRechazo').classList.add('visible');
     });
     setupButton('.opcion-btn[data-color="verde"]', () => {
-        liberarTarima(tarimaId, grupo);
+        if (esGrupoDeTarimas(grupo)) {
+            liberarTarima(tarimaId, grupo);
+        } else {
+            liberarLedSimple(grupo, idx, linea);
+        }
         db.ref(`estadoLEDs/${grupo}/${linea}/${idx}`).update({ color: 'verde' });
         modal.classList.remove('visible');
     });
@@ -1473,7 +1493,7 @@ async function mostrarModalProduccion(grupo, idx, linea) {
     const selectTarima = modal.querySelector('#selectTarimaProduccion');
     const selectLed = modal.querySelector('#selectLedProduccion');
     ledSeleccionado = { grupo, idx, linea };
-    
+
     const snapshot = await db.ref(`tarimasRecibidas/${grupo}`).once('value');
     const recibidas = snapshot.val() || {};
     selectTarima.innerHTML = '';
@@ -1497,43 +1517,37 @@ document.getElementById('btnAsignarProduccion').addEventListener('click', () => 
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function formatoHora(isoString) { if (!isoString) return 'N/A'; const date = new Date(isoString); return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; }
 function obtenerTurnoActual() { const ahora = new Date(); let fecha = new Date(ahora); let turno = (ahora.getHours() > 6 || (ahora.getHours() === 6 && ahora.getMinutes() >= 30)) && (ahora.getHours() < 18 || (ahora.getHours() === 18 && ahora.getMinutes() < 30)) ? 'Turno 1' : 'Turno 2'; if (turno === 'Turno 2' && ahora.getHours() < 6) fecha.setDate(ahora.getDate() - 1); const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`; return { fecha: fechaFormateada, turno }; }
-function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': contadores[log.grupo].rechazadas++; break; case 'liberada': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; el.textContent = grupo.startsWith('CALIDAD_') ? `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}` : `Confirmadas: ${c.confirmadas}`; } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = ''; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => { const p = document.createElement('p'); p.textContent = `Tarima ...${(log.tarimaId || '').slice(-4)}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`; contenedorTiempos.appendChild(p); }); }); }); }
+function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0, encendidos: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'led_encendido': contadores[log.grupo].encendidos++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': case 'led_rechazado': contadores[log.grupo].rechazadas++; break; case 'liberada': case 'led_liberado': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; if(grupo.startsWith('CALIDAD_')){ el.textContent = `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}`; } else if(esGrupoDeTarimas(grupo)) { el.textContent = `Confirmadas: ${c.confirmadas}`; } else { el.textContent = `Tarimas: ${c.encendidos}`; } } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = ''; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => { const p = document.createElement('p'); const id = log.tarimaId ? `...${log.tarimaId.slice(-4)}` : log.led.replace(grupo + '-', ''); p.textContent = `ID ${id}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`; contenedorTiempos.appendChild(p); }); }); }); }
 function actualizarContadoresTarimas(grupo, accion) { const { fecha, turno } = obtenerTurnoActual(); db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1); }
 function activarPantalla(id){ document.querySelectorAll('.pantalla').forEach(p => { p.style.display = 'none'; p.classList.remove('activa'); }); const pantalla = document.getElementById(id); if(pantalla) { pantalla.style.display = 'flex'; pantalla.classList.add('activa'); } }
 function volverAPantalla1(){ usuarioSeleccionado = null; if (historialRef) historialRef.off(); limpiarDashboardListeners(); activarPantalla('pantalla1'); }
 async function seleccionarUsuario(usuario) {
     const password = await mostrarPromptContraseña(`Introduce la contraseña para ${usuario}`);
     if (password === null) return;
-
     let targetUser = usuario;
     let isValid = false;
     if (usuario === 'CALIDAD') {
         if (password === CONFIG.PASSWORDS.CALIDAD_MULTIPORT) { targetUser = 'CALIDAD_MULTIPORT'; isValid = true; }
         else if (password === CONFIG.PASSWORDS.CALIDAD_DROPS) { targetUser = 'CALIDAD_DROPS'; isValid = true; }
         else if (password === CONFIG.PASSWORDS.CALIDAD_BEDROCK) { targetUser = 'CALIDAD_BEDROCK'; isValid = true; }
-    } else {
-        isValid = password === CONFIG.PASSWORDS[usuario];
-    }
-
+    } else { isValid = password === CONFIG.PASSWORDS[usuario]; }
     if (isValid) {
         usuarioSeleccionado = targetUser;
         document.getElementById('tituloFijo').textContent = targetUser.replace('_', ' ');
         const fab = document.getElementById('mtOpenBtn');
-        if (fab) { fab.style.display = (targetUser === 'CALIDAD_MULTIPORT') ? 'block' : 'none'; }
+        if (fab) { fab.style.display = esGrupoDeTarimas(targetUser) ? 'block' : 'none'; }
         activarPantalla('pantalla2');
         inyectaLEDs();
         pintarEstado();
         iniciarListenersFirebase();
-    } else {
-        await mostrarAlerta('Contraseña incorrecta.');
-    }
+    } else { await mostrarAlerta('Contraseña incorrecta.'); }
 }
 async function seleccionarReporte() { const password = await mostrarPromptContraseña('Introduce la contraseña para REPORTES'); if (password === CONFIG.PASSWORDS.REPORTES) { activarPantalla('pantalla3'); regresarASelectores(); } else if (password !== null) { await mostrarAlerta('Contraseña incorrecta.'); } }
 async function seleccionarDashboard() { const password = await mostrarPromptContraseña('Introduce la contraseña para DASHBOARD'); if (password === CONFIG.PASSWORDS.DASHBOARD) { activarPantalla('pantalla4'); iniciarDashboard(); } else if (password !== null) { await mostrarAlerta('Contraseña incorrecta.'); } }
 function limpiarDashboardListeners(){ dashboardListeners.forEach(l => l.ref.off(l.eventType, l.callback)); dashboardListeners = []; }
 function iniciarDashboard(){ limpiarDashboardListeners(); const { fecha } = obtenerTurnoActual(); document.getElementById('fechaDashboard').value = fecha; document.getElementById('turnoDashboardSelect').value = 'todos'; const setup = () => setupDashboardListeners(document.getElementById('fechaDashboard').value, document.getElementById('turnoDashboardSelect').value); setup(); document.getElementById('fechaDashboard').addEventListener('change', setup); document.getElementById('turnoDashboardSelect').addEventListener('change', setup); }
 function setupDashboardListeners(fecha, turno){ limpiarDashboardListeners(); const historialRefDash = db.ref(`historialLogs/${fecha}`); const ledsRefDash = db.ref('estadoLEDs'); const historialCallback = historialRefDash.on('value', snap => { const logsPorTurno = snap.val() || {}; let logsFiltrados = {}; if (turno === 'todos') Object.values(logsPorTurno).forEach(logs => Object.assign(logsFiltrados, logs)); else logsFiltrados = logsPorTurno[turno] || {}; actualizarDashboard(logsFiltrados, 'historial', null); }); dashboardListeners.push({ ref: historialRefDash, eventType: 'value', callback: historialCallback }); const ledsCallback = ledsRefDash.on('value', snap => actualizarDashboard(null, 'leds', snap.val() || {})); dashboardListeners.push({ ref: ledsRefDash, eventType: 'value', callback: ledsCallback }); }
-function actualizarDashboard(historialLogs, tipo, estadoLEDs){ if (!document.getElementById('pantalla4').classList.contains('activa')) return; if (tipo === 'historial' && historialLogs) { let confirmadas = 0, recolectadas = 0, liberadas = 0, rechazadas = 0, tiempoTotal = 0; const prodPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; const recoleccionesPorHora = {}; Object.values(historialLogs).forEach(log => { switch(log.accion) { case 'confirmada_en_produccion': confirmadas++; if (prodPorArea[log.grupo] !== undefined) prodPorArea[log.grupo]++; break; case 'recolectada': recolectadas++; tiempoTotal += log.tiempoRecoleccion || 0; const hora = new Date(log.timestamp).getHours(); recoleccionesPorHora[hora] = (recoleccionesPorHora[hora] || 0) + 1; break; case 'liberada': liberadas++; break; case 'rechazada': rechazadas++; break; } }); const tiempoPromedio = recolectadas > 0 ? (tiempoTotal / recolectadas).toFixed(1) : 0; const tasaRechazo = (liberadas + rechazadas) > 0 ? ((rechazadas / (liberadas + rechazadas)) * 100).toFixed(1) : 0; document.getElementById('dashTarimasConfirmadas').textContent = confirmadas; document.getElementById('dashTarimasRecolectadas').textContent = recolectadas; document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`; document.getElementById('kpiTiempoPromedio').classList.toggle('alerta', tiempoPromedio > 10); document.getElementById('kpiTasaRechazo').classList.toggle('alerta', tasaRechazo > 5); generarGraficoProduccionDash(prodPorArea); generarGraficoCalidadDash({ liberadas, rechazadas }); generarGraficoLogisticaDash(recoleccionesPorHora); } if (tipo === 'leds' && estadoLEDs) { const pendientes = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; CONFIG.PRODUCCION_GRUPOS.forEach(grupo => { if(estadoLEDs[grupo]) Object.values(estadoLEDs[grupo]).forEach(linea => Object.values(linea).forEach(led => { if(led?.encendido) pendientes[grupo]++; })); }); const tablaBody = document.querySelector('#tablaPendientes tbody'); tablaBody.innerHTML = Object.entries(pendientes).map(([area, count]) => `<tr><td>${area}</td><td>${count}</td></tr>`).join(''); } }
+function actualizarDashboard(historialLogs, tipo, estadoLEDs){ if (!document.getElementById('pantalla4').classList.contains('activa')) return; if (tipo === 'historial' && historialLogs) { let confirmadas = 0, recolectadas = 0, liberadas = 0, rechazadas = 0, tiempoTotal = 0; const prodPorArea = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; const recoleccionesPorHora = {}; Object.values(historialLogs).forEach(log => { switch(log.accion) { case 'confirmada_en_produccion': case 'led_encendido': confirmadas++; if (prodPorArea[log.grupo] !== undefined) prodPorArea[log.grupo]++; break; case 'recolectada': recolectadas++; tiempoTotal += log.tiempoRecoleccion || 0; const hora = new Date(log.timestamp).getHours(); recoleccionesPorHora[hora] = (recoleccionesPorHora[hora] || 0) + 1; break; case 'liberada': case 'led_liberado': liberadas++; break; case 'rechazada': case 'led_rechazado': rechazadas++; break; } }); const tiempoPromedio = recolectadas > 0 ? (tiempoTotal / recolectadas).toFixed(1) : 0; const tasaRechazo = (liberadas + rechazadas) > 0 ? ((rechazadas / (liberadas + rechazadas)) * 100).toFixed(1) : 0; document.getElementById('dashTarimasConfirmadas').textContent = confirmadas; document.getElementById('dashTarimasRecolectadas').textContent = recolectadas; document.getElementById('dashTiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('dashTasaRechazo').textContent = `${tasaRechazo}%`; document.getElementById('kpiTiempoPromedio').classList.toggle('alerta', tiempoPromedio > 10); document.getElementById('kpiTasaRechazo').classList.toggle('alerta', tasaRechazo > 5); generarGraficoProduccionDash(prodPorArea); generarGraficoCalidadDash({ liberadas, rechazadas }); generarGraficoLogisticaDash(recoleccionesPorHora); } if (tipo === 'leds' && estadoLEDs) { const pendientes = { MULTIPORT: 0, DROPS: 0, BEDROCK: 0 }; CONFIG.PRODUCCION_GRUPOS.forEach(grupo => { if(estadoLEDs[grupo]) Object.values(estadoLEDs[grupo]).forEach(linea => Object.values(linea).forEach(led => { if(led?.encendido) pendientes[grupo]++; })); }); const tablaBody = document.querySelector('#tablaPendientes tbody'); tablaBody.innerHTML = Object.entries(pendientes).map(([area, count]) => `<tr><td>${area}</td><td>${count}</td></tr>`).join(''); } }
 function generarGraficoProduccionDash(datos){ if (graficosDashboard.produccion) graficosDashboard.produccion.destroy(); const ctx = document.getElementById('graficoProduccionDash').getContext('2d'); graficosDashboard.produccion = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(datos), datasets: [{ label: 'Tarimas', data: Object.values(datos), backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56'] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#fff', stepSize: 1 } }, x: { ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
 function generarGraficoCalidadDash(datos){ if (graficosDashboard.calidad) graficosDashboard.calidad.destroy(); const ctx = document.getElementById('graficoCalidadDash').getContext('2d'); graficosDashboard.calidad = new Chart(ctx, { type: 'pie', data: { labels: ['Liberadas', 'Rechazadas'], datasets: [{ data: [datos.liberadas, datos.rechazadas], backgroundColor: ['#4caf50', '#f44336'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#fff' } } } } }); }
 function generarGraficoLogisticaDash(tarimasPorHora){ if (graficosDashboard.logistica) graficosDashboard.logistica.destroy(); const ctx = document.getElementById('graficoLogisticaDash').getContext('2d'); const labels = Array.from({length: 24}, (_, i) => `${i}:00`); const data = labels.map((_, i) => tarimasPorHora[i] || 0); graficosDashboard.logistica = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Tarimas Recolectadas', data, backgroundColor: '#36A2EB' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Tarimas', color: '#fff' }, ticks: { stepSize: 1, color: '#fff' } }, x: { title: { display: true, text: 'Hora', color: '#fff' }, ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
