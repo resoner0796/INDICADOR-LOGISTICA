@@ -867,7 +867,7 @@ html, body {
     <div class="splash-content">
         <p class="brand-title">CORNING</p>
         <div class="splash-logo-container">
-             <img src="iconolog-512.PNG" alt="Logo de Logística" class="splash-logo">
+              <img src="https://i.imgur.com/JzWf27s.png" alt="Logo de Logística" class="splash-logo">
         </div>
         <p class="splash-loading">Cargando<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></p>
     </div>
@@ -882,14 +882,14 @@ html, body {
         <div class="login-column">
             <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
             <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
-            <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
             <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
+            <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+            <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button>
         </div>
         <div class="login-column">
             <button class="usuario-btn btn-management" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
             <button class="usuario-btn btn-management" onclick="seleccionarDashboard()">DASHBOARD</button>
             <button class="usuario-btn btn-management" onclick="seleccionarReporte()">REPORTES</button>
-            <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button>  
         </div>
     </div>
 </section>
@@ -985,69 +985,69 @@ html, body {
 </section>
 
 <section id="pantalla4" class="pantalla">
-<p class="brand-title">CORNING</p>
-<header class="header">
-    <h1>DASHBOARD DE SUPERVISOR</h1>
-</header>
-<div class="filtros-dashboard">
-    <label for="fechaDashboard">Fecha:</label>
-    <input type="date" id="fechaDashboard">
-    <label for="turnoDashboardSelect">Turno:</label>
-    <select id="turnoDashboardSelect">
-        <option value="todos">Todos</option>
-        <option value="Turno 1">Turno 1</option>
-        <option value="Turno 2">Turno 2</option>
-    </select>
-</div>
-<div class="kpis-grid">
-    <div class="kpi-card">
-        <h3>Tarimas Confirmadas</h3>
-        <div class="valor" id="dashTarimasConfirmadas">0</div>
+    <p class="brand-title">CORNING</p>
+    <header class="header">
+        <h1>DASHBOARD DE SUPERVISOR</h1>
+    </header>
+    <div class="filtros-dashboard">
+        <label for="fechaDashboard">Fecha:</label>
+        <input type="date" id="fechaDashboard">
+        <label for="turnoDashboardSelect">Turno:</label>
+        <select id="turnoDashboardSelect">
+            <option value="todos">Todos</option>
+            <option value="Turno 1">Turno 1</option>
+            <option value="Turno 2">Turno 2</option>
+        </select>
     </div>
-    <div class="kpi-card">
-        <h3>Tarimas Recolectadas</h3>
-        <div class="valor" id="dashTarimasRecolectadas">0</div>
-    </div>
-    <div class="kpi-card" id="kpiTiempoPromedio">
-        <h3>Tiempo Promedio</h3>
-        <div class="valor" id="dashTiempoPromedio">0 min</div>
-    </div>
-    <div class="kpi-card" id="kpiTasaRechazo">
-        <h3>Tasa de Rechazo</h3>
-        <div class="valor" id="dashTasaRechazo">0%</div>
-    </div>
-</div>
-<div class="panel">
-    <h3>Tarimas Pendientes por Recolectar</h3>
-    <table id="tablaPendientes">
-        <thead>
-            <tr>
-                <th>Área</th>
-                <th>Tarimas Pendientes</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-<div class="graficos-container">
-    <div class="dashboard-row">
-        <div class="panel">
-            <h3>Producción por Área</h3>
-            <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
+    <div class="kpis-grid">
+        <div class="kpi-card">
+            <h3>Tarimas Confirmadas</h3>
+            <div class="valor" id="dashTarimasConfirmadas">0</div>
         </div>
-        <div class="panel">
-            <h3>Estado de Calidad</h3>
-            <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
+        <div class="kpi-card">
+            <h3>Tarimas Recolectadas</h3>
+            <div class="valor" id="dashTarimasRecolectadas">0</div>
+        </div>
+        <div class="kpi-card" id="kpiTiempoPromedio">
+            <h3>Tiempo Promedio</h3>
+            <div class="valor" id="dashTiempoPromedio">0 min</div>
+        </div>
+        <div class="kpi-card" id="kpiTasaRechazo">
+            <h3>Tasa de Rechazo</h3>
+            <div class="valor" id="dashTasaRechazo">0%</div>
         </div>
     </div>
     <div class="panel">
-        <h3>Recolecciones por Hora</h3>
-        <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
+        <h3>Tarimas Pendientes por Recolectar</h3>
+        <table id="tablaPendientes">
+            <thead>
+                <tr>
+                    <th>Área</th>
+                    <th>Tarimas Pendientes</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
-</div>
-<div class="footer">
-    <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
-</div>
+    <div class="graficos-container">
+        <div class="dashboard-row">
+            <div class="panel">
+                <h3>Producción por Área</h3>
+                <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>Estado de Calidad</h3>
+                <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
+            </div>
+        </div>
+        <div class="panel">
+            <h3>Recolecciones por Hora</h3>
+            <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
+        </div>
+    </div>
+    <div class="footer">
+        <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
+    </div>
 </section>
 
 <div id="modalCalidad" class="modal-calidad">
