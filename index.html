@@ -183,7 +183,7 @@ html, body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background .2s ease, transform .2s ease;
+  transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
   box-shadow: var(--shadow-md);
 }
 .usuario-btn:hover {
@@ -193,6 +193,16 @@ html, body {
 }
 .btn-rojo { background: rgba(239, 68, 68, 0.25); }
 .btn-rojo:hover { background: rgba(239, 68, 68, 0.4); }
+
+/* === NUEVO: Botones de Administración/Reportes === */
+.usuario-btn.btn-management {
+  background: rgba(107, 114, 128, 0.25); /* Equivalente a --bg-light con transparencia */
+  border-color: rgba(107, 114, 128, 0.4);
+}
+.usuario-btn.btn-management:hover {
+  background: rgba(107, 114, 128, 0.4);
+  box-shadow: 0 0 15px rgba(107, 114, 128, 0.3);
+}
 
 /* ================= PANTALLA 2: PANEL PRINCIPAL ================= */
 #pantalla2 { gap: 10px; }
@@ -685,23 +695,24 @@ html, body {
   background-color: transparent; /* Usar el fondo del body */
   color: var(--text-light);
   padding: 20px;
-  display: grid;
-  grid-template-areas:
-    "brand" "header" "filtros" "kpis" "graficos" "pendientes" "footer";
-  gap: 10px;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
   overflow-y: auto;
+}
+#pantalla4 > * {
+    width: 100%;
+    max-width: 1400px;
 }
 #pantalla4 .brand-title { grid-area: brand; }
 #pantalla4 .header { grid-area: header; text-align: center; }
 #pantalla4 .filtros-dashboard {
-  grid-area: filtros;
   display: flex;
   justify-content: center;
   gap: 15px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 20px;
 }
 #pantalla4 .filtros-dashboard label { font-size: 14px; color: var(--text-medium); }
 #pantalla4 .filtros-dashboard input,
@@ -713,7 +724,6 @@ html, body {
   color: var(--text-light);
 }
 #pantalla4 .kpis-grid {
-  grid-area: kpis;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
@@ -749,12 +759,25 @@ html, body {
   margin-top: 10px;
 }
 #pantalla4 .kpi-card.alerta .valor { color: var(--accent-red); }
+
+/* === NUEVO: Contenedor de fila para el Dashboard === */
+.dashboard-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    width: 100%;
+}
+.dashboard-row > .panel {
+    flex: 1; /* Permite que los paneles crezcan y compartan el espacio */
+    min-width: 300px; /* Asegura que no se compriman demasiado antes de envolver */
+}
+
 #pantalla4 .graficos-container {
-  grid-area: graficos;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
+
 /* === PANEL ESTILO GLASS === */
 #pantalla4 .panel {
   padding: 20px;
@@ -765,10 +788,7 @@ html, body {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
-#pantalla4 .graficos-container .panel { grid-area: unset; }
-#pantalla4 .panel[style*="grid-area: pendientes;"] {
-    grid-area: pendientes;
-}
+
 #pantalla4 .panel h3 {
   text-align: center;
   margin-top: 0;
@@ -787,7 +807,6 @@ html, body {
 }
 #pantalla4 #tablaPendientes thead { background-color: rgba(55, 65, 81, 0.4); }
 #pantalla4 #tablaPendientes tbody tr:hover { background-color: rgba(75, 85, 99, 0.4); }
-#pantalla4 .footer { grid-area: footer; }
 
 /* ======== ESTILOS PANEL LATERAL (mt-panel) ======== */
 .mt-fab { position: fixed; bottom: 20px; right: 20px; background: var(--accent-blue); color: #fff; border: none; border-radius: 50%; width: 78px; height: 78px; font-size: 12px; font-weight: 700; cursor: pointer; z-index: 1000; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.35); }
@@ -840,32 +859,6 @@ html, body {
   .reporte-calidad-mobile { display: none; }
 }
 
-@media (min-width: 992px) {
-  #pantalla4 {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "brand brand" "header header" "filtros filtros"
-      "kpis kpis" "graficos graficos" "pendientes pendientes" "footer footer";
-  }
-  #pantalla4 .graficos-container { grid-template-columns: 1fr 1fr; }
-  .graficos-container > *:nth-child(3) { grid-column: span 2; }
-}
-@media (min-width: 1200px) {
-  #pantalla4 {
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-areas:
-      "brand brand brand brand" "header header header header" "filtros filtros filtros filtros"
-      "kpis kpis kpis kpis" "graficos graficos pendientes pendientes" "footer footer footer footer";
-  }
-   #pantalla4 .graficos-container {
-    grid-area: graficos;
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(3, auto);
-  }
-  .graficos-container > * { grid-column: span 1 !important; }
-  #pantalla4 .panel { grid-area: pendientes; }
-}
-
 </style>
 </head>
 <body>
@@ -893,10 +886,10 @@ html, body {
             <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
         </div>
         <div class="login-column">
-            <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
+            <button class="usuario-btn btn-management" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
+            <button class="usuario-btn btn-management" onclick="seleccionarDashboard()">DASHBOARD</button>
+            <button class="usuario-btn btn-management" onclick="seleccionarReporte()">REPORTES</button>
             <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button>  
-            <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
-            <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
         </div>
     </div>
 </section>
@@ -991,7 +984,7 @@ html, body {
 </div>
 </section>
 
-<section id="pantalla4" class="pantalla" style="display: none;">
+<section id="pantalla4" class="pantalla">
 <p class="brand-title">CORNING</p>
 <header class="header">
     <h1>DASHBOARD DE SUPERVISOR</h1>
@@ -1006,7 +999,7 @@ html, body {
         <option value="Turno 2">Turno 2</option>
     </select>
 </div>
-  <div class="kpis-grid">
+<div class="kpis-grid">
     <div class="kpi-card">
         <h3>Tarimas Confirmadas</h3>
         <div class="valor" id="dashTarimasConfirmadas">0</div>
@@ -1024,21 +1017,7 @@ html, body {
         <div class="valor" id="dashTasaRechazo">0%</div>
     </div>
 </div>
-<div class="graficos-container">
-    <div class="panel">
-        <h3>Producción por Área</h3>
-        <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
-    </div>
-    <div class="panel">
-        <h3>Estado de Calidad</h3>
-        <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
-    </div>
-    <div class="panel">
-        <h3>Recolecciones por Hora</h3>
-        <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
-    </div>
-</div>
-<div class="panel" style="grid-area: pendientes;">
+<div class="panel">
     <h3>Tarimas Pendientes por Recolectar</h3>
     <table id="tablaPendientes">
         <thead>
@@ -1049,6 +1028,22 @@ html, body {
         </thead>
         <tbody></tbody>
     </table>
+</div>
+<div class="graficos-container">
+    <div class="dashboard-row">
+        <div class="panel">
+            <h3>Producción por Área</h3>
+            <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
+        </div>
+        <div class="panel">
+            <h3>Estado de Calidad</h3>
+            <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
+        </div>
+    </div>
+    <div class="panel">
+        <h3>Recolecciones por Hora</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
+    </div>
 </div>
 <div class="footer">
     <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
