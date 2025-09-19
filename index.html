@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -48,7 +49,7 @@
   --titulo-size: clamp(36px, 6vw, 72px);
 
   /* Otros */
-  --border-radius-md: 16px; 
+  --border-radius-md: 16px; /* Aumentamos el radio para un look más moderno */
   --border-radius-sm: 10px;
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
@@ -62,6 +63,7 @@ html, body {
   font-family: var(--font-family);
   color: var(--text-light);
   background-color: var(--bg-dark);
+  /* Fondo degradado para que el efecto glass se aprecie mejor */
   background-image: 
     radial-gradient(at 47% 33%, hsl(225, 39%, 30%) 0, transparent 59%), 
     radial-gradient(at 82% 65%, hsl(253, 16%, 7%) 0, transparent 55%);
@@ -76,10 +78,11 @@ html, body {
 }
 .pantalla.activa { display: flex; flex-direction: column; }
 
+/* ================= BRANDING HEADER ================= */
 .brand-title {
   font-family: 'Times New Roman', Times, serif;
   color: white;
-  font-size: clamp(24px, 3vw, 28px);
+  font-size: clamp(60px, 3vw, 28px);
   font-weight: normal;
   text-align: center;
   width: 100%;
@@ -89,6 +92,50 @@ html, body {
   padding: 0;
 }
 
+/* ================= SPLASH SCREEN ================= */
+#splashScreen {
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-dark);
+}
+.splash-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+.splash-logo-container {
+  border-radius: 25px;
+  margin: 20px 0;
+  padding: 15px;
+  /* Efecto Glassmorphism */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); /* Para Safari */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+.splash-logo {
+  width: 150px;
+  height: auto;
+  display: block;
+  border-radius: 15px;
+}
+.splash-loading {
+  font-size: 1.2rem;
+  color: var(--text-medium);
+  letter-spacing: 2px;
+}
+.splash-loading .dot {
+  animation: blink-dot 1.4s infinite;
+  opacity: 0;
+}
+.splash-loading .dot:nth-child(2) { animation-delay: 0.2s; }
+.splash-loading .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink-dot { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+/* ================= PANTALLA 1: SELECCIÓN DE USUARIO ================= */
 #pantalla1 {
   align-items: center;
   justify-content: center;
@@ -101,15 +148,32 @@ html, body {
   font-weight: 700;
   color: var(--text-light);
 }
-.btn-contenedor {
+.login-columns-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 600px;
+  flex-wrap: wrap;
+}
+.login-column {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: 100%;
-  max-width: 300px;
+  flex: 1;
+  min-width: 250px;
 }
+.login-column .usuario-btn { width: 100%; }
+.btn-contenedor {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  max-width: 800px;
+}
+/* === BOTÓN ESTILO GLASS === */
 .usuario-btn {
-  background: rgba(59, 130, 246, 0.25); 
+  background: rgba(59, 130, 246, 0.25); /* Color base con transparencia */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: var(--text-light);
@@ -121,16 +185,16 @@ html, body {
   cursor: pointer;
   transition: background .2s ease, transform .2s ease;
   box-shadow: var(--shadow-md);
-  width: 100%;
 }
 .usuario-btn:hover {
-  background: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.4); /* Aumentar opacidad en hover */
   transform: translateY(-2px);
   box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
 }
 .btn-rojo { background: rgba(239, 68, 68, 0.25); }
 .btn-rojo:hover { background: rgba(239, 68, 68, 0.4); }
 
+/* ================= PANTALLA 2: PANEL PRINCIPAL ================= */
 #pantalla2 { gap: 10px; }
 .header {
   position: relative;
@@ -156,6 +220,7 @@ html, body {
   font-weight: 600;
   padding: 8px 16px;
   border-radius: var(--border-radius-sm);
+  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -170,6 +235,7 @@ html, body {
   gap: 24px;
   margin-top: 20px;
 }
+/* === CARD ESTILO GLASS === */
 .resumen-turno {
   display: flex;
   justify-content: center;
@@ -178,6 +244,7 @@ html, body {
   width: 100%;
   max-width: 700px;
   border-radius: var(--border-radius-md);
+  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -205,6 +272,7 @@ html, body {
   max-width: 1400px;
   justify-content: center;
 }
+/* === MEJORA: CARD CON FONDO DE PANEL LED === */
 .grupo {
   display: flex;
   flex-direction: column;
@@ -215,11 +283,14 @@ html, body {
   min-width: 300px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border-radius: var(--border-radius-md);
-  background-color: #18181a;
+  
+  /* Nuevo fondo de panel de LEDs apagados */
+  background-color: #18181a; /* Color base oscuro del panel */
   background-image: radial-gradient(circle at center, rgba(0,0,0,0.4) 2px, transparent 3px);
-  background-size: 12px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+  background-size: 12px 12px; /* Controla el tamaño y espaciado de los "puntos" */
+  
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Mantenemos el borde glass */
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6); /* Sombra interior para dar relieve */
 }
 .grupo:hover {
   transform: translateY(-5px);
@@ -234,8 +305,7 @@ html, body {
 .grupo .tarimas {
   font-size: clamp(16px, 1.7vw, 18px);
   color: var(--text-medium);
-  margin-top: 20px;
-  font-weight: 600;
+  margin-bottom: 20px;
 }
 .leds {
   display: flex;
@@ -244,6 +314,7 @@ html, body {
   align-items: center;
   margin-bottom: 10px;
 }
+/* === MEJORA LED === */
 .led {
   width: var(--led-size);
   height: var(--led-size);
@@ -258,8 +329,9 @@ html, body {
   align-items: center;
   color: var(--text-light);
   line-height: 1;
-  font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 0 0 3px #000;
 }
 .led:active { transform: scale(.96); }
 .led.on {
@@ -293,25 +365,36 @@ html, body {
   width: 100%;
   max-height: 150px;
   overflow-y: auto;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.2); /* Fondo sutilmente transparente */
   padding: 10px;
   border-radius: var(--border-radius-sm);
   border-top: 1px solid rgba(255,255,255,0.1);
 }
 .tiempos p { margin: 0 0 5px; }
-
+.contadores-calidad {
+  display: flex;
+  gap: 30px;
+  margin-top: 10px;
+}
+.contador-calidad {
+  text-align: center;
+  font-weight: 600;
+}
+.contador-calidad .valor { font-size: 24px; font-weight: 700; }
+.contador-calidad .etiqueta { font-size: 12px; color: var(--text-medium); }
 .footer { width: 100%; display: flex; justify-content: center; padding: 20px 0 0; }
 .footer .usuario-btn { padding: 10px 20px; font-size: 16px; }
 
 @keyframes blink { 50% { box-shadow: 0 0 35px var(--glow-green); } }
 
-.modal {
+/* ================= MODALES ESTILO GLASS ================= */
+.modal, .modal-calidad, .modal-produccion, .custom-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); 
+  background-color: rgba(0, 0, 0, 0.5); /* Fondo del overlay */
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   display: flex;
@@ -322,32 +405,45 @@ html, body {
   opacity: 0;
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-.modal.visible { visibility: visible; opacity: 1; }
-.modal-content {
+.modal.visible, .modal-calidad.visible, .modal-produccion.visible, .custom-modal-overlay.visible { 
+    visibility: visible; 
+    opacity: 1; 
+}
+/* === MODAL ESTILO GLASS === */
+.modal-content, .custom-modal {
   padding: 30px;
   text-align: center;
   width: 90%;
   max-width: 500px;
   box-shadow: var(--shadow-lg);
   border-radius: var(--border-radius-md);
-  background: rgba(31, 41, 55, 0.7); 
+  /* Efecto Glass */
+  background: rgba(31, 41, 55, 0.7); /* Mayor opacidad para legibilidad */
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.15);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
 }
-.modal-content h3 {
+
+.visible .modal-content, .visible .custom-modal {
+    transform: scale(1);
+}
+
+.modal-content h3, .custom-modal h3 {
   margin-top: 0;
   font-size: 22px;
   margin-bottom: 25px;
 }
 
-.opciones {
+/* Modal Calidad */
+#modalCalidad .opciones {
   display: flex;
   flex-direction: column;
   gap: 15px;
   margin-bottom: 25px;
 }
-.opcion-btn {
+#modalCalidad .opcion-btn {
   padding: 15px 25px;
   font-size: 18px;
   font-weight: 600;
@@ -359,14 +455,14 @@ html, body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
-.opcion-btn:hover { transform: scale(1.02); }
-.opcion-btn[data-color="rojo"] { background: rgba(239, 68, 68, 0.3); }
-.opcion-btn[data-color="rojo"]:hover { background: rgba(239, 68, 68, 0.5); }
-.opcion-btn[data-color="verde"] { background: rgba(16, 185, 129, 0.3); }
-.opcion-btn[data-color="verde"]:hover { background: rgba(16, 185, 129, 0.5); }
+#modalCalidad .opcion-btn:hover { transform: scale(1.02); }
+#modalCalidad .opcion-btn[data-color="rojo"] { background: rgba(239, 68, 68, 0.3); }
+#modalCalidad .opcion-btn[data-color="rojo"]:hover { background: rgba(239, 68, 68, 0.5); }
+#modalCalidad .opcion-btn[data-color="verde"] { background: rgba(16, 185, 129, 0.3); }
+#modalCalidad .opcion-btn[data-color="verde"]:hover { background: rgba(16, 185, 129, 0.5); }
 
-.cerrar-btn {
-  background: rgba(55, 65, 81, 0.4); 
+#modalCalidad .cerrar-btn {
+  background: rgba(55, 65, 81, 0.4); /* --bg-light con transparencia */
   color: var(--text-light);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 10px 20px;
@@ -375,47 +471,65 @@ html, body {
   font-weight: 600;
   backdrop-filter: blur(5px);
 }
-.cerrar-btn:hover { background: rgba(75, 85, 99, 0.6); }
+#modalCalidad .cerrar-btn:hover { background: rgba(75, 85, 99, 0.6); }
 
-#modalRechazo .modal-content {
+/* Modal de Rechazo y otros con inputs */
+#modalRechazo .modal-content, #modalAsignarTarimaProduccion .modal-content {
   text-align: left;
-  max-height: 85vh; 
+  max-height: 85vh;  
   overflow-y: auto;
 }
-#modalRechazo form { display: flex; flex-direction: column; gap: 15px; }
-#modalRechazo label { font-size: 14px; margin-bottom: 5px; display: block; color: var(--text-medium); }
-#modalRechazo input, #modalRechazo textarea, .modal-prompt-input {
+#modalRechazo form, #modalAsignarTarimaProduccion { display: flex; flex-direction: column; gap: 15px; }
+#modalRechazo label, #modalAsignarTarimaProduccion label { font-size: 14px; margin-bottom: 5px; display: block; color: var(--text-medium); }
+/* === INPUTS ESTILO GLASS === */
+#modalRechazo input, #modalRechazo textarea, #modalAsignarTarimaProduccion select, #contraseñaInput {
   width: 100%;
   padding: 12px;
   border-radius: var(--border-radius-sm);
   color: var(--text-light);
   font-size: 16px;
   font-family: var(--font-family);
-  background: rgba(17, 24, 39, 0.5);
+  /* Efecto Glass */
+  background: rgba(17, 24, 39, 0.5); /* --bg-dark con transparencia */
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
-#modalRechazo input:focus, #modalRechazo textarea:focus, .modal-prompt-input:focus {
+#modalRechazo input:focus, #modalRechazo textarea:focus, #modalAsignarTarimaProduccion select:focus, #contraseñaInput:focus {
     outline: none;
     border-color: var(--accent-blue);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
 }
 #modalRechazo textarea { resize: vertical; min-height: 80px; }
 
-.modal-generic-message {
+/* ---- MODALES GENÉRICOS ---- */
+.custom-modal p {
   font-size: 16px;
   color: var(--text-medium);
   margin-bottom: 25px;
   line-height: 1.6;
 }
-.modal-buttons {
+.custom-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
   margin-top: 20px;
 }
-
+.custom-modal-actions button {
+    padding: 10px 20px;
+    font-size: 16px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+}
+.modal-actions button {
+    padding: 12px 24px;
+}
+/* ================= PANTALLA 3: REPORTES (TEMA CLARO) ================= */
 #pantalla3 {
   background-color: #f4f7f9;
+  /* Fondo degradado suave para tema claro */
   background-image: 
     radial-gradient(at 0% 0%, hsla(210, 40%, 98%, 1) 0, transparent 50%),
     radial-gradient(at 50% 100%, hsla(200, 50%, 90%, 1) 0, transparent 50%);
@@ -428,6 +542,7 @@ html, body {
 #pantalla3 .brand-title,
 #pantalla3 .header h1,
 #pantalla3 .header-reporte h2 { color: var(--text-dark); }
+/* === CARD ESTILO GLASS (TEMA CLARO) === */
 #pantalla3 .contenedor-reporte {
   box-shadow: var(--shadow-lg);
   color: var(--text-dark);
@@ -436,6 +551,7 @@ html, body {
   max-width: 1400px;
   margin-top: 20px;
   border-radius: var(--border-radius-md);
+  /* Efecto Glass */
   background-color: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -460,7 +576,7 @@ html, body {
 #pantalla3 .header-reporte .filtros select {
   padding: 8px;
   border-radius: var(--border-radius-sm);
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.5); /* Sutilmente transparente */
   color: var(--text-dark);
   border: 1px solid #cbd5e1;
   font-size: 14px;
@@ -471,6 +587,7 @@ html, body {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   outline: none;
 }
+/* Estilo de botones para tema claro */
 #pantalla3 .usuario-btn {
     color: var(--text-dark);
     background: rgba(59, 130, 246, 0.15);
@@ -498,7 +615,7 @@ html, body {
   text-align: left;
 }
 #pantalla3 thead {
-  background-color: rgba(241, 245, 249, 0.7);
+  background-color: rgba(241, 245, 249, 0.7); /* Semi-transparente */
   color: #334155;
   font-weight: 600;
 }
@@ -536,8 +653,10 @@ html, body {
 }
 .reporte-calidad-mobile { display: none; }
 
+
+/* ================= PANTALLA 4: DASHBOARD ================= */
 #pantalla4 {
-  background-color: transparent;
+  background-color: transparent; /* Usar el fondo del body */
   color: var(--text-light);
   padding: 20px;
   display: grid;
@@ -563,7 +682,7 @@ html, body {
 #pantalla4 .filtros-dashboard select {
   padding: 8px;
   border-radius: var(--border-radius-sm);
-  background-color: rgba(31, 41, 55, 0.5);
+  background-color: rgba(31, 41, 55, 0.5); /* --bg-medium con transparencia */
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-light);
 }
@@ -573,11 +692,13 @@ html, body {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
 }
+/* === CARD ESTILO GLASS === */
 #pantalla4 .kpi-card {
   padding: 25px;
   text-align: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border-radius: var(--border-radius-md);
+  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -608,16 +729,20 @@ html, body {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
 }
+/* === PANEL ESTILO GLASS === */
 #pantalla4 .panel {
-  grid-area: pendientes;
   padding: 20px;
   border-radius: var(--border-radius-md);
+  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 #pantalla4 .graficos-container .panel { grid-area: unset; }
+#pantalla4 .panel[style*="grid-area: pendientes;"] {
+    grid-area: pendientes;
+}
 #pantalla4 .panel h3 {
   text-align: center;
   margin-top: 0;
@@ -631,14 +756,34 @@ html, body {
 }
 #pantalla4 #tablaPendientes th, #pantalla4 #tablaPendientes td {
   padding: 12px;
-  border-bottom: 1px solid rgba(55, 65, 81, 0.5); 
+  border-bottom: 1px solid rgba(55, 65, 81, 0.5); /* --bg-light con transparencia */
   text-align: left;
 }
 #pantalla4 #tablaPendientes thead { background-color: rgba(55, 65, 81, 0.4); }
 #pantalla4 #tablaPendientes tbody tr:hover { background-color: rgba(75, 85, 99, 0.4); }
 #pantalla4 .footer { grid-area: footer; }
 
+/* ======== ESTILOS PANEL LATERAL (mt-panel) ======== */
+.mt-fab { position: fixed; bottom: 20px; right: 20px; background: var(--accent-blue); color: #fff; border: none; border-radius: 50%; width: 78px; height: 78px; font-size: 12px; font-weight: 700; cursor: pointer; z-index: 1000; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.35); }
+.mt-fab:active { transform: translateY(1px); }
+.mt-panel { position: fixed; top: 0; right: -420px; width: 420px; max-width: 95vw; height: 100%; background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); color: var(--text-light); box-shadow: -4px 0 20px rgba(0,0,0,.45); transition: right .28s ease; z-index: 999; border-left: 1px solid rgba(255,255,255,0.1); }
+.mt-panel.open { right: 0; }
+.mt-panel-content { padding: 20px; }
+.mt-close { background: transparent; border: none; color: var(--text-medium); font-size: 28px; cursor: pointer; float: right; }
+.mt-close:hover { color: #fff; }
+.mt-row { display: flex; gap: 10px; align-items: stretch; }
+.mt-btn { padding: 10px 14px; border: none; border-radius: var(--border-radius-sm); font-weight: 700; cursor: pointer; }
+.mt-primary { background:var(--accent-blue); color:#fff; }
+.mt-success { background:var(--accent-green); color:#fff; }
+.mt-select, #bxInput { flex: 1; padding: 10px 12px; border-radius: var(--border-radius-sm); border: 1px solid var(--bg-light); background: rgba(17, 24, 39, 0.5); color:var(--text-light); }
+.mt-select:focus, #bxInput:focus { outline: 2px solid var(--accent-blue); }
+.mt-card { margin-top: 16px; padding: 16px; border-radius: var(--border-radius-md); background: rgba(31, 41, 55, 0.5); border: 1px solid var(--bg-light); }
+.mt-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px 14px; margin-bottom: 10px; }
+.mt-list { list-style: none; padding-left: 0; margin: 8px 0 0; max-height: 200px; overflow: auto; }
+.mt-list li { padding: 10px 12px; margin-bottom: 8px; border-radius: var(--border-radius-sm); background:rgba(17, 24, 39, 0.5); border: 1px solid var(--bg-light); font-size: 14px; word-break: break-word; }
+.mt-assign { margin-top: 14px; border-top: 1px dashed var(--bg-light); padding-top: 12px; }
 
+/* ================= MEDIA QUERIES RESPONSIVE ================= */
 @media (max-width: 768px) {
   .header { justify-content: center; text-align: center; }
   #turnoActual { position: static; transform: none; margin-top: 10px; }
@@ -694,34 +839,49 @@ html, body {
   .graficos-container > * { grid-column: span 1 !important; }
   #pantalla4 .panel { grid-area: pendientes; }
 }
+
 </style>
 </head>
 <body>
 
-<section id="pantalla1" class="pantalla activa">
+<section id="splashScreen" class="pantalla activa">
+    <div class="splash-content">
+        <p class="brand-title">CORNING</p>
+        <div class="splash-logo-container">
+              <img src="https://i.imgur.com/JzWf27s.png" alt="Logo de Logística" class="splash-logo">
+        </div>
+        <p class="splash-loading">Cargando<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></p>
+    </div>
+</section>
+
+<section id="pantalla1" class="pantalla">
     <div class="brand-header">
         <p class="brand-title">CORNING</p>
         <h1 id="mainTitle">Panel de Logística</h1>
     </div>
-    <div class="btn-contenedor">
-        <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
-        <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
-        <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
-        <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
-        <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button>
-        <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
-        <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
-        <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
+    <div class="login-columns-container">
+        <div class="login-column">
+            <button class="usuario-btn" onclick="seleccionarUsuario('LOGÍSTICA')">LOGÍSTICA</button>
+            <button class="usuario-btn" onclick="seleccionarUsuario('MULTIPORT')">MULTIPORT</button>
+            <button class="usuario-btn" onclick="seleccionarUsuario('DROPS')">DROPS</button>
+            <button class="usuario-btn" onclick="seleccionarUsuario('BEDROCK')">BEDROCK</button>
+        </div>
+        <div class="login-column">
+            <button class="usuario-btn" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
+            <button class="usuario-btn" onclick="seleccionarUsuario('CALIDAD')">CALIDAD</button>  
+            <button class="usuario-btn" onclick="seleccionarReporte()">REPORTES</button>
+            <button class="usuario-btn" onclick="seleccionarDashboard()">DASHBOARD</button>
+        </div>
     </div>
 </section>
 
 <section id="pantalla2" class="pantalla">
-    <p class="brand-title">CORNING</p>
-    <header class="header">
-        <div id="tituloFijo">LOGÍSTICA</div>
-        <div id="turnoActual"></div>
-    </header>
-    <div class="zona-centro">
+<p class="brand-title">CORNING</p>
+<header class="header">
+    <div id="tituloFijo">LOGÍSTICA</div>
+    <div id="turnoActual"></div>
+</header>
+<div class="zona-centro">
     <div id="resumenTurno" class="resumen-turno oculto">
 <div class="dato-resumen">
     <div class="etiqueta">Tarimas Totales</div>
@@ -785,102 +945,115 @@ html, body {
 </section>
 
 <section id="pantalla3" class="pantalla">
-    <p class="brand-title">CORNING</p>
-    <header class="header">
-        <h1 id="tituloReportes">REPORTES</h1>
-    </header>
-    <div class="zona-centro">
-        <div id="selectoresReportes" class="btn-contenedor">
-            <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
-            <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
-            <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
-            <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
-        </div>
-        <div id="contenedorReporte" class="contenedor-reporte">
-            <h2>Selecciona un reporte</h2>
-        </div>
+<p class="brand-title">CORNING</p>
+<header class="header">
+    <h1 id="tituloReportes">REPORTES</h1>
+</header>
+<div class="zona-centro">
+    <div id="selectoresReportes" class="btn-contenedor">
+        <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
+        <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
+        <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
+        <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
     </div>
-    <div class="footer">
-        <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver</button>
+    <div id="contenedorReporte" class="contenedor-reporte">
+        <h2>Selecciona un reporte</h2>
     </div>
+</div>
+<div class="footer">
+    <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver</button>
+</div>
 </section>
 
 <section id="pantalla4" class="pantalla" style="display: none;">
-    <p class="brand-title">CORNING</p>
-    <header class="header">
-        <h1>DASHBOARD DE SUPERVISOR</h1>
-    </header>
-    <div class="filtros-dashboard">
-        <label for="fechaDashboard">Fecha:</label>
-        <input type="date" id="fechaDashboard">
-        <label for="turnoDashboardSelect">Turno:</label>
-        <select id="turnoDashboardSelect">
-            <option value="todos">Todos</option>
-            <option value="Turno 1">Turno 1</option>
-            <option value="Turno 2">Turno 2</option>
-        </select>
+<p class="brand-title">CORNING</p>
+<header class="header">
+    <h1>DASHBOARD DE SUPERVISOR</h1>
+</header>
+<div class="filtros-dashboard">
+    <label for="fechaDashboard">Fecha:</label>
+    <input type="date" id="fechaDashboard">
+    <label for="turnoDashboardSelect">Turno:</label>
+    <select id="turnoDashboardSelect">
+        <option value="todos">Todos</option>
+        <option value="Turno 1">Turno 1</option>
+        <option value="Turno 2">Turno 2</option>
+    </select>
+</div>
+  <div class="kpis-grid">
+    <div class="kpi-card">
+        <h3>Tarimas Confirmadas</h3>
+        <div class="valor" id="dashTarimasConfirmadas">0</div>
     </div>
-    <div class="kpis-grid">
-        <div class="kpi-card">
-            <h3>Tarimas Confirmadas</h3>
-            <div class="valor" id="dashTarimasConfirmadas">0</div>
-        </div>
-        <div class="kpi-card">
-            <h3>Tarimas Recolectadas</h3>
-            <div class="valor" id="dashTarimasRecolectadas">0</div>
-        </div>
-        <div class="kpi-card" id="kpiTiempoPromedio">
-            <h3>Tiempo Promedio</h3>
-            <div class="valor" id="dashTiempoPromedio">0 min</div>
-        </div>
-        <div class="kpi-card" id="kpiTasaRechazo">
-            <h3>Tasa de Rechazo</h3>
-            <div class="valor" id="dashTasaRechazo">0%</div>
-        </div>
+    <div class="kpi-card">
+        <h3>Tarimas Recolectadas</h3>
+        <div class="valor" id="dashTarimasRecolectadas">0</div>
     </div>
-    <div class="graficos-container">
-        <div class="panel">
-            <h3>Producción por Área</h3>
-            <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
-        </div>
-        <div class="panel">
-            <h3>Estado de Calidad</h3>
-            <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
-        </div>
-        <div class="panel">
-            <h3>Evolución Tiempos de Recolección</h3>
-            <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
-        </div>
+    <div class="kpi-card" id="kpiTiempoPromedio">
+        <h3>Tiempo Promedio</h3>
+        <div class="valor" id="dashTiempoPromedio">0 min</div>
+    </div>
+    <div class="kpi-card" id="kpiTasaRechazo">
+        <h3>Tasa de Rechazo</h3>
+        <div class="valor" id="dashTasaRechazo">0%</div>
+    </div>
+</div>
+<div class="graficos-container">
+    <div class="panel">
+        <h3>Producción por Área</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoProduccionDash"></canvas></div>
     </div>
     <div class="panel">
-        <h3>Tarimas Pendientes por Recolectar</h3>
-        <table id="tablaPendientes">
-            <thead>
-                <tr>
-                    <th>Área</th>
-                    <th>Tarimas Pendientes</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <h3>Estado de Calidad</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoCalidadDash"></canvas></div>
     </div>
-    <div class="footer">
-        <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
+    <div class="panel">
+        <h3>Recolecciones por Hora</h3>
+        <div style="position: relative; height: 300px;"><canvas id="graficoLogisticaDash"></canvas></div>
     </div>
+</div>
+<div class="panel" style="grid-area: pendientes;">
+    <h3>Tarimas Pendientes por Recolectar</h3>
+    <table id="tablaPendientes">
+        <thead>
+            <tr>
+                <th>Área</th>
+                <th>Tarimas Pendientes</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+<div class="footer">
+    <button class="usuario-btn btn-rojo" onclick="activarPantalla('pantalla1')">Volver al inicio</button>
+</div>
 </section>
 
-<div id="modalCalidad" class="modal">
-<div class="modal-content">
+<div id="modalCalidad" class="modal-calidad">
+  <div class="modal-content">
     <h3 id="modalCalidadTitulo">Selecciona el estado:</h3>
     <div class="opciones">
-        <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
-        <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
+      <button class="opcion-btn" data-color="rojo">Rechazada 🔴</button>
+      <button class="opcion-btn" data-color="verde">Liberada 🟢</button>
     </div>
     <button class="cerrar-btn">Cerrar</button>
+  </div>
 </div>
+
+<div id="modalOpcionesCalidad" class="modal">
+  <div class="modal-content">
+    <h3>Asignar tarima a LED de Calidad</h3>
+    <label for="selectLedCalidad">Selecciona LED:</label>
+    <select id="selectLedCalidad"></select>
+    <div class="modal-actions">
+      <button id="btnAsignarTarimaCalidad" class="usuario-btn">Asignar</button>
+      <button onclick="cerrarModalCalidad()" class="usuario-btn btn-rojo">Cancelar</button>
+    </div>
+  </div>
 </div>
-<div id="modalRechazo" class="modal">
-<div class="modal-content">
+  
+<div id="modalRechazo" class="modal-calidad">
+  <div class="modal-content">
     <h3>Detalles del Rechazo</h3>
     <form id="formularioRechazo">
         <label for="empleado">Empleado Originador:</label>
@@ -897,43 +1070,102 @@ html, body {
         <textarea id="causa" name="causa" required></textarea>
         <label for="accion">Acción correctiva:</label>
         <textarea id="accion" name="accion" required></textarea>
-        <div class="modal-buttons">
-            <button type="button" id="cancelRechazo" class="usuario-btn btn-rojo">Cancelar</button>
+        <div class="modal-actions">
             <button type="submit" class="usuario-btn">Guardar Rechazo</button>
+            <button type="button" onclick="cerrarModalRechazo()" class="usuario-btn btn-rojo">Cancelar</button>
         </div>
     </form>
+  </div>
 </div>
+
+<div id="modalAsignarTarimaProduccion" class="modal-produccion">
+  <div class="modal-content">
+    <h3>Confirmar Tarima en Producción</h3>
+    <label for="selectTarimaProduccion">Selecciona Tarima Recibida:</label>
+    <select id="selectTarimaProduccion"></select>
+    <label for="selectLedProduccion">Asignar al LED:</label>
+    <select id="selectLedProduccion"></select>
+    <div class="modal-actions">
+      <button id="btnAsignarProduccion" class="usuario-btn">Confirmar</button>
+      <button onclick="cerrarModalProduccion()" class="usuario-btn btn-rojo">Cancelar</button>
+    </div>
+  </div>
 </div>
-<div id="modalAlert" class="modal">
-    <div class="modal-content">
-        <h3 id="modalAlertTitle">Notificación</h3>
-        <p id="modalAlertMessage" class="modal-generic-message"></p>
-        <div class="modal-buttons" style="justify-content: center;">
-            <button id="modalAlertOk" class="usuario-btn">OK</button>
+  
+<button class="mt-fab" id="mtOpenBtn" style="display:none;" title="Identificación de Tarima">TARIMAS</button>
+
+<div id="mtPanel" class="mt-panel" aria-hidden="true">
+  <div class="mt-panel-content">
+    <button id="mtCloseBtn" class="mt-close" aria-label="Cerrar panel">&times;</button>
+    <h2>Identificación de Tarima</h2>
+    
+    <div id="tarimasPendientesPanel" style="display:none;">
+      <h3>Tarimas pendientes por inspección</h3>
+      <ul id="listaTarimasPendientes" class="mt-list"></ul>
+    </div>
+
+    <p>Escanea o ingresa un código <b>BX</b> para ver detalles:</p>
+    <div class="mt-row">
+      <input type="text" id="bxInput" placeholder="Escanear/pegar código BX..." autocomplete="off" />
+      <button id="buscarTarimaBtn" class="mt-btn mt-primary">Buscar</button>
+    </div>
+
+    <div id="tarimaInfo" class="mt-card" style="display:none;">
+      <h3>Tarima encontrada</h3>
+      <div class="mt-grid">
+        <div><b>ID:</b> <span id="tarimaId">—</span></div>
+        <div><b>Empleado:</b> <span id="empleado">—</span></div>
+        <div><b>Turno:</b> <span id="turno">—</span></div>
+        <div><b>Total cajas:</b> <span id="totalCajas">0</span></div>
+        <div><b>Total piezas:</b> <span id="totalPiezas">0</span></div>
+      </div>
+      <h4>Detalle de cajas (BX | piezas)</h4>
+      <ul id="listaCajas" class="mt-list"></ul>
+      <div id="ledAssignment" class="mt-assign" style="display:none;">
+        <label for="ledSelect">Asignar LED a esta tarima:</label>
+        <div class="mt-row">
+          <select id="ledSelect" class="mt-select"></select>
+          <button id="asignarLedBtn" class="mt-btn mt-success">Asignar LED</button>
+        </div>
+        <small>Nota: los LEDs solo podrán encenderse/apagarse si tienen tarima asignada.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modalAlerta" class="custom-modal-overlay">
+    <div class="custom-modal">
+        <h3 id="alertaTitulo">Notificación</h3>
+        <p id="alertaMensaje" class="modal-generic-message"></p>
+        <div class="modal-actions" style="justify-content: center;">
+            <button id="alertaBotonCerrar" class="usuario-btn">Aceptar</button>
         </div>
     </div>
 </div>
-<div id="modalConfirm" class="modal">
-    <div class="modal-content">
-        <h3 id="modalConfirmTitle">Confirmación</h3>
-        <p id="modalConfirmMessage" class="modal-generic-message"></p>
-        <div class="modal-buttons">
-            <button id="modalConfirmCancel" class="usuario-btn btn-rojo">Cancelar</button>
-            <button id="modalConfirmOk" class="usuario-btn">Confirmar</button>
+
+<div id="modalConfirmacion" class="custom-modal-overlay">
+    <div class="custom-modal">
+        <h3 id="confirmacionTitulo">Confirmación</h3>
+        <p id="confirmacionMensaje" class="modal-generic-message"></p>
+        <div class="modal-actions">
+            <button id="confirmacionBotonCancelar" class="usuario-btn btn-rojo">Cancelar</button>
+            <button id="confirmacionBotonOk" class="usuario-btn">Confirmar</button>
         </div>
     </div>
 </div>
-<div id="modalPrompt" class="modal">
-    <div class="modal-content">
-        <h3 id="modalPromptTitle">Introducir Datos</h3>
-        <p id="modalPromptMessage" class="modal-generic-message"></p>
-        <input type="password" id="modalPromptInput" class="modal-prompt-input" autocomplete="off" />
-        <div class="modal-buttons">
-            <button id="modalPromptCancel" class="usuario-btn btn-rojo">Cancelar</button>
-            <button id="modalPromptOk" class="usuario-btn">Aceptar</button>
+
+<div id="modalContraseña" class="custom-modal-overlay">
+    <div class="custom-modal">
+        <h3 id="contraseñaTitulo">Acceso Requerido</h3>
+        <p id="contraseñaMensaje" class="modal-generic-message"></p>
+        <input type="password" id="contraseñaInput" placeholder="Introduce la contraseña...">
+        <div class="modal-actions">
+            <button id="contraseñaBotonCancelar" class="usuario-btn btn-rojo">Cancelar</button>
+            <button id="contraseñaBotonOk" class="usuario-btn">Aceptar</button>
         </div>
     </div>
 </div>
+
 <script>
 // ================= CONFIG Y ESTADO =================
 const CONFIG = {
@@ -949,13 +1181,13 @@ const CONFIG = {
 };
 
 let usuarioSeleccionado = null;
-let ledSeleccionado = { grupo: null, idx: null, linea: null, tarimaId: null };
+let ledActivoParaFormulario = { grupo: null, idx: null, linea: null };
 let reporteActual = null;
 let datosFiltradosReporte = null;
 let miGrafico;
 let graficosDashboard = {};
+let dashboardUpdateInterval;
 
-// ================= FIREBASE =================
 // ================= FIREBASE =================
 const firebaseConfig = {
     apiKey: "AIzaSyCPTEu73s2rVIm2VsdTk59kVIOyi1jeyu8",
@@ -974,7 +1206,7 @@ let historialRef;
 let contadoresCalidadRef;
 let rechazosDetalladosRef;
 let dashboardListeners = [];
-  
+
 window.database = window.database || firebase.database();
 window.__usuarioActual = null;
 
@@ -1549,7 +1781,7 @@ function abrirModalCalidad(grupo, idx, linea, tarimaId) {
 
 function cerrarModalCalidad() { document.getElementById('modalCalidad').classList.remove('visible'); }
 function cerrarModalRechazo() { document.getElementById('modalRechazo').classList.remove('visible'); }
-function cerrarModalProduccion() { document.getElementById('modalAsignarTarimaProduccion').style.display = 'none'; }
+function cerrarModalProduccion() { document.getElementById('modalAsignarTarimaProduccion').classList.remove('visible'); }
 
 async function mostrarModalProduccion(grupo, idx, linea) {
     const modal = document.getElementById('modalAsignarTarimaProduccion');
@@ -1569,7 +1801,7 @@ async function mostrarModalProduccion(grupo, idx, linea) {
         selectTarima.appendChild(opt);
     });
     selectLed.innerHTML = `<option value="${idx}">${linea}-${idx+1}</option>`;
-    modal.style.display = 'flex';
+    modal.classList.add('visible');
 }
 
 document.getElementById('btnAsignarProduccion').addEventListener('click', () => {
@@ -1629,12 +1861,21 @@ function exportarAPdf(e,t,o){const n=new window.jspdf.jsPDF({orientation:"landsc
 
 window.addEventListener('load', ()=>{
     firebase.auth().signInAnonymously().catch(e => console.error('Auth error:', e));
-    firebase.auth().onAuthStateChanged(user => { if (user) activarPantalla('pantalla1'); });
+    
+    // Splash Screen Logic
+    setTimeout(() => {
+        const splash = document.getElementById('splashScreen');
+        splash.style.opacity = '0';
+        splash.addEventListener('transitionend', () => {
+            splash.classList.remove('activa');
+            activarPantalla('pantalla1');
+        }, { once: true });
+    }, 2000); // 2 segundos de splash screen
+
     document.getElementById('modalRechazo').querySelector('form').addEventListener('submit', e => { e.preventDefault(); guardarRechazo(); });
     document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn').forEach(btn => btn.addEventListener('click', () => mostrarReporte(btn.dataset.reporte)));
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(reg => console.log("✅ SW Registrado")).catch(err => console.error("❌ Error SW:", err));
 });
-
 </script>
 </body>
 </html>
