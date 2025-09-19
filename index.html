@@ -350,7 +350,7 @@ html, body {
   border-color: var(--accent-green);
   animation: blink var(--blink-duration) ease-in-out infinite;
 }
-/* === NUEVO: ESTILOS PARA TEXTO/CONTADOR DENTRO DEL LED === */
+/* === ESTILOS PARA TEXTO/CONTADOR DENTRO DEL LED === */
 .led span {
     line-height: 1;
     text-align: center;
@@ -695,7 +695,6 @@ html, body {
   background-color: transparent; /* Usar el fondo del body */
   color: var(--text-light);
   padding: 20px;
-  display: flex;
   flex-direction: column;
   gap: 20px;
   align-items: center;
@@ -705,8 +704,7 @@ html, body {
     width: 100%;
     max-width: 1400px;
 }
-#pantalla4 .brand-title { grid-area: brand; }
-#pantalla4 .header { grid-area: header; text-align: center; }
+#pantalla4 .header { text-align: center; }
 #pantalla4 .filtros-dashboard {
   display: flex;
   justify-content: center;
@@ -760,7 +758,7 @@ html, body {
 }
 #pantalla4 .kpi-card.alerta .valor { color: var(--accent-red); }
 
-/* === NUEVO: Contenedor de fila para el Dashboard === */
+/* === Contenedor de fila para el Dashboard === */
 .dashboard-row {
     display: flex;
     flex-wrap: wrap;
