@@ -282,25 +282,25 @@ html, body {
   max-width: 1400px;
   justify-content: center;
 }
-/* === MEJORA: CARD CON FONDO DE PANEL LED === */
+/* === MODIFICADO: Estilo del contenedor de LEDs === */
 .grupo {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   padding: 24px;
-  flex-grow: 1;
+  flex-grow: 0; /* Cambio clave: Evita que el contenedor se expanda */
+  width: auto; /* El ancho se adapta al contenido */
   min-width: 300px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border-radius: var(--border-radius-md);
   
-  /* Nuevo fondo de panel de LEDs apagados */
-  background-color: #18181a; /* Color base oscuro del panel */
+  background-color: #18181a;
   background-image: radial-gradient(circle at center, rgba(0,0,0,0.4) 2px, transparent 3px);
-  background-size: 12px 12px; /* Controla el tamaño y espaciado de los "puntos" */
+  background-size: 12px 12px;
   
-  border: 1px solid rgba(255, 255, 255, 0.1); /* Mantenemos el borde glass */
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6); /* Sombra interior para dar relieve */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 .grupo:hover {
   transform: translateY(-5px);
@@ -1144,8 +1144,8 @@ html, body {
     <label for="selectLedProduccion">Asignar al LED:</label>
     <select id="selectLedProduccion"></select>
     <div class="modal-actions">
-      <button id="btnAsignarProduccion" class="usuario-btn">Confirmar</button>
       <button onclick="cerrarModalProduccion()" class="usuario-btn btn-rojo">Cancelar</button>
+      <button id="btnAsignarProduccion" class="usuario-btn">Confirmar</button>
     </div>
   </div>
 </div>
@@ -1377,22 +1377,19 @@ if (MT.ui.closeBtn) MT.ui.closeBtn.addEventListener('click', () => MT.ui.panel.c
 if (MT.ui.buscarBtn) MT.ui.buscarBtn.addEventListener('click', () => { const bx = (MT.ui.bxInput.value || '').trim(); if (bx) buscarTarimaPorBX(bx); });
 if (MT.ui.bxInput) MT.ui.bxInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') MT.ui.buscarBtn.click(); });
 
-// --- MODIFICADO: Lógica para leer correctamente los datos de la app de recolección ---
 function buscarTarimaPorBX(bxCode) {
   database.ref('tarimas').once('value').then(snapshot => {
     let encontrada = null;
     snapshot.forEach(tSnap => {
       const t = tSnap.val() || {};
       const cajas = t.cajas || {};
-      // El objeto 'cajas' en la app de recolección tiene claves aleatorias.
-      // Debemos iterar sobre sus valores.
       for (const key in cajas) {
         if (cajas[key] && cajas[key].codigoCaja === bxCode) {
           encontrada = { id: t.id || tSnap.key, ...t };
-          break; // Salimos del bucle de cajas una vez encontrada
+          break;
         }
       }
-      if (encontrada) return true; // Salimos del bucle de tarimas
+      if (encontrada) return true;
     });
 
     if (!encontrada) {
@@ -1401,7 +1398,6 @@ function buscarTarimaPorBX(bxCode) {
       return;
     }
     
-    // Usamos la nueva función para procesar la data
     MT.state.tarimaActual = normalizarTarima(encontrada);
     renderTarimaEncontrada(MT.state.tarimaActual);
     MT.ui.pendientesPanel.style.display = 'none';
@@ -1412,7 +1408,6 @@ function buscarTarimaPorBX(bxCode) {
   });
 }
 
-// --- MODIFICADO: Función para interpretar la estructura de datos de la app de recolección ---
 function normalizarTarima(t) {
   const out = {
     id: t.id || 'N/D',
@@ -1422,7 +1417,6 @@ function normalizarTarima(t) {
   };
   
   const cajasObj = t.cajas || {};
-  // Iteramos sobre el objeto de cajas para convertirlas a un array
   for (const key in cajasObj) {
     const caja = cajasObj[key];
     if (caja && caja.codigoCaja) {
@@ -1506,7 +1500,6 @@ async function asignarLedATarima(ledIndex, tarimaId) {
     if (!grupo || !tarimaId || ledIndex === null) return mostrarAlerta('Datos incompletos para asignar.');
     const ledId = `${grupo}-linea1-${ledIndex}`;
 
-    // Ya no se usa tarimasAsignadas, el estado se controla en la tarima misma
     const tarimaSnap = await db.ref(`tarimas/${tarimaId}`).once('value');
     const tarimaData = tarimaSnap.val();
 
@@ -1523,7 +1516,6 @@ async function asignarLedATarima(ledIndex, tarimaId) {
             timestamp: new Date().toISOString()
         });
         
-        // Actualizamos el estado de la tarima para indicar que está en inspección
         await db.ref(`tarimas/${tarimaId}`).update({ estado: 'en_inspeccion', asignadaA: usuarioSeleccionado });
         
         await mostrarAlerta(`✅ Tarima ${tarimaId} asignada al LED ${parseInt(ledIndex) + 1} para inspección.`);
@@ -1615,8 +1607,8 @@ function pintarEstado() {
                 if (estado) {
                     let tarimaIdDisplay = "";
                     if (estado.tarimaId) {
-                        // Formato de 3 dígitos con ceros a la izquierda
-                        tarimaIdDisplay = String(estado.tarimaId).split('-')[1] || estado.tarimaId;
+                        // MODIFICADO: Muestra el ID de la tarima si existe (para Multiport o el nuevo de Drops/Bedrock)
+                        tarimaIdDisplay = String(estado.tarimaId).replace('Tarima ', '').replace('TAR-', '');
                     }
 
                     if (grupoLeds.startsWith('CALIDAD_') && estado.color) {
@@ -1626,8 +1618,10 @@ function pintarEstado() {
                         led.classList.add('on');
                         if (esGrupoDeTarimas(grupoLeds)) { // Es MULTIPORT, muestra ID
                             if (tarimaIdDisplay) led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span>`;
-                        } else { // Es BEDROCK o DROPS, renderiza el contador inmediatamente
-                            if (estado.horaEncendido) {
+                        } else { // Es BEDROCK o DROPS, muestra ID si existe, si no, el contador
+                            if (tarimaIdDisplay) {
+                                led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span>`;
+                            } else if (estado.horaEncendido) {
                                 led.dataset.horaEncendido = estado.horaEncendido;
                                 const tiempoTranscurridoMs = new Date() - new Date(estado.horaEncendido);
                                 const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / 60000);
@@ -1646,7 +1640,8 @@ function pintarEstado() {
 function actualizarTodosLosContadores() {
     document.querySelectorAll('.led.on[data-hora-encendido]').forEach(led => {
         const horaEncendido = led.dataset.horaEncendido;
-        if (horaEncendido) {
+        // Solo actualiza el contador si no tiene un ID de tarima (para no sobreescribirlo)
+        if (horaEncendido && !led.querySelector('.tarima-id')) {
             const tiempoTranscurridoMs = new Date() - new Date(horaEncendido);
             const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / 60000);
             led.innerHTML = `<span class="tiempo-transcurrido"><b>${minutosTranscurridos}</b><small>min</small></span>`;
@@ -1730,13 +1725,14 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
         const ledIdentifier = `${grupo}-${linea}-${idx + 1}`;
         
         if (usuarioActual.startsWith('CALIDAD_') && grupo === usuarioActual) {
+            // Lógica de calidad para Drops/Bedrock sin cambios
             if (!estadoActual.color) {
                 if (await mostrarConfirmacion(`¿Iniciar revisión en el LED ${idx + 1}?`)) {
                     ledRef.set({ color: 'naranja', timestamp: new Date().toISOString() });
                     db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'revision_iniciada', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: new Date().toISOString() });
                 }
             } else if (estadoActual.color === 'naranja') {
-                abrirModalCalidad(grupo, idx, linea, null); // null para tarimaId
+                abrirModalCalidad(grupo, idx, linea, null);
             } else if (estadoActual.color === 'rojo') {
                 if (await mostrarConfirmacion('Este LED fue rechazado. ¿Confirmas que ha sido corregido y deseas liberarlo ahora?')) {
                     liberarLedSimple(grupo, idx, linea);
@@ -1746,6 +1742,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
         else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo.startsWith('CALIDAD_')) {
+            // Lógica para recibir de calidad sin cambios
             if (estadoActual.color === 'verde') {
                 if (await mostrarConfirmacion(`¿Recibir material del LED de Calidad?`)) {
                     ledRef.set(null);
@@ -1755,27 +1752,66 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
         else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo === usuarioActual) {
+            // --- MODIFICADO: Lógica para encender LED en Drops y Bedrock ---
             if (!estadoActual.encendido) {
-                if (await mostrarConfirmacion(`¿Encender LED ${idx+1} para solicitar recolección?`)) {
+                if (await mostrarConfirmacion(`¿Encender LED para solicitar recolección?`)) {
                     const horaEncendido = new Date().toISOString();
-                    ledRef.set({ encendido: true, horaEncendido });
-                    db.ref(`historialLogs/${fecha}/${turno}`).push({ accion: 'led_encendido', led: ledIdentifier, grupo, usuario: usuarioActual, timestamp: horaEncendido, horaEncendido });
+
+                    // 1. Contar tarimas existentes para este grupo en este turno
+                    const logsRef = db.ref(`historialLogs/${fecha}/${turno}`);
+                    const query = logsRef.orderByChild('grupo').equalTo(grupo);
+                    const snapshot = await query.once('value');
+                    let count = 0;
+                    snapshot.forEach(logSnap => {
+                        if (logSnap.val().accion === 'led_encendido') {
+                            count++;
+                        }
+                    });
+                    const nuevoIdentificador = `Tarima ${count + 1}`;
+
+                    // 2. Guardar el nuevo identificador en el estado del LED
+                    ledRef.set({ encendido: true, horaEncendido, tarimaId: nuevoIdentificador });
+
+                    // 3. Guardar en el log
+                    db.ref(`historialLogs/${fecha}/${turno}`).push({ 
+                        accion: 'led_encendido', 
+                        led: ledIdentifier, // ID técnico
+                        tarimaId: nuevoIdentificador, // ID visible para el usuario
+                        grupo, 
+                        usuario: usuarioActual, 
+                        timestamp: horaEncendido, 
+                        horaEncendido 
+                    });
                     actualizarContadoresTarimas(grupo, 'encendidos');
                 }
             } else {
-                await mostrarAlerta('Este LED ya está encendido.');
+                await mostrarAlerta(`Este LED ya está encendido y corresponde a la ${estadoActual.tarimaId}.`);
             }
         }
         else if (usuarioActual === 'LOGÍSTICA') {
+             // --- MODIFICADO: Lógica para recolectar en Drops y Bedrock ---
              if (estadoActual.encendido) {
-                if (!(await mostrarConfirmacion(`¿Confirmas la recolección del LED ${grupo}-${idx + 1}?`))) return;
+                const nombreTarima = estadoActual.tarimaId || `LED ${grupo}-${idx + 1}`;
+                if (!(await mostrarConfirmacion(`¿Confirmas la recolección de ${nombreTarima}?`))) return;
+                
                 const horaEncendido = estadoActual.horaEncendido;
                 const horaApagado = new Date().toISOString();
                 const tiempoRecoleccion = Math.round((new Date(horaApagado).getTime() - new Date(horaEncendido).getTime()) / 60000);
-                db.ref(`historialLogs/${fecha}/${turno}`).push({ usuario: usuarioActual, grupo, accion: 'recolectada', led: ledIdentifier, timestamp: horaApagado, horaEncendido, horaApagado, tiempoRecoleccion });
+                
+                db.ref(`historialLogs/${fecha}/${turno}`).push({ 
+                    usuario: usuarioActual, 
+                    grupo, 
+                    accion: 'recolectada', 
+                    led: ledIdentifier,
+                    tarimaId: estadoActual.tarimaId, // Guardamos el nombre "Tarima X"
+                    timestamp: horaApagado, 
+                    horaEncendido, 
+                    horaApagado, 
+                    tiempoRecoleccion 
+                });
                 actualizarContadoresTarimas(grupo, 'recolectadas');
                 ledRef.set(null);
-                await mostrarAlerta(`✅ LED ${grupo}-${idx + 1} recolectado en ${tiempoRecoleccion} minutos.`);
+                await mostrarAlerta(`✅ ${nombreTarima} recolectada en ${tiempoRecoleccion} minutos.`);
             }
         }
     }
@@ -1785,7 +1821,6 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
 async function liberarTarima(tarimaId, grupo) {
     const { fecha, turno } = obtenerTurnoActual();
     
-    // Esta función ahora solo se usa para Multiport
     await db.ref(`tarimas/${tarimaId}`).update({ estado: 'liberada', liberadaPor: usuarioSeleccionado, timestampLiberada: new Date().toISOString() });
     
     await db.ref(`historialLogs/${fecha}/${turno}`).push({
@@ -1928,7 +1963,7 @@ document.getElementById('btnAsignarProduccion').addEventListener('click', () => 
 // ================= NAVEGACIÓN Y ARRANQUE =================
 function formatoHora(isoString) { if (!isoString) return 'N/A'; const date = new Date(isoString); return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; }
 function obtenerTurnoActual() { const ahora = new Date(); let fecha = new Date(ahora); let turno = (ahora.getHours() > 6 || (ahora.getHours() === 6 && ahora.getMinutes() >= 30)) && (ahora.getHours() < 18 || (ahora.getHours() === 18 && ahora.getMinutes() < 30)) ? 'Turno 1' : 'Turno 2'; if (turno === 'Turno 2' && ahora.getHours() < 6) fecha.setDate(ahora.getDate() - 1); const fechaFormateada = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`; return { fecha: fechaFormateada, turno }; }
-function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0, encendidos: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'led_encendido': contadores[log.grupo].encendidos++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': case 'led_rechazado': contadores[log.grupo].rechazadas++; break; case 'liberada': case 'led_liberado': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; if(grupo.startsWith('CALIDAD_')){ el.textContent = `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}`; } else if(esGrupoDeTarimas(grupo)) { el.textContent = `Confirmadas: ${c.confirmadas}`; } else { el.textContent = `Tarimas: ${c.encendidos}`; } } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = ''; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => { const p = document.createElement('p'); const id = log.tarimaId ? `...${log.tarimaId.slice(-4)}` : log.led.replace(grupo + '-', ''); p.textContent = `ID ${id}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`; contenedorTiempos.appendChild(p); }); }); }); }
+function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0, encendidos: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'led_encendido': contadores[log.grupo].encendidos++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': case 'led_rechazado': contadores[log.grupo].rechazadas++; break; case 'liberada': case 'led_liberado': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; if(grupo.startsWith('CALIDAD_')){ el.textContent = `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}`; } else if(esGrupoDeTarimas(grupo)) { el.textContent = `Confirmadas: ${c.confirmadas}`; } else { el.textContent = `Tarimas: ${c.encendidos}`; } } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = ''; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5).forEach(log => { const p = document.createElement('p'); const id = log.tarimaId || log.led.replace(grupo + '-', ''); p.textContent = `ID ${id}: ${log.tiempoRecoleccion} min (a las ${formatoHora(log.horaApagado)})`; contenedorTiempos.appendChild(p); }); }); }); }
 function actualizarContadoresTarimas(grupo, accion) { const { fecha, turno } = obtenerTurnoActual(); db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1); }
 function activarPantalla(id){ document.querySelectorAll('.pantalla').forEach(p => { p.style.display = 'none'; p.classList.remove('activa'); }); const pantalla = document.getElementById(id); if(pantalla) { pantalla.style.display = 'flex'; pantalla.classList.add('activa'); } }
 function volverAPantalla1(){ usuarioSeleccionado = null; if (historialRef) historialRef.off(); limpiarDashboardListeners(); activarPantalla('pantalla1'); }
