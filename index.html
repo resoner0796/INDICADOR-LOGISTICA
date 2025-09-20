@@ -282,7 +282,7 @@ html, body {
   max-width: 1400px;
   justify-content: center;
 }
-/* === MODIFICADO: Estilo del contenedor de LEDs === */
+/* === CARD CON FONDO DE PANEL LED === */
 .grupo {
   display: flex;
   flex-direction: column;
@@ -350,22 +350,34 @@ html, body {
   border-color: var(--accent-green);
   animation: blink var(--blink-duration) ease-in-out infinite;
 }
-/* === ESTILOS PARA TEXTO/CONTADOR DENTRO DEL LED === */
+
+/* --- ESTILOS PARA EL CONTENIDO DEL LED --- */
 .led span {
     line-height: 1;
     text-align: center;
 }
-.led .tiempo-transcurrido {
-    line-height: 1;
-    color: var(--text-dark); /* Texto oscuro para mejor contraste en LED encendido */
-    text-shadow: none;
-}
-.led.on .tarima-id {
+.led .tarima-id {
     color: var(--text-dark);
     text-shadow: none;
-    font-size: 18px;
+    font-size: 16px; /* Ajustado */
     font-weight: 700;
 }
+.led .tiempo-transcurrido {
+    color: var(--text-dark);
+    text-shadow: none;
+}
+/* Estilos cuando hay ID y tiempo */
+.led .tarima-id + .tiempo-transcurrido {
+    margin-top: 3px;
+}
+.led .tarima-id + .tiempo-transcurrido b {
+    font-size: 14px;
+}
+.led .tarima-id + .tiempo-transcurrido small {
+    font-size: 8px;
+    display: block;
+}
+/* Estilos cuando solo hay tiempo */
 .led .tiempo-transcurrido b {
     font-size: 18px;
     font-weight: 700;
@@ -376,6 +388,7 @@ html, body {
     font-weight: 600;
     text-transform: uppercase;
 }
+
 .led.naranja {
   background: radial-gradient(circle at 48% 45%, #FBBF24 40%, var(--accent-orange) 100%);
   box-shadow: 0 0 22px var(--glow-orange);
@@ -1598,7 +1611,6 @@ function pintarEstado() {
             const linea = contenedor.dataset.linea;
             const ledsEstado = estados[grupoLeds]?.[linea] || {};
             contenedor.querySelectorAll('.led').forEach((led, index) => {
-                // Limpieza inicial
                 led.className = 'led';
                 led.innerHTML = '';
                 led.removeAttribute('data-hora-encendido');
@@ -1607,7 +1619,6 @@ function pintarEstado() {
                 if (estado) {
                     let tarimaIdDisplay = "";
                     if (estado.tarimaId) {
-                        // MODIFICADO: Muestra el ID de la tarima si existe (para Multiport o el nuevo de Drops/Bedrock)
                         tarimaIdDisplay = String(estado.tarimaId).replace('Tarima ', '').replace('TAR-', '');
                     }
 
@@ -1616,35 +1627,37 @@ function pintarEstado() {
                         if (tarimaIdDisplay) led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span>`;
                     } else if (estado.encendido) {
                         led.classList.add('on');
-                        if (esGrupoDeTarimas(grupoLeds)) { // Es MULTIPORT, muestra ID
-                            if (tarimaIdDisplay) led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span>`;
-                        } else { // Es BEDROCK o DROPS, muestra ID si existe, si no, el contador
-                            if (tarimaIdDisplay) {
-                                led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span>`;
-                            } else if (estado.horaEncendido) {
-                                led.dataset.horaEncendido = estado.horaEncendido;
-                                const tiempoTranscurridoMs = new Date() - new Date(estado.horaEncendido);
-                                const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / 60000);
-                                led.innerHTML = `<span class="tiempo-transcurrido"><b>${minutosTranscurridos}</b><small>min</small></span>`;
-                            }
+                        led.dataset.horaEncendido = estado.horaEncendido;
+                        
+                        // --- MODIFICADO: Lógica de visualización del LED ---
+                        if (esGrupoDeTarimas(grupoLeds)) { 
+                            // MULTIPORT: Muestra ID y un espacio para el timer
+                            led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span><span class="tiempo-transcurrido"></span>`;
+                        } else { 
+                            // DROPS & BEDROCK: Muestra solo el espacio para el timer
+                            led.innerHTML = `<span class="tiempo-transcurrido"></span>`;
                         }
                     }
                 }
             });
         });
+        // Una vez pintado el estado inicial, actualizamos los contadores
+        actualizarTodosLosContadores();
     });
 }
 
 
-// NUEVA FUNCIÓN para actualizar los contadores de tiempo
+// --- MODIFICADO: Función para actualizar contadores de tiempo ---
 function actualizarTodosLosContadores() {
     document.querySelectorAll('.led.on[data-hora-encendido]').forEach(led => {
         const horaEncendido = led.dataset.horaEncendido;
-        // Solo actualiza el contador si no tiene un ID de tarima (para no sobreescribirlo)
-        if (horaEncendido && !led.querySelector('.tarima-id')) {
+        if (horaEncendido) {
             const tiempoTranscurridoMs = new Date() - new Date(horaEncendido);
             const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / 60000);
-            led.innerHTML = `<span class="tiempo-transcurrido"><b>${minutosTranscurridos}</b><small>min</small></span>`;
+            const timerSpan = led.querySelector('.tiempo-transcurrido');
+            if (timerSpan) {
+                timerSpan.innerHTML = `<b>${minutosTranscurridos}</b><small>min</small>`;
+            }
         }
     });
 }
@@ -1752,12 +1765,11 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
         else if (CONFIG.PRODUCCION_GRUPOS.includes(usuarioActual) && grupo === usuarioActual) {
-            // --- MODIFICADO: Lógica para encender LED en Drops y Bedrock ---
+            // Lógica para encender LED en Drops y Bedrock
             if (!estadoActual.encendido) {
                 if (await mostrarConfirmacion(`¿Encender LED para solicitar recolección?`)) {
                     const horaEncendido = new Date().toISOString();
 
-                    // 1. Contar tarimas existentes para este grupo en este turno
                     const logsRef = db.ref(`historialLogs/${fecha}/${turno}`);
                     const query = logsRef.orderByChild('grupo').equalTo(grupo);
                     const snapshot = await query.once('value');
@@ -1769,14 +1781,12 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                     });
                     const nuevoIdentificador = `Tarima ${count + 1}`;
 
-                    // 2. Guardar el nuevo identificador en el estado del LED
                     ledRef.set({ encendido: true, horaEncendido, tarimaId: nuevoIdentificador });
 
-                    // 3. Guardar en el log
                     db.ref(`historialLogs/${fecha}/${turno}`).push({ 
                         accion: 'led_encendido', 
-                        led: ledIdentifier, // ID técnico
-                        tarimaId: nuevoIdentificador, // ID visible para el usuario
+                        led: ledIdentifier, 
+                        tarimaId: nuevoIdentificador, 
                         grupo, 
                         usuario: usuarioActual, 
                         timestamp: horaEncendido, 
@@ -1789,7 +1799,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
             }
         }
         else if (usuarioActual === 'LOGÍSTICA') {
-             // --- MODIFICADO: Lógica para recolectar en Drops y Bedrock ---
+             // Lógica para recolectar en Drops y Bedrock
              if (estadoActual.encendido) {
                 const nombreTarima = estadoActual.tarimaId || `LED ${grupo}-${idx + 1}`;
                 if (!(await mostrarConfirmacion(`¿Confirmas la recolección de ${nombreTarima}?`))) return;
@@ -1803,7 +1813,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                     grupo, 
                     accion: 'recolectada', 
                     led: ledIdentifier,
-                    tarimaId: estadoActual.tarimaId, // Guardamos el nombre "Tarima X"
+                    tarimaId: estadoActual.tarimaId,
                     timestamp: horaApagado, 
                     horaEncendido, 
                     horaApagado, 
