@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -971,7 +971,6 @@ html, body {
             <button class="usuario-btn btn-management" onclick="seleccionarUsuario('SUPERVISOR')">SUPERVISOR</button>
             <button class="usuario-btn btn-management" onclick="seleccionarDashboard()">DASHBOARD</button>
             <button class="usuario-btn btn-management" onclick="seleccionarReporte()">REPORTES</button>
-            <button class="usuario-btn btn-management" onclick="seleccionarAjustes()">AJUSTES</button>
         </div>
     </div>
 </section>
@@ -1051,12 +1050,14 @@ html, body {
     <h1 id="tituloReportes">REPORTES</h1>
 </header>
 <div class="zona-centro">
-    <h2 class="titulo-selector-reporte" style="text-align: center; color: var(--text-dark); margin-bottom: 20px;">Selecciona un reporte</h2>
-    <div id="selectoresReportes" class="btn-contenedor">
-        <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
-        <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
-        <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
-        <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
+    <div id="contenedorSelectorReporte" style="text-align: center;">
+        <h2 class="titulo-selector-reporte" style="text-align: center; color: var(--text-dark); margin-bottom: 20px;">Selecciona un reporte</h2>
+        <div id="selectoresReportes" class="btn-contenedor">
+            <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
+            <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
+            <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
+            <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
+        </div>
     </div>
     <div id="contenedorReporte" class="contenedor-reporte" style="display: none;">
         </div>
@@ -1308,7 +1309,6 @@ let datosFiltradosReporte = null;
 let miGrafico;
 let graficosDashboard = {};
 let dashboardUpdateInterval;
-// --- NUEVO: Variable para contraseñas dinámicas ---
 let appPasswords = { ...CONFIG.PASSWORDS };
 
 // ================= FIREBASE =================
@@ -1326,12 +1326,7 @@ const database = firebase.database();
 const db = database; 
 const ledRef = database.ref('estadoLEDs');
 let historialRef;
-let contadoresCalidadRef;
-let rechazosDetalladosRef;
 let dashboardListeners = [];
-
-window.database = window.database || firebase.database();
-window.__usuarioActual = null;
 
 (function compatSeleccionarUsuario(){
   const legacy = window.seleccionarUsuario;
@@ -1413,8 +1408,214 @@ function mostrarPromptContraseña(mensaje, titulo = "Acceso Requerido") {
 }
 
 
-// ================= Panel de Identificación de Tarimas (sin cambios) =================
-// ... (Toda la lógica de MT se mantiene igual)
+// ================= Panel de Identificación de Tarimas =================
+const MT = {
+  ui: {
+    panel:    document.getElementById('mtPanel'),
+    openBtn: document.getElementById('mtOpenBtn'),
+    closeBtn:document.getElementById('mtCloseBtn'),
+    bxInput: document.getElementById('bxInput'),
+    buscarBtn: document.getElementById('buscarTarimaBtn'),
+    infoBox: document.getElementById('tarimaInfo'),
+    pendientesPanel: document.getElementById('tarimasPendientesPanel'),
+    fields: { id: document.getElementById('tarimaId'), empleado: document.getElementById('empleado'), turno: document.getElementById('turno'), totalCajas: document.getElementById('totalCajas'), totalPiezas: document.getElementById('totalPiezas'), listaCajas: document.getElementById('listaCajas') },
+    asignacion: { wrap: document.getElementById('ledAssignment'), select: document.getElementById('ledSelect'), btn: document.getElementById('asignarLedBtn') }
+  },
+  state: { tarimaActual: null }
+};
+
+if (MT.ui.openBtn) MT.ui.openBtn.addEventListener('click', () => {
+    MT.ui.panel.classList.add('open');
+    if(usuarioSeleccionado && usuarioSeleccionado.startsWith('CALIDAD_')) {
+        MT.ui.pendientesPanel.style.display = 'block';
+        MT.ui.infoBox.style.display = 'none';
+        MT.ui.bxInput.value = '';
+        renderTarimasPendientes();
+    }
+});
+if (MT.ui.closeBtn) MT.ui.closeBtn.addEventListener('click', () => MT.ui.panel.classList.remove('open'));
+if (MT.ui.buscarBtn) MT.ui.buscarBtn.addEventListener('click', () => { const bx = (MT.ui.bxInput.value || '').trim(); if (bx) buscarTarimaPorBX(bx); });
+if (MT.ui.bxInput) MT.ui.bxInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') MT.ui.buscarBtn.click(); });
+
+function buscarTarimaPorBX(bxCode) {
+  database.ref('tarimas').once('value').then(snapshot => {
+    let encontrada = null;
+    snapshot.forEach(tSnap => {
+      const t = tSnap.val() || {};
+      const cajas = t.cajas || {};
+      for (const key in cajas) {
+        if (cajas[key] && cajas[key].codigoCaja === bxCode) {
+          encontrada = { id: t.id || tSnap.key, ...t };
+          break;
+        }
+      }
+      if (encontrada) return true;
+    });
+
+    if (!encontrada) {
+      MT.ui.infoBox.style.display = 'none';
+      mostrarAlerta('No se encontró ninguna tarima con ese código BX.');
+      return;
+    }
+    
+    MT.state.tarimaActual = normalizarTarima(encontrada);
+    renderTarimaEncontrada(MT.state.tarimaActual);
+    MT.ui.pendientesPanel.style.display = 'none';
+
+  }).catch(err => {
+    console.error('Error buscando tarima:', err);
+    mostrarAlerta('Error al buscar la tarima. Reintenta.');
+  });
+}
+
+function normalizarTarima(t) {
+  const out = {
+    id: t.id || 'N/D',
+    empleadoId: t.empleadoId || 'N/D',
+    turno: t.turno || 'N/D',
+    cajas: []
+  };
+  
+  const cajasObj = t.cajas || {};
+  for (const key in cajasObj) {
+    const caja = cajasObj[key];
+    if (caja && caja.codigoCaja) {
+      out.cajas.push({
+        id: key,
+        codigoCaja: caja.codigoCaja,
+        cantidadPiezas: Number(caja.cantidadPiezas || 0)
+      });
+    }
+  }
+  
+  out.totalCajas = out.cajas.length;
+  out.totalPiezas = out.cajas.reduce((sum, caja) => sum + caja.cantidadPiezas, 0);
+  
+  return out;
+}
+
+function cargarLedsDisponibles() {
+    const sel = MT.ui.asignacion.select;
+    const grupoCalidad = usuarioSeleccionado;
+    if (!grupoCalidad || !grupoCalidad.startsWith('CALIDAD_')) return;
+    db.ref(`estadoLEDs/${grupoCalidad}/linea1`).on('value', snap => {
+        sel.innerHTML = '<option value="">Seleccione un LED...</option>';
+        const ledsEstado = snap.val() || {};
+        const totalLeds = CONFIG.LEDS_POR_GRUPO[grupoCalidad] || 5;
+        for (let i = 0; i < totalLeds; i++) {
+            if (!ledsEstado[i]?.tarimaId) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `LED ${i+1}`;
+                sel.appendChild(opt);
+            }
+        }
+    });
+}
+
+function renderTarimasPendientes() {
+    const lista = document.getElementById('listaTarimasPendientes');
+    lista.innerHTML = '<li>Cargando...</li>';
+    db.ref('tarimas').orderByChild('estado').equalTo('pendiente').once('value').then(snap => {
+        if (!snap.exists()) {
+            lista.innerHTML = '<li>No hay tarimas pendientes.</li>';
+            return;
+        }
+
+        const tarimasPendientes = [];
+        snap.forEach(tSnap => {
+            tarimasPendientes.push(tSnap.val());
+        });
+        
+        lista.innerHTML = '';
+        if (tarimasPendientes.length === 0) {
+            lista.innerHTML = '<li>No hay tarimas pendientes.</li>';
+        } else {
+            tarimasPendientes.forEach(t => {
+                const li = document.createElement('li');
+                li.textContent = `Tarima #${t.id}`;
+                li.style.cursor = "pointer";
+                li.onclick = () => {
+                    const primerBx = t.cajas ? Object.values(t.cajas)[0]?.codigoCaja : null;
+                    if (primerBx) {
+                        MT.ui.bxInput.value = primerBx;
+                        buscarTarimaPorBX(primerBx);
+                    } else {
+                        mostrarAlerta('Esta tarima no tiene cajas registradas.');
+                    }
+                };
+                lista.appendChild(li);
+            });
+        }
+    });
+}
+
+
+db.ref('tarimas').on('child_changed', renderTarimasPendientes);
+db.ref('tarimas').on('child_added', renderTarimasPendientes);
+db.ref('tarimas').on('child_removed', renderTarimasPendientes);
+
+async function asignarLedATarima(ledIndex, tarimaId) {
+    const grupo = usuarioSeleccionado;
+    if (!grupo || !tarimaId || ledIndex === null) return mostrarAlerta('Datos incompletos para asignar.');
+    const ledId = `${grupo}-linea1-${ledIndex}`;
+
+    const tarimaSnap = await db.ref(`tarimas/${tarimaId}`).once('value');
+    const tarimaData = tarimaSnap.val();
+
+    if (tarimaData && tarimaData.estado !== 'pendiente') {
+         return mostrarAlerta(`Error: La tarima ${tarimaId} ya ha sido procesada por calidad.`);
+    }
+
+    const ledEstadoRef = db.ref(`estadoLEDs/${grupo}/linea1/${ledIndex}`);
+    try {
+        await ledEstadoRef.set({
+            color: 'naranja',
+            tarimaId: tarimaId,
+            usuario: usuarioSeleccionado,
+            timestamp: new Date().toISOString()
+        });
+        
+        await db.ref(`tarimas/${tarimaId}`).update({ estado: 'en_inspeccion', asignadaA: usuarioSeleccionado });
+        
+        await mostrarAlerta(`✅ Tarima ${tarimaId} asignada al LED ${parseInt(ledIndex) + 1} para inspección.`);
+        MT.ui.panel.classList.remove('open');
+        MT.ui.infoBox.style.display = 'none';
+        MT.ui.bxInput.value = '';
+    } catch (err) {
+        console.error('Error asignando LED:', err);
+        await mostrarAlerta('No se pudo asignar el LED.');
+    }
+}
+
+
+function renderTarimaEncontrada(tarima) {
+  MT.ui.fields.id.textContent = tarima.id;
+  MT.ui.fields.empleado.textContent = tarima.empleadoId;
+  MT.ui.fields.turno.textContent = tarima.turno;
+  MT.ui.fields.totalCajas.textContent = tarima.totalCajas;
+  MT.ui.fields.totalPiezas.textContent = tarima.totalPiezas;
+
+  MT.ui.fields.listaCajas.innerHTML = '';
+  tarima.cajas.forEach(c => {
+    const li = document.createElement('li');
+    li.textContent = `${c.codigoCaja}  |  ${c.cantidadPiezas} pz`;
+    MT.ui.fields.listaCajas.appendChild(li);
+  });
+
+  const isCalidad = (window.__usuarioActual || '').startsWith('CALIDAD');
+  MT.ui.asignacion.wrap.style.display = isCalidad ? 'block' : 'none';
+
+  if (isCalidad) {
+    cargarLedsDisponibles();
+    MT.ui.asignacion.btn.onclick = () => {
+      const ledIndex = MT.ui.asignacion.select.value;
+      if (ledIndex === '' || !tarima.id) return;
+      asignarLedATarima(ledIndex, tarima.id);
+    };
+  }
+  MT.ui.infoBox.style.display = 'block';
+}
 
 // ================= FUNCIONES DE RENDER Y VISIBILIDAD =================
 function inyectaLEDs(){
@@ -1475,12 +1676,9 @@ function pintarEstado() {
                         led.classList.add('on');
                         led.dataset.horaEncendido = estado.horaEncendido;
                         
-                        // --- MODIFICADO: Lógica de visualización del LED ---
                         if (esGrupoDeTarimas(grupoLeds)) { 
-                            // MULTIPORT: Muestra ID y un espacio para el timer
                             led.innerHTML = `<span class="tarima-id">${tarimaIdDisplay}</span><span class="tiempo-transcurrido"></span>`;
                         } else { 
-                            // DROPS & BEDROCK: Muestra solo el espacio para el timer
                             led.innerHTML = `<span class="tiempo-transcurrido"></span>`;
                         }
                     }
