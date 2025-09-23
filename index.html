@@ -46,10 +46,10 @@
 
   /* Tipografía */
   --font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  --titulo-size: clamp(36px, 6vw, 72px);
+  --titulo-size: clamp(28px, 5vw, 48px); /* MODIFICADO */
 
   /* Otros */
-  --border-radius-md: 16px; /* Aumentamos el radio para un look más moderno */
+  --border-radius-md: 16px;
   --border-radius-sm: 10px;
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
@@ -63,7 +63,6 @@ html, body {
   font-family: var(--font-family);
   color: var(--text-light);
   background-color: var(--bg-dark);
-  /* Fondo degradado para que el efecto glass se aprecie mejor */
   background-image: 
     radial-gradient(at 47% 33%, hsl(225, 39%, 30%) 0, transparent 59%), 
     radial-gradient(at 82% 65%, hsl(253, 16%, 7%) 0, transparent 55%);
@@ -109,10 +108,9 @@ html, body {
   border-radius: 25px;
   margin: 20px 0;
   padding: 15px;
-  /* Efecto Glassmorphism */
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px); /* Para Safari */
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
@@ -171,9 +169,8 @@ html, body {
   gap: 16px;
   max-width: 800px;
 }
-/* === BOTÓN ESTILO GLASS === */
 .usuario-btn {
-  background: rgba(59, 130, 246, 0.25); /* Color base con transparencia */
+  background: rgba(59, 130, 246, 0.25);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: var(--text-light);
@@ -187,16 +184,15 @@ html, body {
   box-shadow: var(--shadow-md);
 }
 .usuario-btn:hover {
-  background: rgba(59, 130, 246, 0.4); /* Aumentar opacidad en hover */
+  background: rgba(59, 130, 246, 0.4);
   transform: translateY(-2px);
   box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
 }
 .btn-rojo { background: rgba(239, 68, 68, 0.25); }
 .btn-rojo:hover { background: rgba(239, 68, 68, 0.4); }
 
-/* === Botones de Administración/Reportes === */
 .usuario-btn.btn-management {
-  background: rgba(107, 114, 128, 0.25); /* Equivalente a --bg-light con transparencia */
+  background: rgba(107, 114, 128, 0.25);
   border-color: rgba(107, 114, 128, 0.4);
 }
 .usuario-btn.btn-management:hover {
@@ -209,7 +205,7 @@ html, body {
 .header {
   position: relative;
   display: flex;
-  flex-direction: column; /* MODIFICADO */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 0 10px;
@@ -221,37 +217,33 @@ html, body {
   font-size: var(--titulo-size);
   color: var(--text-light);
 }
-/* INICIO: Estilos de #turnoActual MODIFICADOS */
 #turnoActual {
-  font-size: 0.9rem;
+  font-size: 0.8rem; /* MODIFICADO */
   font-weight: 600;
-  padding: 4px 12px;
+  padding: 3px 10px; /* MODIFICADO */
   border-radius: var(--border-radius-sm);
   margin-top: 4px;
-  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
-/* FIN: Estilos de #turnoActual MODIFICADOS */
 .zona-centro {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 15px; /* Reducido */
-  margin-top: 15px; /* Reducido */
+  gap: 15px;
+  margin-top: 15px;
 }
-/* INICIO: Estilos de Resumen Turno MODIFICADOS */
 .resumen-turno {
   display: flex;
   justify-content: center;
   gap: 25px;
   padding: 12px 20px;
   width: 100%;
-  max-width: 500px; /* Reducido */
+  max-width: 500px;
   border-radius: var(--border-radius-md);
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
@@ -259,7 +251,6 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .resumen-turno.oculto { display: none; }
-.dato-resumen { text-align: center; }
 .dato-resumen .etiqueta {
   font-size: 12px;
   color: var(--text-medium);
@@ -272,38 +263,39 @@ html, body {
   font-weight: 700;
   color: var(--text-light);
 }
-/* FIN: Estilos de Resumen Turno MODIFICADOS */
+/* INICIO: Filtro Supervisor MODIFICADO */
 .filtro-supervisor-container {
     display: none;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     margin-bottom: 15px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: var(--border-radius-md);
     background: rgba(31, 41, 55, 0.5);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    max-width: 350px;
+    max-width: 320px;
 }
 .filtro-supervisor-container.visible {
     display: flex;
 }
 .filtro-supervisor-container label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-medium);
 }
 .filtro-supervisor-container select {
-    padding: 6px 10px;
+    padding: 5px 8px;
     border-radius: var(--border-radius-sm);
     background-color: rgba(17, 24, 39, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-light);
     font-family: var(--font-family);
-    font-size: 14px;
+    font-size: 13px;
 }
+/* FIN: Filtro Supervisor MODIFICADO */
 .filtro-supervisor-container select:focus {
     outline: none;
     border-color: var(--accent-blue);
@@ -1357,28 +1349,6 @@ const ledRef = database.ref('estadoLEDs');
 let historialRef;
 let dashboardListeners = [];
 
-(function compatSeleccionarUsuario(){
-  const legacy = window.seleccionarUsuario;
-  window._seleccionarUsuarioOriginal = (typeof legacy === 'function') ? legacy : null;
-  window.seleccionarUsuario = function(usuarioClave) {
-    try {
-      const usuario = String(usuarioClave || '').toUpperCase();
-      window.__usuarioActual = usuario;
-      const isDark = usuario.startsWith('CALIDAD') || CONFIG.PRODUCCION_GRUPOS.includes(usuario);
-      document.body.classList.toggle('theme-dark', isDark);
-      
-      const fab = document.getElementById('mtOpenBtn');
-      if (fab) {
-          const canSeeFab = ['LOGÍSTICA', 'MULTIPORT', 'CALIDAD_MULTIPORT'].includes(usuario);
-          fab.style.display = canSeeFab ? 'block' : 'none';
-      }
-
-      if (window._seleccionarUsuarioOriginal) return window._seleccionarUsuarioOriginal(usuarioClave);
-      console.info('[Compat] seleccionarUsuario activo. Usuario:', usuario);
-    } catch (e) { console.error('Error en seleccionarUsuario compat:', e); }
-  };
-})();
-
 // ================= MODALES PERSONALIZADOS =================
 const modalAlerta = document.getElementById('modalAlerta');
 const modalConfirmacion = document.getElementById('modalConfirmacion');
@@ -1633,7 +1603,7 @@ function renderTarimaEncontrada(tarima) {
     MT.ui.fields.listaCajas.appendChild(li);
   });
 
-  const isCalidad = (window.__usuarioActual || '').startsWith('CALIDAD');
+  const isCalidad = (usuarioSeleccionado || '').startsWith('CALIDAD');
   MT.ui.asignacion.wrap.style.display = isCalidad ? 'block' : 'none';
 
   if (isCalidad) {
@@ -2060,19 +2030,31 @@ function aplicarFiltroSupervisor() {
         }
     });
 }
+// INICIO: Función seleccionarUsuario MODIFICADA Y CORREGIDA
 async function seleccionarUsuario(usuario) {
     const password = await mostrarPromptContraseña(`Introduce la contraseña para ${usuario}`);
-    if (password === null) return;
+    if (password === null) return; 
+
     let targetUser = usuario;
     let isValid = false;
+
     if (usuario === 'CALIDAD') {
         if (password === appPasswords.CALIDAD_MULTIPORT) { targetUser = 'CALIDAD_MULTIPORT'; isValid = true; }
         else if (password === appPasswords.CALIDAD_DROPS) { targetUser = 'CALIDAD_DROPS'; isValid = true; }
         else if (password === appPasswords.CALIDAD_BEDROCK) { targetUser = 'CALIDAD_BEDROCK'; isValid = true; }
-    } else { isValid = password === appPasswords[usuario]; }
+    } else {
+        isValid = password === appPasswords[usuario];
+    }
+
     if (isValid) {
         usuarioSeleccionado = targetUser;
-        window.seleccionarUsuario(targetUser); // Llama al wrapper para la lógica del botón
+        
+        const fab = document.getElementById('mtOpenBtn');
+        if (fab) {
+            const canSeeFab = ['LOGÍSTICA', 'MULTIPORT', 'CALIDAD_MULTIPORT'].includes(targetUser);
+            fab.style.display = canSeeFab ? 'block' : 'none';
+        }
+        
         document.getElementById('tituloFijo').textContent = targetUser.replace('_', ' ');
 
         const filtroContainer = document.getElementById('filtro-supervisor-container');
@@ -2092,8 +2074,11 @@ async function seleccionarUsuario(usuario) {
 
         pintarEstado();
         iniciarListenersFirebase();
-    } else { await mostrarAlerta('Contraseña incorrecta.'); }
+    } else {
+        await mostrarAlerta('Contraseña incorrecta.');
+    }
 }
+// FIN: Función seleccionarUsuario MODIFICADA Y CORREGIDA
 async function seleccionarReporte() { const password = await mostrarPromptContraseña('Introduce la contraseña para REPORTES'); if (password === appPasswords.REPORTES) { activarPantalla('pantalla3'); regresarASelectores(); } else if (password !== null) { await mostrarAlerta('Contraseña incorrecta.'); } }
 async function seleccionarDashboard() { const password = await mostrarPromptContraseña('Introduce la contraseña para DASHBOARD'); if (password === appPasswords.DASHBOARD) { activarPantalla('pantalla4'); iniciarDashboard(); } else if (password !== null) { await mostrarAlerta('Contraseña incorrecta.'); } }
 async function seleccionarAjustes() { const password = await mostrarPromptContraseña('Introduce la contraseña de SUPERVISOR'); if (password === appPasswords.SUPERVISOR) { mostrarPantallaAjustes(); } else if (password !== null) { await mostrarAlerta('Contraseña incorrecta.'); } }
