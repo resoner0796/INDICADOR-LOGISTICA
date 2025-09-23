@@ -1694,18 +1694,34 @@ function pintarEstado() {
 function actualizarTodosLosContadores() {
     document.querySelectorAll('.led.on[data-hora-encendido]').forEach(led => {
         const horaEncendido = led.dataset.horaEncendido;
-        if (horaEncendido) {
-            // INICIO: Usar tiempo sincronizado
-            const tiempoTranscurridoMs = getSyncedTime().getTime() - horaEncendido;
-            // FIN: Usar tiempo sincronizado
-            const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / 60000);
-            const timerSpan = led.querySelector('.tiempo-transcurrido');
-            if (timerSpan) {
-                timerSpan.innerHTML = `<b>${minutosTranscurridos}</b><small>min</small>`;
-            }
+        const timerSpan = led.querySelector('.tiempo-transcurrido');
+
+        if (!timerSpan) return; // Si no hay donde mostrar el tiempo, salimos
+
+        // --- INICIO DE LA CORRECCIÓN ---
+
+        // 1. Verificamos que tengamos una hora de encendido válida y numérica.
+        if (!horaEncendido || isNaN(horaEncendido) || Number(horaEncendido) === 0) {
+            timerSpan.innerHTML = `<b>0</b><small>min</small>`;
+            return;
         }
+
+        const tiempoTranscurridoMs = getSyncedTime().getTime() - Number(horaEncendido);
+
+        // 2. Si por la latencia el resultado es negativo, lo forzamos a 0.
+        if (tiempoTranscurridoMs < 0) {
+            timerSpan.innerHTML = `<b>0</b><small>min</small>`;
+            return;
+        }
+
+        const minutosTranscurridos = Math.floor(tiempoTranscurridoMs / 60000);
+
+        timerSpan.innerHTML = `<b>${minutosTranscurridos}</b><small>min</small>`;
+
+        // --- FIN DE LA CORRECCIÓN ---
     });
 }
+
 
 // ================= LÓGICA DE INTERACCIÓN PRINCIPAL (togglearLED) =================
 function esGrupoDeTarimas(grupo) {
