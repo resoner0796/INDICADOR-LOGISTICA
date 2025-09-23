@@ -241,19 +241,18 @@ html, body {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 24px;
-  margin-top: 20px;
+  gap: 15px; /* Reducido */
+  margin-top: 15px; /* Reducido */
 }
-/* === CARD ESTILO GLASS === */
+/* INICIO: Estilos de Resumen Turno MODIFICADOS */
 .resumen-turno {
   display: flex;
   justify-content: center;
-  gap: 40px;
-  padding: 20px 40px;
+  gap: 25px;
+  padding: 12px 20px;
   width: 100%;
-  max-width: 700px;
+  max-width: 500px; /* Reducido */
   border-radius: var(--border-radius-md);
-  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -262,25 +261,25 @@ html, body {
 .resumen-turno.oculto { display: none; }
 .dato-resumen { text-align: center; }
 .dato-resumen .etiqueta {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-medium);
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   font-weight: 600;
 }
 .dato-resumen .valor {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text-light);
 }
-/* INICIO: Estilos del Filtro Supervisor MODIFICADOS */
+/* FIN: Estilos de Resumen Turno MODIFICADOS */
 .filtro-supervisor-container {
-    display: none; /* Oculto por defecto */
+    display: none;
     justify-content: center;
     gap: 10px;
     align-items: center;
     margin-bottom: 15px;
-    padding: 8px 12px; /* Reducido */
+    padding: 8px 12px;
     border-radius: var(--border-radius-md);
     background: rgba(31, 41, 55, 0.5);
     backdrop-filter: blur(12px);
@@ -292,20 +291,19 @@ html, body {
     display: flex;
 }
 .filtro-supervisor-container label {
-    font-size: 14px; /* Reducido */
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-medium);
 }
 .filtro-supervisor-container select {
-    padding: 6px 10px; /* Reducido */
+    padding: 6px 10px;
     border-radius: var(--border-radius-sm);
     background-color: rgba(17, 24, 39, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-light);
     font-family: var(--font-family);
-    font-size: 14px; /* Reducido */
+    font-size: 14px;
 }
-/* FIN: Estilos del Filtro Supervisor MODIFICADOS */
 .filtro-supervisor-container select:focus {
     outline: none;
     border-color: var(--accent-blue);
@@ -319,7 +317,6 @@ html, body {
   max-width: 1400px;
   justify-content: center;
 }
-/* === CARD CON FONDO DE PANEL LED === */
 .grupo {
   display: flex;
   flex-direction: column;
@@ -331,11 +328,9 @@ html, body {
   min-width: 300px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border-radius: var(--border-radius-md);
-  
   background-color: #18181a;
   background-image: radial-gradient(circle at center, rgba(0,0,0,0.4) 2px, transparent 3px);
   background-size: 12px 12px;
-  
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
 }
@@ -361,7 +356,6 @@ html, body {
   align-items: center;
   margin-bottom: 10px;
 }
-/* === MEJORA LED === */
 .led {
   width: var(--led-size);
   height: var(--led-size);
@@ -387,8 +381,6 @@ html, body {
   border-color: var(--accent-green);
   animation: blink var(--blink-duration) ease-in-out infinite;
 }
-
-/* --- ESTILOS PARA EL CONTENIDO DEL LED --- */
 .led span {
     line-height: 1;
     text-align: center;
@@ -396,14 +388,13 @@ html, body {
 .led .tarima-id {
     color: var(--text-dark);
     text-shadow: none;
-    font-size: 16px; /* Ajustado */
+    font-size: 16px;
     font-weight: 700;
 }
 .led .tiempo-transcurrido {
     color: var(--text-dark);
     text-shadow: none;
 }
-/* Estilos cuando hay ID y tiempo */
 .led .tarima-id + .tiempo-transcurrido {
     margin-top: 3px;
 }
@@ -414,7 +405,6 @@ html, body {
     font-size: 8px;
     display: block;
 }
-/* Estilos cuando solo hay tiempo */
 .led .tiempo-transcurrido b {
     font-size: 18px;
     font-weight: 700;
@@ -425,7 +415,6 @@ html, body {
     font-weight: 600;
     text-transform: uppercase;
 }
-
 .led.naranja {
   background: radial-gradient(circle at 48% 45%, #FBBF24 40%, var(--accent-orange) 100%);
   box-shadow: 0 0 22px var(--glow-orange);
@@ -490,7 +479,7 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* Fondo del overlay */
+  background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   display: flex;
@@ -505,7 +494,6 @@ html, body {
     visibility: visible; 
     opacity: 1; 
 }
-/* === MODAL ESTILO GLASS === */
 .modal-content, .custom-modal {
   padding: 30px;
   text-align: center;
@@ -513,8 +501,7 @@ html, body {
   max-width: 500px;
   box-shadow: var(--shadow-lg);
   border-radius: var(--border-radius-md);
-  /* Efecto Glass */
-  background: rgba(31, 41, 55, 0.7); /* Mayor opacidad para legibilidad */
+  background: rgba(31, 41, 55, 0.7);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -532,7 +519,6 @@ html, body {
   margin-bottom: 25px;
 }
 
-/* Modal Calidad */
 #modalCalidad .opciones {
   display: flex;
   flex-direction: column;
@@ -558,7 +544,7 @@ html, body {
 #modalCalidad .opcion-btn[data-color="verde"]:hover { background: rgba(16, 185, 129, 0.5); }
 
 #modalCalidad .cerrar-btn {
-  background: rgba(55, 65, 81, 0.4); /* --bg-light con transparencia */
+  background: rgba(55, 65, 81, 0.4);
   color: var(--text-light);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 10px 20px;
@@ -569,7 +555,6 @@ html, body {
 }
 #modalCalidad .cerrar-btn:hover { background: rgba(75, 85, 99, 0.6); }
 
-/* Modal de Rechazo y otros con inputs */
 #modalRechazo .modal-content, #modalAsignarTarimaProduccion .modal-content, #pantalla5 .modal-content {
   text-align: left;
   max-height: 85vh;  
@@ -577,7 +562,6 @@ html, body {
 }
 #modalRechazo form, #modalAsignarTarimaProduccion, #formAjustes { display: flex; flex-direction: column; gap: 15px; }
 #modalRechazo label, #modalAsignarTarimaProduccion label, #formAjustes label { font-size: 14px; margin-bottom: 5px; display: block; color: var(--text-medium); }
-/* === INPUTS ESTILO GLASS === */
 #modalRechazo input, #modalRechazo textarea, #modalAsignarTarimaProduccion select, #contraseñaInput, #formAjustes input {
   width: 100%;
   padding: 12px;
@@ -585,8 +569,7 @@ html, body {
   color: var(--text-light);
   font-size: 16px;
   font-family: var(--font-family);
-  /* Efecto Glass */
-  background: rgba(17, 24, 39, 0.5); /* --bg-dark con transparencia */
+  background: rgba(17, 24, 39, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 #modalRechazo input:focus, #modalRechazo textarea:focus, #modalAsignarTarimaProduccion select:focus, #contraseñaInput:focus, #formAjustes input:focus {
@@ -596,7 +579,6 @@ html, body {
 }
 #modalRechazo textarea { resize: vertical; min-height: 80px; }
 
-/* ---- MODALES GENÉRICOS ---- */
 .custom-modal p {
   font-size: 16px;
   color: var(--text-medium);
@@ -625,7 +607,6 @@ html, body {
 /* ================= PANTALLA 3: REPORTES (TEMA CLARO) ================= */
 #pantalla3 {
   background-color: #f4f7f9;
-  /* Fondo degradado suave para tema claro */
   background-image: 
     radial-gradient(at 0% 0%, hsla(210, 40%, 98%, 1) 0, transparent 50%),
     radial-gradient(at 50% 100%, hsla(200, 50%, 90%, 1) 0, transparent 50%);
@@ -639,7 +620,6 @@ html, body {
 #pantalla3 .header h1,
 #pantalla3 .header-reporte h2,
 #pantalla3 .titulo-selector-reporte { color: var(--text-dark); }
-/* === CARD ESTILO GLASS (TEMA CLARO) === */
 #pantalla3 .contenedor-reporte {
   box-shadow: var(--shadow-lg);
   color: var(--text-dark);
@@ -648,7 +628,6 @@ html, body {
   max-width: 1400px;
   margin-top: 20px;
   border-radius: var(--border-radius-md);
-  /* Efecto Glass */
   background-color: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -673,7 +652,7 @@ html, body {
 #pantalla3 .header-reporte .filtros select {
   padding: 8px;
   border-radius: var(--border-radius-sm);
-  background-color: rgba(255, 255, 255, 0.5); /* Sutilmente transparente */
+  background-color: rgba(255, 255, 255, 0.5);
   color: var(--text-dark);
   border: 1px solid #cbd5e1;
   font-size: 14px;
@@ -685,7 +664,6 @@ html, body {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   outline: none;
 }
-/* Estilo de botones para tema claro */
 #pantalla3 .usuario-btn {
     color: var(--text-dark);
     background: rgba(59, 130, 246, 0.15);
@@ -730,10 +708,10 @@ html, body {
   padding: 12px;
   text-align: left;
   font-size: 0.9em;
-  vertical-align: top; /* Para alinear bien la lista de trazabilidad */
+  vertical-align: top;
 }
 #pantalla3 thead {
-  background-color: rgba(241, 245, 249, 0.7); /* Semi-transparente */
+  background-color: rgba(241, 245, 249, 0.7);
   color: #334155;
   font-weight: 600;
 }
@@ -774,7 +752,7 @@ html, body {
 
 /* ================= PANTALLA 4: DASHBOARD ================= */
 #pantalla4 {
-  background-color: transparent; /* Usar el fondo del body */
+  background-color: transparent;
   color: var(--text-light);
   padding: 20px;
   flex-direction: column;
@@ -799,7 +777,7 @@ html, body {
 #pantalla4 .filtros-dashboard select {
   padding: 8px;
   border-radius: var(--border-radius-sm);
-  background-color: rgba(31, 41, 55, 0.5); /* --bg-medium con transparencia */
+  background-color: rgba(31, 41, 55, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-light);
 }
@@ -808,13 +786,11 @@ html, body {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
 }
-/* === CARD ESTILO GLASS === */
 #pantalla4 .kpi-card {
   padding: 25px;
   text-align: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border-radius: var(--border-radius-md);
-  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -840,7 +816,6 @@ html, body {
 }
 #pantalla4 .kpi-card.alerta .valor { color: var(--accent-red); }
 
-/* === Contenedor de fila para el Dashboard === */
 .dashboard-row {
     display: flex;
     flex-wrap: wrap;
@@ -848,8 +823,8 @@ html, body {
     width: 100%;
 }
 .dashboard-row > .panel {
-    flex: 1; /* Permite que los paneles crezcan y compartan el espacio */
-    min-width: 300px; /* Asegura que no se compriman demasiado antes de envolver */
+    flex: 1;
+    min-width: 300px;
 }
 
 #pantalla4 .graficos-container {
@@ -858,11 +833,9 @@ html, body {
   gap: 20px;
 }
 
-/* === PANEL ESTILO GLASS === */
 #pantalla4 .panel {
   padding: 20px;
   border-radius: var(--border-radius-md);
-  /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -882,7 +855,7 @@ html, body {
 }
 #pantalla4 #tablaPendientes th, #pantalla4 #tablaPendientes td {
   padding: 12px;
-  border-bottom: 1px solid rgba(55, 65, 81, 0.5); /* --bg-light con transparencia */
+  border-bottom: 1px solid rgba(55, 65, 81, 0.5);
   text-align: left;
 }
 #pantalla4 #tablaPendientes thead { background-color: rgba(55, 65, 81, 0.4); }
@@ -911,7 +884,6 @@ html, body {
 /* ================= MEDIA QUERIES RESPONSIVE ================= */
 @media (max-width: 768px) {
   .header { justify-content: center; text-align: center; }
-  /* #turnoActual ya no es position:static, se maneja por flexbox ahora */
   
   #pantalla3 table { display: none; }
   .reporte-calidad-mobile { display: block; }
@@ -939,12 +911,10 @@ html, body {
   .reporte-calidad-mobile { display: none; }
 }
 
-/* === AJUSTES PARA VISTA HORIZONTAL EN MÓVILES === */
+/* INICIO: AJUSTES PARA VISTA HORIZONTAL EN MÓVILES MODIFICADOS */
 @media (max-height: 500px) and (orientation: landscape) {
-    #pantalla2 .zona-centro {
-        margin-top: 5px;
-        gap: 15px;
-        padding-bottom: 15px;
+    .brand-title {
+        display: none;
     }
     #pantalla2 .header {
         padding: 0 10px;
@@ -952,16 +922,30 @@ html, body {
     #pantalla2 #tituloFijo {
         font-size: clamp(28px, 5vw, 40px);
     }
-    #pantalla2 .grupo-contenedor {
-        flex-direction: row;
-        align-items: flex-start;
-        flex-wrap: nowrap;
+    #pantalla2 .zona-centro {
+        margin-top: 5px;
         gap: 15px;
+        padding-bottom: 15px;
+        width: 100%;
     }
+    #pantalla2 .grupo-contenedor {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: auto auto;
+        gap: 15px;
+        width: 100%;
+        padding: 0 10px;
+    }
+    .grupo[data-grupo="MULTIPORT"] { grid-area: 1 / 1 / 2 / 2; }
+    .grupo[data-grupo="DROPS"] { grid-area: 1 / 2 / 2 / 3; }
+    .grupo[data-grupo="BEDROCK"] { grid-area: 1 / 3 / 2 / 4; }
+    .grupo[data-grupo="CALIDAD_MULTIPORT"] { grid-area: 2 / 1 / 3 / 2; }
+    .grupo[data-grupo="CALIDAD_DROPS"] { grid-area: 2 / 2 / 3 / 3; }
+    .grupo[data-grupo="CALIDAD_BEDROCK"] { grid-area: 2 / 3 / 3 / 4; }
     #pantalla2 .grupo {
-        padding: 15px;
-        min-width: 0; /* Permitir que flexbox controle el tamaño */
-        flex: 1;
+        padding: 10px;
+        min-width: 0;
+        width: 100%;
     }
     #pantalla2 .leds {
         gap: 10px;
@@ -969,14 +953,11 @@ html, body {
     #pantalla2 .led {
         --led-size: 40px;
     }
-    .brand-title {
-        display: none; /* Ocultar el título de la marca para ahorrar espacio */
-    }
     .footer {
         padding: 10px 0 0;
     }
 }
-
+/* FIN: AJUSTES PARA VISTA HORIZONTAL */
 
 </style>
 </head>
@@ -1381,18 +1362,19 @@ let dashboardListeners = [];
   window._seleccionarUsuarioOriginal = (typeof legacy === 'function') ? legacy : null;
   window.seleccionarUsuario = function(usuarioClave) {
     try {
-      window.__usuarioActual = String(usuarioClave || '').toUpperCase();
-      const isDark = window.__usuarioActual.startsWith('CALIDAD') || CONFIG.PRODUCCION_GRUPOS.includes(window.__usuarioActual);
+      const usuario = String(usuarioClave || '').toUpperCase();
+      window.__usuarioActual = usuario;
+      const isDark = usuario.startsWith('CALIDAD') || CONFIG.PRODUCCION_GRUPOS.includes(usuario);
       document.body.classList.toggle('theme-dark', isDark);
       
       const fab = document.getElementById('mtOpenBtn');
       if (fab) {
-          const userBase = window.__usuarioActual.replace('CALIDAD_','');
-          fab.style.display = (userBase === 'MULTIPORT' || userBase === 'LOGÍSTICA' || userBase === 'SUPERVISOR') ? 'block' : 'none';
+          const canSeeFab = ['LOGÍSTICA', 'MULTIPORT', 'CALIDAD_MULTIPORT'].includes(usuario);
+          fab.style.display = canSeeFab ? 'block' : 'none';
       }
 
       if (window._seleccionarUsuarioOriginal) return window._seleccionarUsuarioOriginal(usuarioClave);
-      console.info('[Compat] seleccionarUsuario activo. Usuario:', window.__usuarioActual);
+      console.info('[Compat] seleccionarUsuario activo. Usuario:', usuario);
     } catch (e) { console.error('Error en seleccionarUsuario compat:', e); }
   };
 })();
@@ -1766,9 +1748,6 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
     const estadoActual = snapshot.val() || {};
     const { fecha, turno } = obtenerTurnoActual();
 
-    // ===============================================
-    // FLUJO PARA MULTIPORT (SISTEMA DE TARIMA ID)
-    // ===============================================
     if (esGrupoDeTarimas(grupo)) {
         if (usuarioActual === 'CALIDAD_MULTIPORT' && grupo === usuarioActual) {
             if (!estadoActual.tarimaId) return mostrarAlerta('Este LED está vacío. Usa el panel "TARIMAS" para asignar una.');
@@ -1819,10 +1798,6 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
         }
         return;
     }
-
-    // ===============================================
-    // FLUJO PARA DROPS Y BEDROCK (SISTEMA SIMPLE DE LEDS)
-    // ===============================================
     else {
         const ledIdentifier = `${grupo}-${linea}-${idx + 1}`;
         
@@ -2060,11 +2035,16 @@ function obtenerTurnoActual() { const ahora = new Date(); let fecha = new Date(a
 function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } = obtenerTurnoActual(); document.getElementById('turnoActual').textContent = `Turno actual: ${turnoActualString}`; const rutaHistorialTurno = `historialLogs/${fecha}/${turnoActualString}`; if (historialRef) historialRef.off(); historialRef = db.ref(rutaHistorialTurno); historialRef.on('value', (snapshot) => { const logs = snapshot.val() || {}; let tarimasRecolectadasTotales = 0, tiempoTotalRecoleccion = 0; const contadores = {}; const grupos = ['MULTIPORT', 'BEDROCK', 'DROPS', 'CALIDAD_MULTIPORT', 'CALIDAD_BEDROCK', 'CALIDAD_DROPS']; grupos.forEach(g => { contadores[g] = { confirmadas: 0, recolectadas: 0, liberadas: 0, rechazadas: 0, encendidos: 0 }; }); const tiempos = { MULTIPORT: [], BEDROCK: [], DROPS: [] }; Object.values(logs).forEach(log => { if (!log.grupo || !contadores[log.grupo]) return; switch (log.accion) { case 'confirmada_en_produccion': contadores[log.grupo].confirmadas++; break; case 'led_encendido': contadores[log.grupo].encendidos++; break; case 'recolectada': contadores[log.grupo].recolectadas++; tarimasRecolectadasTotales++; if (log.tiempoRecoleccion != null) { tiempos[log.grupo]?.push(log); tiempoTotalRecoleccion += log.tiempoRecoleccion; } break; case 'rechazada': case 'led_rechazado': contadores[log.grupo].rechazadas++; break; case 'liberada': case 'led_liberado': contadores[log.grupo].liberadas++; break; } }); const tiempoPromedio = tarimasRecolectadasTotales > 0 ? Math.round(tiempoTotalRecoleccion / tarimasRecolectadasTotales) : 0; document.getElementById('tarimasTotales').textContent = tarimasRecolectadasTotales; document.getElementById('tiempoPromedio').textContent = `${tiempoPromedio} min`; document.getElementById('resumenTurno').classList.toggle('oculto', !(usuarioSeleccionado === 'LOGÍSTICA' || usuarioSeleccionado === 'SUPERVISOR')); Object.keys(contadores).forEach(grupo => { const el = document.querySelector(`.grupo[data-grupo="${grupo}"] .tarimas`); if (el) { const c = contadores[grupo]; if(grupo.startsWith('CALIDAD_')){ el.textContent = `Liberadas: ${c.liberadas} | Rechazadas: ${c.rechazadas}`; } else if(esGrupoDeTarimas(grupo)) { el.textContent = `Confirmadas: ${c.confirmadas}`; } else { el.textContent = `Tarimas: ${c.encendidos}`; } } }); Object.keys(tiempos).forEach(grupo => { const contenedorTiempos = document.querySelector(`.tiempos[data-grupo="${grupo}"]`); if (!contenedorTiempos) return; contenedorTiempos.innerHTML = ''; tiempos[grupo].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(log => { const p = document.createElement('p'); const id = log.tarimaId || log.led.replace(grupo + '-', ''); p.innerHTML = `<b>ID ${id}:</b> ${log.tiempoRecoleccion} min<br><small>Inicio: ${formatoHora(log.horaEncendido)} | Fin: ${formatoHora(log.horaApagado)}</small>`; contenedorTiempos.appendChild(p); }); }); }); }
 function actualizarContadoresTarimas(grupo, accion) { const { fecha, turno } = obtenerTurnoActual(); db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1); }
 function activarPantalla(id){ document.querySelectorAll('.pantalla').forEach(p => { p.style.display = 'none'; p.classList.remove('activa'); }); const pantalla = document.getElementById(id); if(pantalla) { pantalla.style.display = 'flex'; pantalla.classList.add('activa'); } }
-function volverAPantalla1(){ usuarioSeleccionado = null; if (historialRef) historialRef.off(); limpiarDashboardListeners(); activarPantalla('pantalla1'); }
+function volverAPantalla1(){
+    usuarioSeleccionado = null;
+    if (historialRef) historialRef.off();
+    limpiarDashboardListeners();
+    document.getElementById('mtOpenBtn').style.display = 'none';
+    activarPantalla('pantalla1');
+}
 function aplicarFiltroSupervisor() {
     const filtro = document.getElementById('filtroAreaSelect').value;
     const grupos = document.querySelectorAll('#pantalla2 .grupo');
-
     grupos.forEach(grupo => {
         const grupoData = grupo.dataset.grupo;
         if (filtro === 'TODAS') {
@@ -2092,6 +2072,7 @@ async function seleccionarUsuario(usuario) {
     } else { isValid = password === appPasswords[usuario]; }
     if (isValid) {
         usuarioSeleccionado = targetUser;
+        window.seleccionarUsuario(targetUser); // Llama al wrapper para la lógica del botón
         document.getElementById('tituloFijo').textContent = targetUser.replace('_', ' ');
 
         const filtroContainer = document.getElementById('filtro-supervisor-container');
@@ -2101,9 +2082,6 @@ async function seleccionarUsuario(usuario) {
         } else {
             filtroContainer.classList.remove('visible');
         }
-
-        const fab = document.getElementById('mtOpenBtn');
-        if (fab) { fab.style.display = (esGrupoDeTarimas(targetUser) || targetUser === 'LOGÍSTICA' || targetUser === 'SUPERVISOR') ? 'block' : 'none'; }
         
         activarPantalla('pantalla2');
         inyectaLEDs();
@@ -2136,10 +2114,8 @@ function procesarReporteCalidad(e,t){datosFiltradosReporte=e.filter(e=>"rechazad
 function procesarReporteProduccion(e,t){datosFiltradosReporte=e.filter(e=>"confirmada_en_produccion"===e.accion||"led_encendido"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Confirmadas/Encendidas</div></div></div>`,l="<table><thead><tr><th>Hora</th><th>Área</th><th>Identificador</th></tr></thead><tbody>",a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{const t=e.horaEncendido||e.timestamp;l+=`<tr><td>${formatoHora(t)}</td><td>${e.grupo}</td><td>${e.tarimaId||e.led}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led}</span><br><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span><br><span class="etiqueta">Hora Inicio:</span><span class="valor">${formatoHora(t)}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
 function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div><div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`,r="<table><thead><tr><th>Área</th><th>Identificador</th><th>Hora de Inicio</th><th>Hora de Recolección</th><th>Tiempo (min)</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${e.grupo}</td><td>${e.tarimaId||e.led}</td><td>${formatoHora(e.horaEncendido)}</td><td>${formatoHora(e.horaApagado)}</td><td>${e.tiempoRecoleccion}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span><br><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led}</span><br><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
 function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={confirmadas:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"confirmada_en_produccion":case"led_encendido":o[t].confirmadas++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":case"led_liberado":o[t].liberadas++;break;case"rechazada":case"led_rechazado":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos"><div class="dato"><div class="valor">${t.confirmadas}</div><div class="etiqueta">Confirmadas/Encendidas</div></div><div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div><div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div><div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div><div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Recolección</div></div></div>`}),t.innerHTML=n}
-// INICIO: Nueva función para Reporte de Tarimas
 function procesarReporteTarimas(logs, contenedor) {
-    datosFiltradosReporte = logs; // Guardar datos para posible exportación
-
+    datosFiltradosReporte = logs;
     const tarimasConfirmadasIds = new Set();
     logs.forEach(log => {
         if (log.accion === 'confirmada_en_produccion' && log.grupo === 'MULTIPORT' && log.tarimaId) {
@@ -2155,30 +2131,14 @@ function procesarReporteTarimas(logs, contenedor) {
     const tarimasConHistorial = {};
     logs.forEach(log => {
         if (log.tarimaId && tarimasConfirmadasIds.has(log.tarimaId)) {
-            if (!tarimasConHistorial[log.tarimaId]) {
-                tarimasConHistorial[log.tarimaId] = [];
-            }
+            if (!tarimasConHistorial[log.tarimaId]) tarimasConHistorial[log.tarimaId] = [];
             tarimasConHistorial[log.tarimaId].push(log);
         }
     });
 
-    let tablaHtml = `
-        <div class="resumen-datos">
-            <div class="dato">
-                <div class="valor">${tarimasConfirmadasIds.size}</div>
-                <div class="etiqueta">Tarimas Encontradas</div>
-            </div>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Tarima ID</th>
-                    <th>Estado Actual</th>
-                    <th>Trazabilidad</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    const resumenHtml = `<div class="resumen-datos"><div class="dato"><div class="valor">${tarimasConfirmadasIds.size}</div><div class="etiqueta">Tarimas Encontradas</div></div></div>`;
+    let tablaHtml = '<table><thead><tr><th>Tarima ID</th><th>Estado Actual</th><th>Trazabilidad</th></tr></thead><tbody>';
+    let movilHtml = '<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';
 
     for (const tarimaId of Array.from(tarimasConfirmadasIds).sort()) {
         const historial = tarimasConHistorial[tarimaId] || [];
@@ -2208,21 +2168,20 @@ function procesarReporteTarimas(logs, contenedor) {
         });
         trazabilidadHtml += '</ul>';
 
-        tablaHtml += `
-            <tr>
-                <td><b>${tarimaId}</b></td>
-                <td>${estadoActual}</td>
-                <td>${trazabilidadHtml}</td>
-            </tr>
-        `;
+        tablaHtml += `<tr><td><b>${tarimaId}</b></td><td>${estadoActual}</td><td>${trazabilidadHtml}</td></tr>`;
+        
+        movilHtml += `<div class="fila-dato">
+                        <span class="etiqueta">Tarima ID:</span><span class="valor">${tarimaId}</span><br>
+                        <span class="etiqueta">Estado Actual:</span><span class="valor">${estadoActual}</span><br>
+                        <span class="etiqueta">Última Actualización:</span><span class="valor">${ultimoEvento ? formatoFechaYHora(ultimoEvento.timestamp) : 'N/A'}</span>
+                      </div>`;
     }
 
     tablaHtml += '</tbody></table>';
-    contenedor.innerHTML = tablaHtml;
-    
+    movilHtml += '</div></div>';
+    contenedor.innerHTML = resumenHtml + tablaHtml + movilHtml;
     document.getElementById("opcionesGrafico").style.display = "none";
 }
-// FIN: Nueva función para Reporte de Tarimas
 function exportarReporteUnificado(){const e=document.getElementById("exportFormatSelect").value;if(!e)return void mostrarAlerta("Por favor, selecciona un formato de exportación.");exportarReporte(e)}
 async function exportarReporte(e){const t=document.querySelector("#contenidoReporte table");if(!t||!datosFiltradosReporte)return mostrarAlerta("No hay datos para exportar.");const o=`${reporteActual}_${document.getElementById("fechaReporte").value}`;"excel"===e?(()=>{const e=XLSX.utils.table_to_sheet(t),o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,e,"Reporte"),XLSX.writeFile(o,`${o}.xlsx`)})():"pdf"===e?exportarAPdf(t,miGrafico,o):"csv"===e&&exportarACsv(t,o)}
 function exportarACsv(e,t){let o=[];e.querySelectorAll("tr").forEach(e=>{let t=[];e.querySelectorAll("th, td").forEach(e=>{t.push(`"${e.textContent.trim().replace(/"/g,'""')}"`)}),o.push(t.join(","))});const n=new Blob([o.join("\n")],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(n),l.download=`${t}.csv`,l.click()}
