@@ -209,11 +209,11 @@ html, body {
 .header {
   position: relative;
   display: flex;
+  flex-direction: column; /* MODIFICADO */
   align-items: center;
   justify-content: center;
   padding: 0 10px;
   width: 100%;
-  flex-wrap: wrap;
 }
 #tituloFijo {
   font-weight: 700;
@@ -221,21 +221,20 @@ html, body {
   font-size: var(--titulo-size);
   color: var(--text-light);
 }
+/* INICIO: Estilos de #turnoActual MODIFICADOS */
 #turnoActual {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 4px 12px;
   border-radius: var(--border-radius-sm);
+  margin-top: 4px;
   /* Efecto Glass */
   background: rgba(31, 41, 55, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+/* FIN: Estilos de #turnoActual MODIFICADOS */
 .zona-centro {
   flex: 1;
   display: flex;
@@ -274,39 +273,39 @@ html, body {
   font-weight: 700;
   color: var(--text-light);
 }
-/* === FILTRO SUPERVISOR (NUEVO) === */
+/* INICIO: Estilos del Filtro Supervisor MODIFICADOS */
 .filtro-supervisor-container {
     display: none; /* Oculto por defecto */
     justify-content: center;
-    gap: 15px;
+    gap: 10px;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 12px;
+    margin-bottom: 15px;
+    padding: 8px 12px; /* Reducido */
     border-radius: var(--border-radius-md);
-    /* Efecto Glass */
     background: rgba(31, 41, 55, 0.5);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    max-width: 400px;
+    max-width: 350px;
 }
 .filtro-supervisor-container.visible {
     display: flex;
 }
 .filtro-supervisor-container label {
-    font-size: 16px;
+    font-size: 14px; /* Reducido */
     font-weight: 600;
     color: var(--text-medium);
 }
 .filtro-supervisor-container select {
-    padding: 8px 12px;
+    padding: 6px 10px; /* Reducido */
     border-radius: var(--border-radius-sm);
-    background-color: rgba(17, 24, 39, 0.7); /* --bg-dark con más opacidad */
+    background-color: rgba(17, 24, 39, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-light);
     font-family: var(--font-family);
-    font-size: 16px;
+    font-size: 14px; /* Reducido */
 }
+/* FIN: Estilos del Filtro Supervisor MODIFICADOS */
 .filtro-supervisor-container select:focus {
     outline: none;
     border-color: var(--accent-blue);
@@ -731,6 +730,7 @@ html, body {
   padding: 12px;
   text-align: left;
   font-size: 0.9em;
+  vertical-align: top; /* Para alinear bien la lista de trazabilidad */
 }
 #pantalla3 thead {
   background-color: rgba(241, 245, 249, 0.7); /* Semi-transparente */
@@ -911,7 +911,7 @@ html, body {
 /* ================= MEDIA QUERIES RESPONSIVE ================= */
 @media (max-width: 768px) {
   .header { justify-content: center; text-align: center; }
-  #turnoActual { position: static; transform: none; margin-top: 10px; }
+  /* #turnoActual ya no es position:static, se maneja por flexbox ahora */
   
   #pantalla3 table { display: none; }
   .reporte-calidad-mobile { display: block; }
@@ -1031,7 +1031,7 @@ html, body {
 </div>
 </div>
 <div id="filtro-supervisor-container" class="filtro-supervisor-container">
-    <label for="filtroAreaSelect">Filtrar por Área:</label>
+    <label for="filtroAreaSelect">Filtrar Área:</label>
     <select id="filtroAreaSelect">
         <option value="TODAS">Todas las áreas</option>
         <option value="MULTIPORT">Multiport</option>
@@ -1103,6 +1103,7 @@ html, body {
             <button class="usuario-btn" data-reporte="produccion">PRODUCCIÓN</button>
             <button class="usuario-btn" data-reporte="logistica">LOGÍSTICA</button>
             <button class="usuario-btn" data-reporte="calidad">CALIDAD</button>
+            <button class="usuario-btn" data-reporte="tarimas">TARIMAS</button>
             <button class="usuario-btn" data-reporte="resumen">RESUMEN EJECUTIVO</button>
         </div>
     </div>
@@ -1805,7 +1806,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                 await mostrarAlerta('Este LED ya tiene una tarima en proceso.');
             }
         }
-        else if (usuarioActual === 'LOGÍSTICA' && grupo === 'MULTIPORT') {
+        else if ((usuarioActual === 'LOGÍSTICA' || usuarioActual === 'SUPERVISOR') && grupo === 'MULTIPORT') {
             if (estadoActual.encendido && estadoActual.tarimaId) {
                 if (!(await mostrarConfirmacion(`¿Confirmas la recolección de la tarima ${estadoActual.tarimaId}?`))) return;
                 const horaEncendido = estadoActual.horaEncendido;
@@ -1883,7 +1884,7 @@ async function togglearLED(grupo, idx, linea = 'linea1') {
                 await mostrarAlerta(`Este LED ya está encendido y corresponde a la ${estadoActual.tarimaId}.`);
             }
         }
-        else if (usuarioActual === 'LOGÍSTICA') {
+        else if (usuarioActual === 'LOGÍSTICA' || usuarioActual === 'SUPERVISOR') {
              if (estadoActual.encendido) {
                 const nombreTarima = estadoActual.tarimaId || `LED ${grupo}-${idx + 1}`;
                 if (!(await mostrarConfirmacion(`¿Confirmas la recolección de ${nombreTarima}?`))) return;
@@ -2060,7 +2061,6 @@ function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } 
 function actualizarContadoresTarimas(grupo, accion) { const { fecha, turno } = obtenerTurnoActual(); db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1); }
 function activarPantalla(id){ document.querySelectorAll('.pantalla').forEach(p => { p.style.display = 'none'; p.classList.remove('activa'); }); const pantalla = document.getElementById(id); if(pantalla) { pantalla.style.display = 'flex'; pantalla.classList.add('activa'); } }
 function volverAPantalla1(){ usuarioSeleccionado = null; if (historialRef) historialRef.off(); limpiarDashboardListeners(); activarPantalla('pantalla1'); }
-// INICIO: Lógica del Filtro de Supervisor (NUEVA)
 function aplicarFiltroSupervisor() {
     const filtro = document.getElementById('filtroAreaSelect').value;
     const grupos = document.querySelectorAll('#pantalla2 .grupo');
@@ -2080,8 +2080,6 @@ function aplicarFiltroSupervisor() {
         }
     });
 }
-// FIN: Lógica del Filtro de Supervisor
-
 async function seleccionarUsuario(usuario) {
     const password = await mostrarPromptContraseña(`Introduce la contraseña para ${usuario}`);
     if (password === null) return;
@@ -2096,15 +2094,13 @@ async function seleccionarUsuario(usuario) {
         usuarioSeleccionado = targetUser;
         document.getElementById('tituloFijo').textContent = targetUser.replace('_', ' ');
 
-        // INICIO: Mostrar/Ocultar filtro (MODIFICADO)
         const filtroContainer = document.getElementById('filtro-supervisor-container');
         if (targetUser === 'SUPERVISOR') {
             filtroContainer.classList.add('visible');
-            document.getElementById('filtroAreaSelect').value = 'TODAS'; // Resetear al entrar
+            document.getElementById('filtroAreaSelect').value = 'TODAS';
         } else {
             filtroContainer.classList.remove('visible');
         }
-        // FIN: Mostrar/Ocultar filtro
 
         const fab = document.getElementById('mtOpenBtn');
         if (fab) { fab.style.display = (esGrupoDeTarimas(targetUser) || targetUser === 'LOGÍSTICA' || targetUser === 'SUPERVISOR') ? 'block' : 'none'; }
@@ -2112,7 +2108,6 @@ async function seleccionarUsuario(usuario) {
         activarPantalla('pantalla2');
         inyectaLEDs();
         
-        // Aplicar filtro si es supervisor (MODIFICADO)
         if (targetUser === 'SUPERVISOR') {
             aplicarFiltroSupervisor();
         }
@@ -2131,16 +2126,103 @@ function actualizarDashboard(historialLogs, tipo, estadoLEDs){ if (!document.get
 function generarGraficoProduccionDash(datos){ if (graficosDashboard.produccion) graficosDashboard.produccion.destroy(); const ctx = document.getElementById('graficoProduccionDash').getContext('2d'); graficosDashboard.produccion = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(datos), datasets: [{ label: 'Tarimas', data: Object.values(datos), backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56'] }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#fff', stepSize: 1 } }, x: { ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
 function generarGraficoCalidadDash(datos){ if (graficosDashboard.calidad) graficosDashboard.calidad.destroy(); const ctx = document.getElementById('graficoCalidadDash').getContext('2d'); graficosDashboard.calidad = new Chart(ctx, { type: 'pie', data: { labels: ['Liberadas', 'Rechazadas'], datasets: [{ data: [datos.liberadas, datos.rechazadas], backgroundColor: ['#4caf50', '#f44336'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#fff' } } } } }); }
 function generarGraficoLogisticaDash(tarimasPorHora){ if (graficosDashboard.logistica) graficosDashboard.logistica.destroy(); const ctx = document.getElementById('graficoLogisticaDash').getContext('2d'); const labels = Array.from({length: 24}, (_, i) => `${i}:00`); const data = labels.map((_, i) => tarimasPorHora[i] || 0); graficosDashboard.logistica = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Tarimas Recolectadas', data, backgroundColor: '#36A2EB' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Tarimas', color: '#fff' }, ticks: { stepSize: 1, color: '#fff' } }, x: { title: { display: true, text: 'Hora', color: '#fff' }, ticks: { color: '#fff' } } }, plugins: { legend: { display: false } } } }); }
-function mostrarReporte(tipo){reporteActual=tipo;document.getElementById("contenedorSelectorReporte").style.display="none";const e=document.getElementById("contenedorReporte");e.style.display="block";const{fecha:t}=obtenerTurnoActual();let o="";"resumen"!==tipo&&(o=`<label for="areaFiltro">Área:</label><select id="areaFiltro">${["TODAS","MULTIPORT","DROPS","BEDROCK","CALIDAD_MULTIPORT","CALIDAD_DROPS","CALIDAD_BEDROCK"].map(e=>`<option value="${e}">${e.replace("CALIDAD_","Calidad ")}</option>`).join("")}</select>`),e.innerHTML=`<div class="header-reporte"><button onclick="regresarASelectores()" class="usuario-btn">Regresar</button><div class="filtros"><label for="fechaReporte">Fecha:</label><input type="date" id="fechaReporte" value="${t}"><label for="turnoFiltro">Turno:</label><select id="turnoFiltro"><option value="todos">Todos</option><option value="Turno 1">Turno 1</option><option value="Turno 2">Turno 2</option></select>${o}<button onclick="buscarReporte()" class="usuario-btn">Buscar</button></div></div><h2 id="tituloReporteDinamico">Cargando...</h2><div id="opcionesGrafico" class="opciones-grafico" style="display:none;"><label>Tipo de Gráfico:</label><select id="tipoGrafico"><option value="bar">Barras</option><option value="pie">Pastel</option><option value="line">Línea</option></select></div><div id="contenidoReporte"></div><div class="botones-reporte"><select id="exportFormatSelect"><option value="" disabled selected>Exportar como...</option><option value="excel">Excel (.xlsx)</option><option value="pdf">PDF</option><option value="csv">CSV</option></select><button class="usuario-btn" onclick="exportarReporteUnificado()">Exportar</button></div>`,document.getElementById("turnoFiltro").value="todos",document.getElementById("tipoGrafico")?.addEventListener("change",actualizarGraficoReporte),buscarReporte()}
+function mostrarReporte(tipo){reporteActual=tipo;document.getElementById("contenedorSelectorReporte").style.display="none";const e=document.getElementById("contenedorReporte");e.style.display="block";const{fecha:t}=obtenerTurnoActual();let o="";"resumen"!==tipo&&"tarimas"!==tipo&&(o=`<label for="areaFiltro">Área:</label><select id="areaFiltro">${["TODAS","MULTIPORT","DROPS","BEDROCK","CALIDAD_MULTIPORT","CALIDAD_DROPS","CALIDAD_BEDROCK"].map(e=>`<option value="${e}">${e.replace("CALIDAD_","Calidad ")}</option>`).join("")}</select>`),e.innerHTML=`<div class="header-reporte"><button onclick="regresarASelectores()" class="usuario-btn">Regresar</button><div class="filtros"><label for="fechaReporte">Fecha:</label><input type="date" id="fechaReporte" value="${t}"><label for="turnoFiltro">Turno:</label><select id="turnoFiltro"><option value="todos">Todos</option><option value="Turno 1">Turno 1</option><option value="Turno 2">Turno 2</option></select>${o}<button onclick="buscarReporte()" class="usuario-btn">Buscar</button></div></div><h2 id="tituloReporteDinamico">Cargando...</h2><div id="opcionesGrafico" class="opciones-grafico" style="display:none;"><label>Tipo de Gráfico:</label><select id="tipoGrafico"><option value="bar">Barras</option><option value="pie">Pastel</option><option value="line">Línea</option></select></div><div id="contenidoReporte"></div><div class="botones-reporte"><select id="exportFormatSelect"><option value="" disabled selected>Exportar como...</option><option value="excel">Excel (.xlsx)</option><option value="pdf">PDF</option><option value="csv">CSV</option></select><button class="usuario-btn" onclick="exportarReporteUnificado()">Exportar</button></div>`,document.getElementById("turnoFiltro").value="todos",document.getElementById("tipoGrafico")?.addEventListener("change",actualizarGraficoReporte),buscarReporte()}
 function actualizarGraficoReporte(){if(!datosFiltradosReporte)return;const e=document.getElementById("tipoGrafico").value,t=document.querySelector("#grafico-contenedor");if(!t)return;t.innerHTML='<canvas id="graficoDinamico"></canvas>';let o,n,l,a="";"produccion"===reporteActual?(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})),l=Object.values(n),a="Tarimas Confirmadas"):"logistica"===reporteActual?(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>(e[t.grupo]=(e[t.grupo]||0)+1,e),{})),l=Object.values(n),a="Tarimas Recolectadas"):"calidad"===reporteActual&&(o=Object.keys(n=datosFiltradosReporte.reduce((e,t)=>{const o=t.detalles?.problema||"No especificado";return e[o]=(e[o]||0)+1,e},{})),l=Object.values(n),a="Número de Rechazos"),miGrafico&&miGrafico.destroy();const r=document.getElementById("graficoDinamico").getContext("2d");miGrafico=new Chart(r,{type:e,data:{labels:o,datasets:[{label:a,data:l,backgroundColor:["#FF6384","#36A2EB","#FFCE56","#4BC0C0","#9966FF","#FF9F40"]}]},options:{responsive:!0,plugins:{title:{display:!0,text:a,font:{size:20}}}}})}
 function regresarASelectores(){document.getElementById("tituloReportes").textContent="REPORTES";document.getElementById("contenedorSelectorReporte").style.display="block";const e=document.getElementById("contenedorReporte");e.innerHTML="",e.style.display="none",miGrafico&&miGrafico.destroy(),datosFiltradosReporte=null}
 function buscarReporte(){const e=reporteActual,t=document.getElementById("fechaReporte").value,o=document.getElementById("turnoFiltro").value,n=document.getElementById("areaFiltro")?.value||"TODAS";cargarDatosReporte(e,t,o,n)}
-function cargarDatosReporte(e,t,o,n){const l=document.getElementById("contenidoReporte"),a=document.getElementById("tituloReporteDinamico");l.innerHTML="<p>Cargando datos...</p>",miGrafico&&miGrafico.destroy(),db.ref(`historialLogs/${t}`).once("value").then(r=>{const i=r.val()||{};let s=[];"todos"===o?Object.values(i).forEach(e=>{s.push(...Object.values(e))}):i[o]&&(s=Object.values(i[o]));const d="TODAS"===n?s:s.filter(e=>e.grupo===n);switch(a.textContent=`Reporte de ${e} - ${t} (${"todos"===o?"Todos los turnos":o})`,e){case"produccion":procesarReporteProduccion(d,l);break;case"logistica":procesarReporteLogistica(d,l);break;case"calidad":procesarReporteCalidad(d,l);break;case"resumen":procesarReporteResumen(s,l)}}).catch(e=>{console.error("Error al cargar datos:",e),l.innerHTML="<p>Error al cargar los datos.</p>"})}
+function cargarDatosReporte(e,t,o,n){const l=document.getElementById("contenidoReporte"),a=document.getElementById("tituloReporteDinamico");l.innerHTML="<p>Cargando datos...</p>",miGrafico&&miGrafico.destroy(),db.ref(`historialLogs/${t}`).once("value").then(r=>{const i=r.val()||{};let s=[];"todos"===o?Object.values(i).forEach(e=>{s.push(...Object.values(e))}):i[o]&&(s=Object.values(i[o]));const d="TODAS"===n?s:s.filter(e=>e.grupo===n);switch(a.textContent=`Reporte de ${e.charAt(0).toUpperCase() + e.slice(1)} - ${t} (${"todos"===o?"Todos los turnos":o})`,e){case"produccion":procesarReporteProduccion(d,l);break;case"logistica":procesarReporteLogistica(d,l);break;case"calidad":procesarReporteCalidad(d,l);break;case"tarimas":procesarReporteTarimas(s,l);break;case"resumen":procesarReporteResumen(s,l)}}).catch(e=>{console.error("Error al cargar datos:",e),l.innerHTML="<p>Error al cargar los datos.</p>"})}
 function formatoFechaYHora(e){return e?new Date(e).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"}):"N/A"}
 function procesarReporteCalidad(e,t){datosFiltradosReporte=e.filter(e=>"rechazada"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Rechazos</div></div></div>`,l='<table><thead><tr><th>Fecha y Hora</th><th>Área</th><th>Línea</th><th>Tarima ID</th><th>Empleado</th><th>No. de Parte</th><th>Problema</th><th>Causa</th><th>Acción</th></tr></thead><tbody>',a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{const t=e.detalles||{};l+=`<tr><td>${formatoFechaYHora(e.timestamp)}</td><td>${e.grupo}</td><td>${t.linea||"N/A"}</td><td>${e.tarimaId||e.led||"N/A"}</td><td>${t.empleado||"N/A"}</td><td>${t.parte||"N/A"}</td><td>${t.problema||"N/A"}</td><td>${t.causa||"N/A"}</td><td>${t.accion||"N/A"}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led||"N/A"}</span><br><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span><br><span class="etiqueta">Línea:</span><span class="valor">${t.linea||"N/A"}</span><br><span class="etiqueta">Problema:</span><span class="valor">${t.problema||"N/A"}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
 function procesarReporteProduccion(e,t){datosFiltradosReporte=e.filter(e=>"confirmada_en_produccion"===e.accion||"led_encendido"===e.accion);const o=datosFiltradosReporte.length;let n=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Confirmadas/Encendidas</div></div></div>`,l="<table><thead><tr><th>Hora</th><th>Área</th><th>Identificador</th></tr></thead><tbody>",a='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{const t=e.horaEncendido||e.timestamp;l+=`<tr><td>${formatoHora(t)}</td><td>${e.grupo}</td><td>${e.tarimaId||e.led}</td></tr>`,a+=`<div class="fila-dato"><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led}</span><br><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span><br><span class="etiqueta">Hora Inicio:</span><span class="valor">${formatoHora(t)}</span></div>`}),l+="</tbody></table>",a+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=n+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+l+a,actualizarGraficoReporte()}
 function procesarReporteLogistica(e,t){datosFiltradosReporte=e.filter(e=>"recolectada"===e.accion);const o=datosFiltradosReporte.length,n=datosFiltradosReporte.reduce((e,t)=>e+(t.tiempoRecoleccion||0),0),l=o>0?(n/o).toFixed(1):0;let a=`<div class="resumen-datos"><div class="dato"><div class="valor">${o}</div><div class="etiqueta">Total Recolectadas</div></div><div class="dato"><div class="valor">${l} min</div><div class="etiqueta">Tiempo Promedio</div></div></div>`,r="<table><thead><tr><th>Área</th><th>Identificador</th><th>Hora de Inicio</th><th>Hora de Recolección</th><th>Tiempo (min)</th></tr></thead><tbody>",i='<div class="reporte-calidad-mobile"><div class="tabla-calidad-movil">';datosFiltradosReporte.forEach(e=>{r+=`<tr><td>${e.grupo}</td><td>${e.tarimaId||e.led}</td><td>${formatoHora(e.horaEncendido)}</td><td>${formatoHora(e.horaApagado)}</td><td>${e.tiempoRecoleccion}</td></tr>`,i+=`<div class="fila-dato"><span class="etiqueta">Área:</span><span class="valor">${e.grupo}</span><br><span class="etiqueta">ID:</span><span class="valor">${e.tarimaId||e.led}</span><br><span class="etiqueta">Tiempo:</span><span class="valor">${e.tiempoRecoleccion} min</span></div>`}),r+="</tbody></table>",i+='</div></div>',document.getElementById("opcionesGrafico").style.display="block",t.innerHTML=a+'<div id="grafico-contenedor" class="grafico-contenedor"></div>'+r+i,actualizarGraficoReporte()}
 function procesarReporteResumen(e,t){const o={};["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{o[e]={confirmadas:0,recolectadas:0,liberadas:0,rechazadas:0,tiempoTotal:0}}),e.forEach(e=>{const t=e.grupo?.replace("CALIDAD_","");if(o[t])switch(e.accion){case"confirmada_en_produccion":case"led_encendido":o[t].confirmadas++;break;case"recolectada":o[t].recolectadas++,o[t].tiempoTotal+=e.tiempoRecoleccion||0;break;case"liberada":case"led_liberado":o[t].liberadas++;break;case"rechazada":case"led_rechazado":o[t].rechazadas++}});let n="";["MULTIPORT","DROPS","BEDROCK"].forEach(e=>{const t=o[e],l=(t.liberadas+t.rechazadas>0?(t.rechazadas/(t.liberadas+t.rechazadas))*100:0).toFixed(1),a=(t.recolectadas>0?t.tiempoTotal/t.recolectadas:0).toFixed(1);n+=`<h3>${e}</h3><div class="resumen-datos"><div class="dato"><div class="valor">${t.confirmadas}</div><div class="etiqueta">Confirmadas/Encendidas</div></div><div class="dato"><div class="valor">${t.liberadas}</div><div class="etiqueta">Liberadas</div></div><div class="dato"><div class="valor">${t.rechazadas}</div><div class="etiqueta">Rechazadas</div></div><div class="dato"><div class="valor">${l}%</div><div class="etiqueta">Tasa Rechazo</div></div><div class="dato"><div class="valor">${a} min</div><div class="etiqueta">Tiempo Recolección</div></div></div>`}),t.innerHTML=n}
+// INICIO: Nueva función para Reporte de Tarimas
+function procesarReporteTarimas(logs, contenedor) {
+    datosFiltradosReporte = logs; // Guardar datos para posible exportación
+
+    const tarimasConfirmadasIds = new Set();
+    logs.forEach(log => {
+        if (log.accion === 'confirmada_en_produccion' && log.grupo === 'MULTIPORT' && log.tarimaId) {
+            tarimasConfirmadasIds.add(log.tarimaId);
+        }
+    });
+
+    if (tarimasConfirmadasIds.size === 0) {
+        contenedor.innerHTML = '<p>No se encontraron tarimas confirmadas por Multiport para el período seleccionado.</p>';
+        return;
+    }
+
+    const tarimasConHistorial = {};
+    logs.forEach(log => {
+        if (log.tarimaId && tarimasConfirmadasIds.has(log.tarimaId)) {
+            if (!tarimasConHistorial[log.tarimaId]) {
+                tarimasConHistorial[log.tarimaId] = [];
+            }
+            tarimasConHistorial[log.tarimaId].push(log);
+        }
+    });
+
+    let tablaHtml = `
+        <div class="resumen-datos">
+            <div class="dato">
+                <div class="valor">${tarimasConfirmadasIds.size}</div>
+                <div class="etiqueta">Tarimas Encontradas</div>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tarima ID</th>
+                    <th>Estado Actual</th>
+                    <th>Trazabilidad</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    for (const tarimaId of Array.from(tarimasConfirmadasIds).sort()) {
+        const historial = tarimasConHistorial[tarimaId] || [];
+        historial.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        let estadoActual = 'Estado desconocido';
+        const ultimoEvento = historial[historial.length - 1];
+        if (ultimoEvento) {
+            switch(ultimoEvento.accion) {
+                case 'recolectada':
+                    estadoActual = `✅ Recolectada por ${ultimoEvento.usuario} (${formatoHora(ultimoEvento.timestamp)})`;
+                    break;
+                case 'confirmada_en_produccion':
+                    estadoActual = `⏳ En Producción (${formatoHora(ultimoEvento.timestamp)})`;
+                    break;
+                default:
+                    estadoActual = 'En proceso...';
+            }
+        }
+
+        let trazabilidadHtml = '<ul style="padding-left: 15px; margin: 0; font-size: 0.85em;">';
+        historial.forEach(log => {
+            let accionTexto = log.accion.replace(/_/g, ' ');
+            accionTexto = accionTexto.charAt(0).toUpperCase() + accionTexto.slice(1);
+            let usuario = log.usuario || log.grupo;
+            trazabilidadHtml += `<li><b>${formatoFechaYHora(log.timestamp)}</b>: ${accionTexto} por <i>${usuario}</i></li>`;
+        });
+        trazabilidadHtml += '</ul>';
+
+        tablaHtml += `
+            <tr>
+                <td><b>${tarimaId}</b></td>
+                <td>${estadoActual}</td>
+                <td>${trazabilidadHtml}</td>
+            </tr>
+        `;
+    }
+
+    tablaHtml += '</tbody></table>';
+    contenedor.innerHTML = tablaHtml;
+    
+    document.getElementById("opcionesGrafico").style.display = "none";
+}
+// FIN: Nueva función para Reporte de Tarimas
 function exportarReporteUnificado(){const e=document.getElementById("exportFormatSelect").value;if(!e)return void mostrarAlerta("Por favor, selecciona un formato de exportación.");exportarReporte(e)}
 async function exportarReporte(e){const t=document.querySelector("#contenidoReporte table");if(!t||!datosFiltradosReporte)return mostrarAlerta("No hay datos para exportar.");const o=`${reporteActual}_${document.getElementById("fechaReporte").value}`;"excel"===e?(()=>{const e=XLSX.utils.table_to_sheet(t),o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,e,"Reporte"),XLSX.writeFile(o,`${o}.xlsx`)})():"pdf"===e?exportarAPdf(t,miGrafico,o):"csv"===e&&exportarACsv(t,o)}
 function exportarACsv(e,t){let o=[];e.querySelectorAll("tr").forEach(e=>{let t=[];e.querySelectorAll("th, td").forEach(e=>{t.push(`"${e.textContent.trim().replace(/"/g,'""')}"`)}),o.push(t.join(","))});const n=new Blob([o.join("\n")],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(n),l.download=`${t}.csv`,l.click()}
@@ -2167,7 +2249,6 @@ window.addEventListener('load', ()=>{
     document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn').forEach(btn => btn.addEventListener('click', () => mostrarReporte(btn.dataset.reporte)));
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(reg => console.log("✅ SW Registrado")).catch(err => console.error("❌ Error SW:", err));
 
-    // Event listener para el nuevo filtro del supervisor (NUEVO)
     document.getElementById('filtroAreaSelect').addEventListener('change', aplicarFiltroSupervisor);
 
     setInterval(actualizarTodosLosContadores, 10000);
