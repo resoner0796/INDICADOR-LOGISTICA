@@ -274,6 +274,44 @@ html, body {
   font-weight: 700;
   color: var(--text-light);
 }
+/* === FILTRO SUPERVISOR (NUEVO) === */
+.filtro-supervisor-container {
+    display: none; /* Oculto por defecto */
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 12px;
+    border-radius: var(--border-radius-md);
+    /* Efecto Glass */
+    background: rgba(31, 41, 55, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 400px;
+}
+.filtro-supervisor-container.visible {
+    display: flex;
+}
+.filtro-supervisor-container label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-medium);
+}
+.filtro-supervisor-container select {
+    padding: 8px 12px;
+    border-radius: var(--border-radius-sm);
+    background-color: rgba(17, 24, 39, 0.7); /* --bg-dark con más opacidad */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    font-family: var(--font-family);
+    font-size: 16px;
+}
+.filtro-supervisor-container select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
 .grupo-contenedor {
   display: flex;
   flex-wrap: wrap;
@@ -991,6 +1029,15 @@ html, body {
     <div class="etiqueta">Tiempo Promedio</div>
     <div id="tiempoPromedio" class="valor">0 min</div>
 </div>
+</div>
+<div id="filtro-supervisor-container" class="filtro-supervisor-container">
+    <label for="filtroAreaSelect">Filtrar por Área:</label>
+    <select id="filtroAreaSelect">
+        <option value="TODAS">Todas las áreas</option>
+        <option value="MULTIPORT">Multiport</option>
+        <option value="DROPS">Drops</option>
+        <option value="BEDROCK">Bedrock</option>
+    </select>
 </div>
 <div class="grupo-contenedor">
     <div class="grupo" data-grupo="MULTIPORT">
@@ -2013,6 +2060,28 @@ function iniciarListenersFirebase() { const { fecha, turno: turnoActualString } 
 function actualizarContadoresTarimas(grupo, accion) { const { fecha, turno } = obtenerTurnoActual(); db.ref(`contadoresTarimas/${fecha}/${turno}/${grupo}/${accion}`).transaction(val => (val || 0) + 1); }
 function activarPantalla(id){ document.querySelectorAll('.pantalla').forEach(p => { p.style.display = 'none'; p.classList.remove('activa'); }); const pantalla = document.getElementById(id); if(pantalla) { pantalla.style.display = 'flex'; pantalla.classList.add('activa'); } }
 function volverAPantalla1(){ usuarioSeleccionado = null; if (historialRef) historialRef.off(); limpiarDashboardListeners(); activarPantalla('pantalla1'); }
+// INICIO: Lógica del Filtro de Supervisor (NUEVA)
+function aplicarFiltroSupervisor() {
+    const filtro = document.getElementById('filtroAreaSelect').value;
+    const grupos = document.querySelectorAll('#pantalla2 .grupo');
+
+    grupos.forEach(grupo => {
+        const grupoData = grupo.dataset.grupo;
+        if (filtro === 'TODAS') {
+            grupo.classList.remove('oculto');
+        } else {
+            const esAreaPrincipal = grupoData === filtro;
+            const esAreaCalidad = grupoData === `CALIDAD_${filtro}`;
+            if (esAreaPrincipal || esAreaCalidad) {
+                grupo.classList.remove('oculto');
+            } else {
+                grupo.classList.add('oculto');
+            }
+        }
+    });
+}
+// FIN: Lógica del Filtro de Supervisor
+
 async function seleccionarUsuario(usuario) {
     const password = await mostrarPromptContraseña(`Introduce la contraseña para ${usuario}`);
     if (password === null) return;
@@ -2026,10 +2095,28 @@ async function seleccionarUsuario(usuario) {
     if (isValid) {
         usuarioSeleccionado = targetUser;
         document.getElementById('tituloFijo').textContent = targetUser.replace('_', ' ');
+
+        // INICIO: Mostrar/Ocultar filtro (MODIFICADO)
+        const filtroContainer = document.getElementById('filtro-supervisor-container');
+        if (targetUser === 'SUPERVISOR') {
+            filtroContainer.classList.add('visible');
+            document.getElementById('filtroAreaSelect').value = 'TODAS'; // Resetear al entrar
+        } else {
+            filtroContainer.classList.remove('visible');
+        }
+        // FIN: Mostrar/Ocultar filtro
+
         const fab = document.getElementById('mtOpenBtn');
         if (fab) { fab.style.display = (esGrupoDeTarimas(targetUser) || targetUser === 'LOGÍSTICA' || targetUser === 'SUPERVISOR') ? 'block' : 'none'; }
+        
         activarPantalla('pantalla2');
         inyectaLEDs();
+        
+        // Aplicar filtro si es supervisor (MODIFICADO)
+        if (targetUser === 'SUPERVISOR') {
+            aplicarFiltroSupervisor();
+        }
+
         pintarEstado();
         iniciarListenersFirebase();
     } else { await mostrarAlerta('Contraseña incorrecta.'); }
@@ -2079,6 +2166,9 @@ window.addEventListener('load', ()=>{
     document.getElementById('modalRechazo').querySelector('form').addEventListener('submit', e => { e.preventDefault(); guardarRechazo(); });
     document.getElementById('selectoresReportes').querySelectorAll('.usuario-btn').forEach(btn => btn.addEventListener('click', () => mostrarReporte(btn.dataset.reporte)));
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(reg => console.log("✅ SW Registrado")).catch(err => console.error("❌ Error SW:", err));
+
+    // Event listener para el nuevo filtro del supervisor (NUEVO)
+    document.getElementById('filtroAreaSelect').addEventListener('change', aplicarFiltroSupervisor);
 
     setInterval(actualizarTodosLosContadores, 10000);
 });
